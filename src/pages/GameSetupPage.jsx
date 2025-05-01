@@ -3,6 +3,7 @@ import React from 'react';
 import { Container, Button, Form, Navbar, Nav } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useGameSettings } from '../context/GameSettingsContext';
+import BottomNavbar from '../components/BottomNavbar';
 
 function GameSetupPage() {
   const { playerCount, setPlayerCount, gameMode, setGameMode, throwingMode, setThrowingMode, cardCount, setCardCount } = useGameSettings();
@@ -73,6 +74,7 @@ function GameSetupPage() {
           Создать игру
         </Button>
       </Container>
+      <BottomNavbar /> 
     </>
   );
 }

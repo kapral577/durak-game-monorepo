@@ -1,17 +1,25 @@
 // src/pages/GameRoomPage.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { useGameSettings } from '../context/GameSettingsContext';
 
 function GameRoomPage() {
   const { playerCount } = useGameSettings();
   const [isReady, setIsReady] = useState(false);
+  const [avatars, setAvatars] = useState([]);
+
+  useEffect(() => {
+    const generatedAvatars = Array.from({ length: playerCount }, () => {
+      const seed = Math.random().toString(36).substring(2, 10);
+      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`;
+    });
+    setAvatars(generatedAvatars);
+  }, [playerCount]);
 
   const handleReadyToggle = () => {
     setIsReady(!isReady);
   };
 
-  // Генерация позиций других игроков
   const renderPlayerSlots = () => {
     const slots = [];
     const positions = [
@@ -31,16 +39,26 @@ function GameRoomPage() {
             position: 'absolute',
             width: '60px',
             height: '60px',
-            backgroundColor: '#ccc',
             borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '0.8rem',
+            overflow: 'hidden',
             ...style,
           }}
         >
-          Игрок {i + 2}
+          <img
+            src={avatars[i]}
+            alt={`Игрок ${i + 2}`}
+            style={{ width: '100%', height: '100%' }}
+          />
+          <div
+            style={{
+              textAlign: 'center',
+              fontSize: '0.7rem',
+              marginTop: '4px',
+              color: 'white',
+            }}
+          >
+            Игрок {i + 2}
+          </div>
         </div>
       );
     }
@@ -59,15 +77,19 @@ function GameRoomPage() {
         paddingBottom: '100px',
       }}
     >
-      {/* Слоты игроков */}
       {renderPlayerSlots()}
 
-      {/* Кнопка "Пригласить друзей" */}
-      <div style={{ position: 'absolute', bottom: '140px', left: '50%', transform: 'translateX(-50%)' }}>
+      <div
+        style={{
+          position: 'absolute',
+          bottom: '100px',
+          left: '50%',
+          transform: 'translateX(-50%)',
+        }}
+      >
         <Button variant="outline-light">Пригласить друга</Button>
       </div>
 
-      {/* Статус-бар с аватаром и кнопкой "Готов" */}
       <div
         style={{
           position: 'fixed',
@@ -97,15 +119,15 @@ function GameRoomPage() {
             width: '40px',
             height: '40px',
             borderRadius: '50%',
+            overflow: 'hidden',
             backgroundColor: '#ddd',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontWeight: 'bold',
-            fontSize: '1rem',
           }}
         >
-          Я
+          <img
+            src={avatars[playerCount - 1]}
+            alt="Я"
+            style={{ width: '100%', height: '100%' }}
+          />
         </div>
       </div>
     </Container>
