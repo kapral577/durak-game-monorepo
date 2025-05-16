@@ -1,0 +1,137 @@
+import React from 'react';
+import { Container, Button, Form } from 'react-bootstrap';
+import { useNavigate } from 'react-router-dom';
+import { useGameSettings } from '../context/GameSettingsContext';
+import { useGame } from '../context/GameEngineProvider';
+import BottomNavbar from '../components/BottomNavbar';
+
+const GameSetupPage: React.FC = () => {
+  const {
+    playerCount,
+    setPlayerCount,
+    gameMode,
+    setGameMode,
+    throwingMode,
+    setThrowingMode,
+    cardCount,
+    setCardCount,
+  } = useGameSettings();
+
+  const { startLobby } = useGame();
+  const navigate = useNavigate();
+
+  const handleCreateGame = () => {
+    const rules = {
+      gameMode,
+      throwingMode,
+      cardCount,
+    };
+
+    const names = Array.from({ length: playerCount - 1 }, (_, i) => `Игрок ${i + 1}`);
+    names.push('Ты');
+
+    startLobby(names, rules);
+    navigate('/room');
+  };
+
+  return (
+    <>
+      <Container
+        fluid
+        className="d-flex flex-column justify-content-center align-items-center"
+        style={{
+          minHeight: '100vh',
+          padding: '2rem',
+          paddingBottom: '6rem',
+          background: 'linear-gradient(135deg, #1c1c1c 0%, #343a40 100%)',
+          color: 'white',
+        }}
+      >
+        <h1 className="mb-5 text-center" style={{ fontSize: '2.5rem', fontWeight: 'bold' }}>
+          Настройка игры
+        </h1>
+
+        {/* Количество игроков */}
+        <Form.Group className="mb-4 text-center">
+          <Form.Label style={{ fontSize: '1.5rem' }}>Количество игроков</Form.Label>
+          <Form.Select
+            value={playerCount}
+            onChange={(e) => setPlayerCount(Number(e.target.value))}
+          >
+            {[2, 3, 4, 5, 6].map((count) => (
+              <option key={count} value={count}>
+                {count}
+              </option>
+            ))}
+          </Form.Select>
+        </Form.Group>
+
+        {/* Режим игры */}
+        <Form.Group className="mb-4 text-center">
+          <Form.Label style={{ fontSize: '1.5rem' }}>Режим игры</Form.Label>
+          <div className="d-flex justify-content-center gap-3">
+            <Button
+              variant={gameMode === 'classic' ? 'primary' : 'outline-light'}
+              onClick={() => setGameMode('classic')}
+            >
+              Классический
+            </Button>
+            <Button
+              variant={gameMode === 'transferable' ? 'primary' : 'outline-light'}
+              onClick={() => setGameMode('transferable')}
+            >
+              Переводной
+            </Button>
+          </div>
+        </Form.Group>
+
+        {/* Подкидывание */}
+        <Form.Group className="mb-4 text-center">
+          <Form.Label style={{ fontSize: '1.5rem' }}>Подкидывание</Form.Label>
+          <div className="d-flex justify-content-center gap-3">
+            <Button
+              variant={throwingMode === 'standard' ? 'primary' : 'outline-light'}
+              onClick={() => setThrowingMode('standard')}
+            >
+              Стандартное
+            </Button>
+            <Button
+              variant={throwingMode === 'smart' ? 'primary' : 'outline-light'}
+              onClick={() => setThrowingMode('smart')}
+            >
+              Умное
+            </Button>
+          </div>
+        </Form.Group>
+
+        {/* Размер колоды */}
+        <Form.Group className="mb-4 text-center">
+          <Form.Label style={{ fontSize: '1.5rem' }}>Размер колоды</Form.Label>
+          <div className="d-flex justify-content-center gap-3">
+            <Button
+              variant={cardCount === 36 ? 'primary' : 'outline-light'}
+              onClick={() => setCardCount(36)}
+            >
+              36 карт
+            </Button>
+            <Button
+              variant={cardCount === 52 ? 'primary' : 'outline-light'}
+              onClick={() => setCardCount(52)}
+            >
+              52 карты
+            </Button>
+          </div>
+        </Form.Group>
+
+        {/* Кнопка создания игры */}
+        <Button variant="light" size="lg" onClick={handleCreateGame}>
+          Создать игру
+        </Button>
+      </Container>
+
+      <BottomNavbar />
+    </>
+  );
+};
+
+export default GameSetupPage;

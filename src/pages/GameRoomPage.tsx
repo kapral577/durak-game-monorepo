@@ -1,27 +1,35 @@
-// src/pages/GameRoomPage.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Container, Button } from 'react-bootstrap';
-import { useGameSettings } from '../context/GameSettingsContext';
+import { useNavigate } from 'react-router-dom';
+import { useGame } from '../context/GameEngineProvider';
 
-function GameRoomPage() {
-  const { playerCount } = useGameSettings();
-  const [isReady, setIsReady] = useState(false);
-  const [avatars, setAvatars] = useState([]);
+const GameRoomPage: React.FC = () => {
+  const { players, you, markReady, gameState, startGame } = useGame();
+  const navigate = useNavigate();
+
+  const isReady = you?.status === 'ready';
 
   useEffect(() => {
-    const generatedAvatars = Array.from({ length: playerCount }, () => {
-      const seed = Math.random().toString(36).substring(2, 10);
-      return `https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`;
-    });
-    setAvatars(generatedAvatars);
-  }, [playerCount]);
+    // Если все игроки готовы — запускаем игру
+    if (players.length > 0 && players.every((p) => p.status === 'ready')) {
+      startGame();
+    }
+  }, [players, startGame]);
+
+  useEffect(() => {
+    // Когда статус становится in_progress — переход на страницу игры
+    if (gameState?.status === 'in_progress') {
+      navigate('/play');
+    }
+  }, [gameState, navigate]);
+
+  if (!you) return null;
 
   const handleReadyToggle = () => {
-    setIsReady(!isReady);
+    markReady(you.id);
   };
 
   const renderPlayerSlots = () => {
-    const slots = [];
     const positions = [
       { top: '5%', left: '50%', transform: 'translateX(-50%)' },
       { top: '20%', left: '20%' },
@@ -30,40 +38,42 @@ function GameRoomPage() {
       { top: '40%', right: '10%' },
     ];
 
-    for (let i = 0; i < playerCount - 1; i++) {
-      const style = positions[i] || {};
-      slots.push(
-        <div
-          key={i}
-          style={{
-            position: 'absolute',
-            width: '60px',
-            height: '60px',
-            borderRadius: '50%',
-            overflow: 'hidden',
-            ...style,
-          }}
-        >
-          <img
-            src={avatars[i]}
-            alt={`Игрок ${i + 2}`}
-            style={{ width: '100%', height: '100%' }}
-          />
+    return players
+      .filter((p) => p.id !== you.id)
+      .map((player, index) => {
+        const style = positions[index] || {};
+        const seed = player.name + player.id;
+
+        return (
           <div
+            key={player.id}
             style={{
-              textAlign: 'center',
-              fontSize: '0.7rem',
-              marginTop: '4px',
-              color: 'white',
+              position: 'absolute',
+              width: '60px',
+              height: '60px',
+              borderRadius: '50%',
+              overflow: 'hidden',
+              ...style,
             }}
           >
-            Игрок {i + 2}
+            <img
+              src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${seed}`}
+              alt={player.name}
+              style={{ width: '100%', height: '100%' }}
+            />
+            <div
+              style={{
+                textAlign: 'center',
+                fontSize: '0.7rem',
+                marginTop: '4px',
+                color: 'white',
+              }}
+            >
+              {player.name}
+            </div>
           </div>
-        </div>
-      );
-    }
-
-    return slots;
+        );
+      });
   };
 
   return (
@@ -124,7 +134,7 @@ function GameRoomPage() {
           }}
         >
           <img
-            src={avatars[playerCount - 1]}
+            src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${you.name + you.id}`}
             alt="Я"
             style={{ width: '100%', height: '100%' }}
           />
@@ -132,6 +142,6 @@ function GameRoomPage() {
       </div>
     </Container>
   );
-}
+};
 
 export default GameRoomPage;

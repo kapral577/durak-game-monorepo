@@ -2,7 +2,7 @@ import React from 'react';
 import { Container } from 'react-bootstrap';
 import BottomNavbar from '../components/BottomNavbar';
 
-function TablesPage() {
+const FriendsPage: React.FC = () => {
   return (
     <>
       <Container
@@ -11,7 +11,7 @@ function TablesPage() {
         style={{
           minHeight: '100vh',
           padding: '2rem',
-          paddingBottom: '6rem', // Отступ под статус-бар
+          paddingBottom: '6rem',
           background: 'linear-gradient(135deg, #1c1c1c 0%, #343a40 100%)',
           color: 'white',
         }}
@@ -23,16 +23,16 @@ function TablesPage() {
             textShadow: '2px 2px 8px rgba(0,0,0,0.7)',
           }}
         >
-          Столы
+          Друзья
         </h1>
         <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>
-          Здесь будет выбор стола для игры.
+          Здесь будет список ваших друзей.
         </p>
       </Container>
 
       <BottomNavbar />
     </>
   );
-}
+};
 
-export default TablesPage;
+export default FriendsPage;
