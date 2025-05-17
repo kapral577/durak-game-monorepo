@@ -34,7 +34,7 @@ const GameSetupPage: React.FC = () => {
       names.push('Ты');
 
       startLobby(names, rules);
-      navigate(`/room/${roomId}`);
+      navigate('/play');
     }
   }, [roomId]);
 
@@ -55,13 +55,9 @@ const GameSetupPage: React.FC = () => {
           Настройка игры
         </h1>
 
-        {/* Количество игроков */}
         <Form.Group className="mb-4 text-center">
           <Form.Label style={{ fontSize: '1.5rem' }}>Количество игроков</Form.Label>
-          <Form.Select
-            value={playerCount}
-            onChange={(e) => setPlayerCount(Number(e.target.value))}
-          >
+          <Form.Select value={playerCount} onChange={(e) => setPlayerCount(Number(e.target.value))}>
             {[2, 3, 4, 5, 6].map((count) => (
               <option key={count} value={count}>
                 {count}
@@ -70,7 +66,6 @@ const GameSetupPage: React.FC = () => {
           </Form.Select>
         </Form.Group>
 
-        {/* Режим игры */}
         <Form.Group className="mb-4 text-center">
           <Form.Label style={{ fontSize: '1.5rem' }}>Режим игры</Form.Label>
           <div className="d-flex justify-content-center gap-3">
@@ -89,7 +84,6 @@ const GameSetupPage: React.FC = () => {
           </div>
         </Form.Group>
 
-        {/* Подкидывание */}
         <Form.Group className="mb-4 text-center">
           <Form.Label style={{ fontSize: '1.5rem' }}>Подкидывание</Form.Label>
           <div className="d-flex justify-content-center gap-3">
@@ -108,7 +102,6 @@ const GameSetupPage: React.FC = () => {
           </div>
         </Form.Group>
 
-        {/* Размер колоды */}
         <Form.Group className="mb-4 text-center">
           <Form.Label style={{ fontSize: '1.5rem' }}>Размер колоды</Form.Label>
           <div className="d-flex justify-content-center gap-3">
@@ -127,7 +120,6 @@ const GameSetupPage: React.FC = () => {
           </div>
         </Form.Group>
 
-        {/* Кнопка создания игры */}
         <Button variant="light" size="lg" onClick={handleCreateGame}>
           Создать игру
         </Button>
