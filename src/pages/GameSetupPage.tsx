@@ -1,9 +1,10 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Container, Button, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useGameSettings } from '../context/GameSettingsContext';
 import { useGame } from '../context/GameEngineProvider';
 import BottomNavbar from '../components/BottomNavbar';
+import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
 const GameSetupPage: React.FC = () => {
   const {
@@ -19,20 +20,23 @@ const GameSetupPage: React.FC = () => {
 
   const { startLobby } = useGame();
   const navigate = useNavigate();
+  const { roomId, createRoom, isConnected } = useWebSocketRoom();
 
   const handleCreateGame = () => {
-    const rules = {
-      gameMode,
-      throwingMode,
-      cardCount,
-    };
-
-    const names = Array.from({ length: playerCount - 1 }, (_, i) => `Игрок ${i + 1}`);
-    names.push('Ты');
-
-    startLobby(names, rules);
-    navigate('/room');
+    if (!isConnected) return;
+    createRoom();
   };
+
+  useEffect(() => {
+    if (roomId) {
+      const rules = { gameMode, throwingMode, cardCount };
+      const names = Array.from({ length: playerCount - 1 }, (_, i) => `Игрок ${i + 1}`);
+      names.push('Ты');
+
+      startLobby(names, rules);
+      navigate(`/room/${roomId}`);
+    }
+  }, [roomId]);
 
   return (
     <>

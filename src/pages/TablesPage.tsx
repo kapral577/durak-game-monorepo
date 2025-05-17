@@ -1,8 +1,36 @@
-import React from 'react';
-import { Container } from 'react-bootstrap';
+import React, { useEffect, useState } from 'react';
+import { Container, Card, Button } from 'react-bootstrap';
 import BottomNavbar from '../components/BottomNavbar';
+import { useNavigate } from 'react-router-dom';
+import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
 const TablesPage: React.FC = () => {
+  const [rooms, setRooms] = useState<string[]>([]);
+  const { joinRoom } = useWebSocketRoom();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const socket = new WebSocket('wss://durak-server-051x.onrender.com');
+
+    socket.onopen = () => {
+      socket.send(JSON.stringify({ type: 'get_rooms' }));
+    };
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+      if (data.type === 'rooms_list') {
+        setRooms(data.rooms);
+      }
+    };
+
+    return () => socket.close();
+  }, []);
+
+  const handleJoin = (roomId: string) => {
+    joinRoom(roomId);
+    navigate(`/room/${roomId}`);
+  };
+
   return (
     <>
       <Container
@@ -25,9 +53,26 @@ const TablesPage: React.FC = () => {
         >
           Столы
         </h1>
-        <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>
-          Здесь будет выбор стола для игры.
-        </p>
+
+        {rooms.length === 0 ? (
+          <p style={{ marginTop: '1rem', fontSize: '1.2rem' }}>
+            Нет доступных комнат
+          </p>
+        ) : (
+          rooms.map((roomId) => (
+            <Card
+              key={roomId}
+              style={{ width: '300px', marginTop: '1rem', backgroundColor: '#2c2c2c', color: 'white' }}
+            >
+              <Card.Body className="d-flex justify-content-between align-items-center">
+                <div>Комната #{roomId}</div>
+                <Button variant="outline-light" size="sm" onClick={() => handleJoin(roomId)}>
+                  Войти
+                </Button>
+              </Card.Body>
+            </Card>
+          ))
+        )}
       </Container>
 
       <BottomNavbar />

@@ -27,7 +27,10 @@ const MainMenu: React.FC = () => {
         Durak Online
       </h1>
 
-      <div className="d-flex flex-column gap-4" style={{ width: '100%', maxWidth: '300px', marginTop: '3rem' }}>
+      <div
+        className="d-flex flex-column gap-4"
+        style={{ width: '100%', maxWidth: '300px', marginTop: '3rem' }}
+      >
         <Button variant="light" size="lg" className="w-100" onClick={() => navigate('/setup')}>
           Играть
         </Button>
