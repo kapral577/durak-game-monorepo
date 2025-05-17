@@ -6,25 +6,30 @@ import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
 const TablesPage: React.FC = () => {
   const [rooms, setRooms] = useState<string[]>([]);
-  const { joinRoom } = useWebSocketRoom();
+  const { socket, joinRoom, getRooms } = useWebSocketRoom();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const socket = new WebSocket('wss://durak-server-051x.onrender.com');
+    if (!socket) return;
 
-    socket.onopen = () => {
-      socket.send(JSON.stringify({ type: 'get_rooms' }));
-    };
+    // При открытии соединения — запросить список комнат
+    if (socket.readyState === WebSocket.OPEN) {
+      getRooms();
+    } else {
+      socket.onopen = () => getRooms();
+    }
 
-    socket.onmessage = (event) => {
+    // Слушаем ответы сервера
+    const handleMessage = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
       if (data.type === 'rooms_list') {
         setRooms(data.rooms);
       }
     };
 
-    return () => socket.close();
-  }, []);
+    socket.addEventListener('message', handleMessage);
+    return () => socket.removeEventListener('message', handleMessage);
+  }, [socket]);
 
   const handleJoin = (roomId: string) => {
     joinRoom(roomId);

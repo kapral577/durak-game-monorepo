@@ -1,80 +1,66 @@
 import { useEffect, useRef, useState } from 'react';
 
-type Message =
-  | { type: 'create_room' }
-  | { type: 'join_room'; roomId: string }
-  | { type: 'room_created'; roomId: string }
-  | { type: 'room_joined'; roomId: string }
-  | { type: 'player_count'; count: number }
-  | { type: 'error'; message: string };
-
-export function useWebSocketRoom(url = 'wss://durak-server-051x.onrender.com') {
-  const socketRef = useRef<WebSocket | null>(null);
-  const [roomId, setRoomId] = useState<string | null>(null);
-  const [playerCount, setPlayerCount] = useState<number>(1);
-  const [isConnected, setConnected] = useState<boolean>(false);
+export function useWebSocketRoom() {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [roomId, setRoomId] = useState<string>('');
+  const [isConnected, setIsConnected] = useState<boolean>(false);
+  const joinCallback = useRef<(roomId: string) => void>();
 
   useEffect(() => {
-    const socket = new WebSocket(url);
-    socketRef.current = socket;
+    const ws = new WebSocket('wss://durak-server-051x.onrender.com');
 
-    socket.onopen = () => {
-      setConnected(true);
-      console.log('[WebSocket] Connected');
+    ws.onopen = () => {
+      setIsConnected(true);
+      console.log('[WS] Connected');
     };
 
-    socket.onmessage = (event) => {
-      const msg: Message = JSON.parse(event.data);
-      console.log('[WebSocket] Message:', msg);
+    ws.onclose = () => {
+      setIsConnected(false);
+      console.log('[WS] Disconnected');
+    };
 
-      if (msg.type === 'room_created') {
-        setRoomId(msg.roomId);
+    ws.onmessage = (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'room_created') {
+        setRoomId(data.roomId);
       }
 
-      if (msg.type === 'room_joined') {
-        setRoomId(msg.roomId);
-      }
-
-      if (msg.type === 'player_count') {
-        setPlayerCount(msg.count);
-      }
-
-      if (msg.type === 'error') {
-        console.warn('[WebSocket] Error:', msg.message);
+      if (data.type === 'room_joined') {
+        if (joinCallback.current) {
+          joinCallback.current(data.roomId);
+        }
       }
     };
 
-    socket.onclose = () => {
-      setConnected(false);
-      console.log('[WebSocket] Disconnected');
-    };
+    setSocket(ws);
+    return () => ws.close();
+  }, []);
 
-    return () => {
-      socket.close();
-    };
-  }, [url]);
-
-  const send = (msg: Message) => {
-    if (socketRef.current?.readyState === WebSocket.OPEN) {
-      socketRef.current.send(JSON.stringify(msg));
-    } else {
-      console.warn('[WebSocket] Not ready');
+  const createRoom = () => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'create_room' }));
     }
   };
 
-  const createRoom = () => {
-    send({ type: 'create_room' });
+  const joinRoom = (roomId: string) => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'join_room', roomId }));
+    }
   };
 
-  const joinRoom = (id: string) => {
-    send({ type: 'join_room', roomId: id });
+  const getRooms = () => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ type: 'get_rooms' }));
+    }
   };
 
   return {
+    socket,
     roomId,
-    playerCount,
+    isConnected,
     createRoom,
     joinRoom,
-    isConnected,
+    getRooms,
   };
 }
