@@ -1,93 +1,66 @@
 import React from 'react';
-import { Container, Row, Col } from 'react-bootstrap';
 import { useGame } from '../context/GameEngineProvider';
+import { Container, Row, Col } from 'react-bootstrap';
 
 const GamePlayPage: React.FC = () => {
-  const { gameState, you } = useGame();
+  const { gameState } = useGame();
 
-  if (!gameState || !you) return <div>Загрузка игры...</div>;
+  if (!gameState) return null;
 
-  const {
-    players,
-    trumpSuit,
-    currentAttackerIndex,
-    currentDefenderIndex,
-    rules,
-  } = gameState;
+  const { players, you, table } = gameState;
 
-  const isYourTurn = players[currentAttackerIndex].id === you.id;
+  const isYourTurn = players[gameState.currentAttackerIndex].id === you.id;
 
   return (
     <Container
       fluid
+      className="d-flex flex-column justify-content-center align-items-center"
       style={{
         minHeight: '100vh',
+        padding: '2rem',
         background: 'linear-gradient(135deg, #1c1c1c 0%, #343a40 100%)',
         color: 'white',
-        padding: '2rem',
       }}
     >
-      <h2 className="text-center mb-4">
-        Козырь: <span style={{ color: '#ffcc00' }}>{trumpSuit}</span>
-      </h2>
+      <h1 className="mb-4">Игра началась</h1>
 
-      <Row className="justify-content-center mb-5">
+      <Row className="w-100 justify-content-center mb-5">
         {players
           .filter((p) => p.id !== you.id)
           .map((player) => (
-            <Col key={player.id} xs="auto" className="text-center">
+            <Col
+              key={player.id}
+              xs={6}
+              md={3}
+              className="d-flex flex-column align-items-center"
+            >
               <div
                 style={{
                   width: '60px',
                   height: '60px',
                   borderRadius: '50%',
-                  overflow: 'hidden',
+                  backgroundColor: '#555',
                   margin: '0 auto 0.5rem',
                   border: '2px solid #888',
                 }}
-              >
-                <img
-                  src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${player.name + player.id}`}
-                  alt={player.name}
-                  style={{ width: '100%', height: '100%' }}
-                />
-              </div>
-              <div style={{ fontSize: '0.85rem', color: '#ccc' }}>{player.name}</div>
-              <div style={{ fontSize: '0.75rem', color: '#999' }}>
-                Карт: {player.hand.length}
-              </div>
+              ></div>
+              <div>{player.name}</div>
+              <div style={{ fontSize: '0.9rem', color: '#bbb' }}>Карт: {player.hand.length}</div>
             </Col>
           ))}
       </Row>
 
-      <h4 className="text-center mb-4" style={{ color: isYourTurn ? '#0f0' : '#aaa' }}>
-        {isYourTurn ? 'Ваш ход (атака)' : 'Ожидание хода...'}
-      </h4>
+      <div className="mb-5">
+        <h4>Карт на столе: {table.length}</h4>
+        {/* Можно отобразить карты здесь */}
+      </div>
 
-      <div className="d-flex justify-content-center flex-wrap" style={{ gap: '1rem' }}>
-        {you.hand.map((card, index) => (
-          <div
-            key={index}
-            style={{
-              width: '60px',
-              height: '90px',
-              backgroundColor: '#222',
-              color: '#fff',
-              borderRadius: '8px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 4px 6px rgba(0,0,0,0.4)',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              border: '1px solid #555',
-            }}
-          >
-            <div>{card.rank}</div>
-            <div>{card.suit}</div>
-          </div>
-        ))}
+      <div className="position-fixed bottom-0 start-0 end-0 p-4 bg-dark text-white">
+        <div className="text-center">
+          <div className="mb-2">Вы: {you.name}</div>
+          <div style={{ fontSize: '0.9rem', color: '#bbb' }}>Карт: {you.hand.length}</div>
+          {isYourTurn && <div className="mt-2 text-success">Ваш ход</div>}
+        </div>
       </div>
     </Container>
   );
