@@ -20,7 +20,7 @@ const GameSetupPage: React.FC = () => {
 
   const { startLobby } = useGame();
   const navigate = useNavigate();
-  const { roomId, createRoom, isConnected } = useWebSocketRoom();
+  const { roomId, createRoom, isConnected, joinRoom } = useWebSocketRoom();
 
   const handleCreateGame = () => {
     if (!isConnected) return;
@@ -29,6 +29,8 @@ const GameSetupPage: React.FC = () => {
 
   useEffect(() => {
     if (roomId) {
+      joinRoom(roomId); // ✅ теперь мы явно присоединяемся к комнате
+
       const rules = { gameMode, throwingMode, cardCount };
       const names = Array.from({ length: playerCount - 1 }, (_, i) => `Игрок ${i + 1}`);
       names.push('Ты');
