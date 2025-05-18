@@ -6,7 +6,7 @@ export function useWebSocketRoom() {
   const [roomId, setRoomId] = useState<string>('');
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const joinCallback = useRef<(roomId: string) => void>();
-  const [players, setPlayers] = useState<(any | null)[]>([]);
+  const [slots, setSlots] = useState<(any | null)[]>([]);
 
   const { playerCount } = useGameSettings();
 
@@ -24,14 +24,6 @@ export function useWebSocketRoom() {
     const generated = 'Игрок ' + Math.floor(Math.random() * 1000);
     localStorage.setItem('playerName', generated);
     return generated;
-  }, []);
-
-  const avatar = useMemo(() => {
-    const existing = localStorage.getItem('playerAvatar');
-    if (existing) return existing;
-    const seed = Math.random().toString(36).substring(2, 10);
-    localStorage.setItem('playerAvatar', seed);
-    return seed;
   }, []);
 
   useEffect(() => {
@@ -61,7 +53,7 @@ export function useWebSocketRoom() {
       }
 
       if (data.type === 'room_state') {
-        setPlayers(data.players);
+        setSlots(data.slots);
       }
     };
 
@@ -75,7 +67,6 @@ export function useWebSocketRoom() {
         type: 'create_room',
         playerId,
         name,
-        avatar,
         maxPlayers: playerCount,
       }));
     }
@@ -88,7 +79,6 @@ export function useWebSocketRoom() {
         roomId,
         playerId,
         name,
-        avatar,
       }));
     }
   };
@@ -106,7 +96,7 @@ export function useWebSocketRoom() {
     createRoom,
     joinRoom,
     getRooms,
-    players,
-    you: { playerId, name, avatar },
+    slots,
+    you: { playerId, name },
   };
 }
