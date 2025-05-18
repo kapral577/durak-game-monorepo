@@ -1,10 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Container } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
 const GameRoomPage: React.FC = () => {
-  const { joinRoom, players, you } = useWebSocketRoom();
+  const { joinRoom, slots, you } = useWebSocketRoom();
   const navigate = useNavigate();
   const { roomId } = useParams();
 
@@ -13,6 +13,13 @@ const GameRoomPage: React.FC = () => {
       joinRoom(roomId);
     }
   }, [roomId]);
+
+  const orderedSlots = useMemo(() => {
+    if (!you || !slots.length) return slots;
+    const yourIndex = slots.findIndex((s) => s.player?.playerId === you.playerId);
+    if (yourIndex === -1) return slots;
+    return [...slots.slice(yourIndex), ...slots.slice(0, yourIndex)];
+  }, [slots, you]);
 
   if (!you) return null;
 
@@ -38,20 +45,23 @@ const GameRoomPage: React.FC = () => {
       <p className="mb-4">Ожидание игроков...</p>
 
       <div className="d-flex flex-wrap justify-content-center gap-4 mb-4">
-        {players.map((player, index) => (
+        {orderedSlots.map((slot, index) => (
           <div
             key={index}
             className="d-flex flex-column align-items-center"
             style={{ minWidth: '80px' }}
           >
-            {player ? (
+            {slot.player ? (
               <>
-                <img
-                  src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${player.avatar}`}
-                  alt={player.name}
-                  style={{ width: '60px', height: '60px' }}
-                />
-                <div style={{ fontSize: '0.9rem' }}>{player.name}</div>
+                <div
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: slot.player.playerId === you.playerId ? '#0f0' : '#fff',
+                    borderRadius: '50%',
+                  }}
+                ></div>
+                <div style={{ fontSize: '0.9rem' }}>{slot.player.name}</div>
               </>
             ) : (
               <>
