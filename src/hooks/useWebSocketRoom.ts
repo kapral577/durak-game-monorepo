@@ -1,12 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useGame } from '../context/GameEngineProvider';
+import { useGameSettings } from '../context/GameSettingsContext';
 
 export function useWebSocketRoom() {
   const [socket, setSocket] = useState<WebSocket | null>(null);
   const [roomId, setRoomId] = useState<string>('');
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const joinCallback = useRef<(roomId: string) => void>();
-  const { startLobby } = useGame();
+  const [players, setPlayers] = useState<(any | null)[]>([]);
+
+  const { playerCount } = useGameSettings();
 
   const playerId = useMemo(() => {
     const existing = localStorage.getItem('playerId');
@@ -59,14 +61,7 @@ export function useWebSocketRoom() {
       }
 
       if (data.type === 'room_state') {
-        const players = data.players.map((p: any) => ({
-          id: p.playerId,
-          name: p.name,
-          avatar: p.avatar,
-          ready: false,
-        }));
-        const you = players.find((p: any) => p.id === playerId);
-        startLobby(players, {}, you);
+        setPlayers(data.players);
       }
     };
 
@@ -76,13 +71,25 @@ export function useWebSocketRoom() {
 
   const createRoom = () => {
     if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'create_room', playerId, name, avatar }));
+      socket.send(JSON.stringify({
+        type: 'create_room',
+        playerId,
+        name,
+        avatar,
+        maxPlayers: playerCount,
+      }));
     }
   };
 
   const joinRoom = (roomId: string) => {
     if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'join_room', roomId, playerId, name, avatar }));
+      socket.send(JSON.stringify({
+        type: 'join_room',
+        roomId,
+        playerId,
+        name,
+        avatar,
+      }));
     }
   };
 
@@ -99,5 +106,7 @@ export function useWebSocketRoom() {
     createRoom,
     joinRoom,
     getRooms,
+    players,
+    you: { playerId, name, avatar },
   };
 }

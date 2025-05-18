@@ -1,12 +1,10 @@
 import React, { useEffect } from 'react';
-import { Container, Button } from 'react-bootstrap';
+import { Container } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useGame } from '../context/GameEngineProvider';
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
 const GameRoomPage: React.FC = () => {
-  const { players, you, markReady, gameState, startGame } = useGame();
-  const { joinRoom } = useWebSocketRoom();
+  const { joinRoom, players, you } = useWebSocketRoom();
   const navigate = useNavigate();
   const { roomId } = useParams();
 
@@ -16,15 +14,7 @@ const GameRoomPage: React.FC = () => {
     }
   }, [roomId]);
 
-  const handleStartGame = () => {
-    startGame();
-    navigate('/play');
-  };
-
   if (!you) return null;
-
-  const isHost = players[players.length - 1].id === you.id;
-  const allReady = players.every((p) => p.ready);
 
   return (
     <Container
@@ -54,36 +44,31 @@ const GameRoomPage: React.FC = () => {
             className="d-flex flex-column align-items-center"
             style={{ minWidth: '80px' }}
           >
-            <img
-              src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${player.avatar}`}
-              alt={player.name}
-              style={{ width: '60px', height: '60px' }}
-            />
-            <div style={{ fontSize: '0.9rem' }}>{player.name}</div>
-            <div
-              style={{
-                width: '12px',
-                height: '12px',
-                borderRadius: '50%',
-                backgroundColor: player.ready ? 'limegreen' : 'gray',
-                marginTop: '4px',
-              }}
-            ></div>
+            {player ? (
+              <>
+                <img
+                  src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${player.avatar}`}
+                  alt={player.name}
+                  style={{ width: '60px', height: '60px' }}
+                />
+                <div style={{ fontSize: '0.9rem' }}>{player.name}</div>
+              </>
+            ) : (
+              <>
+                <div
+                  style={{
+                    width: '60px',
+                    height: '60px',
+                    backgroundColor: '#555',
+                    borderRadius: '50%',
+                  }}
+                ></div>
+                <div style={{ fontSize: '0.9rem', color: '#888' }}>Свободно</div>
+              </>
+            )}
           </div>
         ))}
       </div>
-
-      {!you.ready ? (
-        <Button variant="light" onClick={markReady}>
-          Готов
-        </Button>
-      ) : isHost && allReady ? (
-        <Button variant="success" onClick={handleStartGame}>
-          Начать игру
-        </Button>
-      ) : (
-        <p>Ожидание других игроков...</p>
-      )}
     </Container>
   );
 };
