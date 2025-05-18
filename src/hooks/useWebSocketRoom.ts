@@ -6,6 +6,14 @@ export function useWebSocketRoom() {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const joinCallback = useRef<(roomId: string) => void>();
 
+  const playerId = useRef<string>(() => {
+    const existing = localStorage.getItem('playerId');
+    if (existing) return existing;
+    const newId = crypto.randomUUID();
+    localStorage.setItem('playerId', newId);
+    return newId;
+  })();
+
   useEffect(() => {
     const ws = new WebSocket('wss://durak-server-051x.onrender.com');
 
@@ -39,13 +47,13 @@ export function useWebSocketRoom() {
 
   const createRoom = () => {
     if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'create_room' }));
+      socket.send(JSON.stringify({ type: 'create_room', playerId: playerId.current }));
     }
   };
 
   const joinRoom = (roomId: string) => {
     if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'join_room', roomId }));
+      socket.send(JSON.stringify({ type: 'join_room', roomId, playerId: playerId.current }));
     }
   };
 
