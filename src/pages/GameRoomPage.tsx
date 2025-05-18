@@ -55,7 +55,7 @@ const GameRoomPage: React.FC = () => {
             style={{ minWidth: '80px' }}
           >
             <img
-              src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${player.name + player.id}`}
+              src={`https://api.dicebear.com/7.x/adventurer/svg?seed=${player.avatar}`}
               alt={player.name}
               style={{ width: '60px', height: '60px' }}
             />
