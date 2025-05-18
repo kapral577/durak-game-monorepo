@@ -15,7 +15,7 @@ const GameRoomPage: React.FC = () => {
   }, [roomId]);
 
   const orderedSlots = useMemo(() => {
-    if (!you || !slots.length) return slots;
+    if (!you || !Array.isArray(slots)) return [];
     const yourIndex = slots.findIndex((s) => s.player?.playerId === you.playerId);
     if (yourIndex === -1) return slots;
     return [...slots.slice(yourIndex), ...slots.slice(0, yourIndex)];
