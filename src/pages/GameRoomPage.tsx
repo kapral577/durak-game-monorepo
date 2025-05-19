@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Container } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
@@ -21,6 +21,15 @@ const GameRoomPage: React.FC = () => {
     }
   }, [gameState.phase, navigate]);
 
+  const yourIndex = useMemo(() => {
+    return slots.findIndex((s) => s.player?.playerId === you?.playerId);
+  }, [slots, you]);
+
+  const orderedSlots = useMemo(() => {
+    if (yourIndex === -1) return slots;
+    return [...slots.slice(yourIndex + 1), ...slots.slice(0, yourIndex + 1)];
+  }, [slots, yourIndex]);
+
   if (!roomId) {
     return (
       <Container className="text-center pt-5 text-light">
@@ -33,7 +42,7 @@ const GameRoomPage: React.FC = () => {
     <Container fluid className="position-relative text-light" style={{ minHeight: '100vh', backgroundColor: '#1c1c1c' }}>
       <h1 className="text-center pt-4">Ожидание игроков</h1>
       <div className="d-flex justify-content-center align-items-center flex-wrap mt-5">
-        {slots.map((slot) => (
+        {orderedSlots.map((slot) => (
           <div
             key={slot.id}
             className="border border-light rounded text-center m-2 p-3"
