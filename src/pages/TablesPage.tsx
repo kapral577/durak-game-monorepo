@@ -4,22 +4,42 @@ import BottomNavbar from '../components/BottomNavbar';
 import { useNavigate } from 'react-router-dom';
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
+interface PlayerInfo {
+  playerId: string;
+  name: string;
+}
+
+interface SlotInfo {
+  id: number;
+  player: PlayerInfo | null;
+}
+
+interface Rules {
+  gameMode: string;
+  throwingMode: string;
+  cardCount: number;
+}
+
+interface RoomInfo {
+  roomId: string;
+  rules: Rules;
+  slots: SlotInfo[];
+}
+
 const TablesPage: React.FC = () => {
-  const [rooms, setRooms] = useState<string[]>([]);
+  const [rooms, setRooms] = useState<RoomInfo[]>([]);
   const { socket, joinRoom, getRooms } = useWebSocketRoom();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (!socket) return;
 
-    // При открытии соединения — запросить список комнат
     if (socket.readyState === WebSocket.OPEN) {
       getRooms();
     } else {
       socket.onopen = () => getRooms();
     }
 
-    // Слушаем ответы сервера
     const handleMessage = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
       if (data.type === 'rooms_list') {
@@ -64,16 +84,26 @@ const TablesPage: React.FC = () => {
             Нет доступных комнат
           </p>
         ) : (
-          rooms.map((roomId) => (
+          rooms.map(({ roomId, rules, slots }) => (
             <Card
               key={roomId}
               style={{ width: '300px', marginTop: '1rem', backgroundColor: '#2c2c2c', color: 'white' }}
             >
-              <Card.Body className="d-flex justify-content-between align-items-center">
-                <div>Комната #{roomId}</div>
-                <Button variant="outline-light" size="sm" onClick={() => handleJoin(roomId)}>
-                  Войти
-                </Button>
+              <Card.Body>
+                <div className="mb-2">
+                  <strong>Комната #{roomId}</strong>
+                </div>
+                <div style={{ fontSize: '0.9rem' }}>
+                  Режим: {rules.gameMode === 'classic' ? 'Классический' : 'Переводной'}<br />
+                  Подкидывание: {rules.throwingMode === 'standard' ? 'Стандартное' : 'Умное'}<br />
+                  Колода: {rules.cardCount} карт<br />
+                  Игроков: {slots.filter((s) => s.player).length} / {slots.length}
+                </div>
+                <div className="mt-3 text-end">
+                  <Button variant="outline-light" size="sm" onClick={() => handleJoin(roomId)}>
+                    Войти
+                  </Button>
+                </div>
               </Card.Body>
             </Card>
           ))

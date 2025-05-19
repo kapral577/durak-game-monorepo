@@ -1,8 +1,7 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { Container, Button, Form } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useGameSettings } from '../context/GameSettingsContext';
-import { useGame } from '../context/GameEngineProvider';
 import BottomNavbar from '../components/BottomNavbar';
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 
@@ -18,27 +17,17 @@ const GameSetupPage: React.FC = () => {
     setCardCount,
   } = useGameSettings();
 
-  const { startLobby } = useGame();
   const navigate = useNavigate();
-  const { roomId, createRoom, isConnected, joinRoom } = useWebSocketRoom();
+  const { createRoom, isConnected } = useWebSocketRoom();
 
-  const handleCreateGame = () => {
+  const handleCreateGame = async () => {
     if (!isConnected) return;
-    createRoom();
+
+    const rules = { gameMode, throwingMode, cardCount };
+    const roomId = await createRoom({ rules, maxPlayers: playerCount });
+
+    navigate(`/room/${roomId}`); // игрок попадает в комнату, не в игру
   };
-
-  useEffect(() => {
-    if (roomId) {
-      joinRoom(roomId); // ✅ теперь мы явно присоединяемся к комнате
-
-      const rules = { gameMode, throwingMode, cardCount };
-      const names = Array.from({ length: playerCount - 1 }, (_, i) => `Игрок ${i + 1}`);
-      names.push('Ты');
-
-      startLobby(names, rules);
-      navigate('/play');
-    }
-  }, [roomId]);
 
   return (
     <>
