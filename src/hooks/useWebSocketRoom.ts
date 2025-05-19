@@ -27,7 +27,6 @@ interface RoomInfo {
 
 export function useWebSocketRoom() {
   const socketRef = useRef<WebSocket | null>(null);
-
   const [roomId, setRoomId] = useState<string | null>(null);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [isConnected, setIsConnected] = useState(false);
@@ -42,10 +41,8 @@ export function useWebSocketRoom() {
 
       const playerId = localStorage.getItem('playerId') || generateId();
       const name = localStorage.getItem('playerName') || 'Ты';
-
       localStorage.setItem('playerId', playerId);
       localStorage.setItem('playerName', name);
-
       setYou({ playerId, name });
     };
 
@@ -67,60 +64,69 @@ export function useWebSocketRoom() {
     return () => socket.close();
   }, []);
 
+  const sendWhenReady = useCallback((payload: object) => {
+    if (socketRef.current?.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(payload));
+    } else {
+      const trySend = () => {
+        if (socketRef.current?.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify(payload));
+        } else {
+          setTimeout(trySend, 100);
+        }
+      };
+      trySend();
+    }
+  }, []);
+
   const createRoom = useCallback(
     ({ rules, maxPlayers }: { rules: Rules; maxPlayers: number }): Promise<string> => {
       return new Promise((resolve) => {
         const playerId = localStorage.getItem('playerId');
         const name = localStorage.getItem('playerName');
 
-        if (socketRef.current && playerId && name) {
-          const roomCreatedHandler = (event: MessageEvent) => {
+        if (playerId && name) {
+          const handler = (event: MessageEvent) => {
             const message = JSON.parse(event.data);
             if (message.type === 'room_created') {
               setRoomId(message.roomId);
-              socketRef.current?.removeEventListener('message', roomCreatedHandler);
+              socketRef.current?.removeEventListener('message', handler);
               resolve(message.roomId);
             }
           };
 
-          socketRef.current.addEventListener('message', roomCreatedHandler);
+          socketRef.current?.addEventListener('message', handler);
 
-          socketRef.current.send(
-            JSON.stringify({
-              type: 'create_room',
-              playerId,
-              name,
-              rules,
-              maxPlayers,
-            })
-          );
+          sendWhenReady({
+            type: 'create_room',
+            playerId,
+            name,
+            rules,
+            maxPlayers,
+          });
         }
       });
     },
-    []
+    [sendWhenReady]
   );
 
   const joinRoom = useCallback((roomId: string) => {
     const playerId = localStorage.getItem('playerId');
     const name = localStorage.getItem('playerName');
 
-    if (socketRef.current && playerId && name) {
-      socketRef.current.send(
-        JSON.stringify({
-          type: 'join_room',
-          roomId,
-          playerId,
-          name,
-        })
-      );
+    if (playerId && name) {
+      sendWhenReady({
+        type: 'join_room',
+        roomId,
+        playerId,
+        name,
+      });
     }
-  }, []);
+  }, [sendWhenReady]);
 
   const getRooms = useCallback(() => {
-    if (socketRef.current) {
-      socketRef.current.send(JSON.stringify({ type: 'get_rooms' }));
-    }
-  }, []);
+    sendWhenReady({ type: 'get_rooms' });
+  }, [sendWhenReady]);
 
   return {
     socket: socketRef.current,
