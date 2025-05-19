@@ -18,7 +18,7 @@ const GameSetupPage: React.FC = () => {
   } = useGameSettings();
 
   const navigate = useNavigate();
-  const { createRoom, isConnected } = useWebSocketRoom();
+  const { createRoom, joinRoom, isConnected } = useWebSocketRoom();
 
   const handleCreateGame = async () => {
     if (!isConnected) return;
@@ -26,7 +26,8 @@ const GameSetupPage: React.FC = () => {
     const rules = { gameMode, throwingMode, cardCount };
     const roomId = await createRoom({ rules, maxPlayers: playerCount });
 
-    navigate(`/room/${roomId}`); // игрок попадает в комнату, не в игру
+    joinRoom(roomId); // добавлено: регистрация игрока в комнате
+    navigate(`/room/${roomId}`);
   };
 
   return (
