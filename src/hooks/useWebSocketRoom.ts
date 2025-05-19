@@ -46,22 +46,27 @@ export function useWebSocketRoom() {
       setYou({ playerId, name });
     };
 
-    socket.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent) => {
       const message = JSON.parse(event.data);
-
-      if (message.type === 'room_created') {
-        setRoomId(message.roomId);
-      }
 
       if (message.type === 'room_state') {
         setSlots(message.slots || []);
       }
+
+      if (message.type === 'room_created') {
+        setRoomId(message.roomId);
+      }
     };
+
+    socket.addEventListener('message', handleMessage);
 
     socket.onclose = () => setIsConnected(false);
     socket.onerror = () => setIsConnected(false);
 
-    return () => socket.close();
+    return () => {
+      socket.removeEventListener('message', handleMessage);
+      socket.close();
+    };
   }, []);
 
   const sendWhenReady = useCallback((payload: object) => {

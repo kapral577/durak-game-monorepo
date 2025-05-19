@@ -34,22 +34,26 @@ const TablesPage: React.FC = () => {
   useEffect(() => {
     if (!socket) return;
 
-    if (socket.readyState === WebSocket.OPEN) {
-      getRooms();
-    } else {
-      socket.onopen = () => getRooms();
-    }
-
-    const handleMessage = (event: MessageEvent) => {
+    const handleRoomsList = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
       if (data.type === 'rooms_list') {
         setRooms(data.rooms);
       }
     };
 
-    socket.addEventListener('message', handleMessage);
-    return () => socket.removeEventListener('message', handleMessage);
-  }, [socket]);
+    socket.addEventListener('message', handleRoomsList);
+
+    if (socket.readyState === WebSocket.OPEN) {
+      getRooms();
+    } else {
+      socket.addEventListener('open', getRooms);
+    }
+
+    return () => {
+      socket.removeEventListener('message', handleRoomsList);
+      socket.removeEventListener('open', getRooms);
+    };
+  }, [socket, getRooms]);
 
   const handleJoin = (roomId: string) => {
     joinRoom(roomId);
