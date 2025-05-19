@@ -22,7 +22,7 @@ interface Rules {
 
 interface RoomInfo {
   roomId: string;
-  rules: Rules;
+  rules?: Rules;
   slots: SlotInfo[];
 }
 
@@ -97,12 +97,16 @@ const TablesPage: React.FC = () => {
                 <div className="mb-2">
                   <strong>Комната #{roomId}</strong>
                 </div>
-                <div style={{ fontSize: '0.9rem' }}>
-                  Режим: {rules.gameMode === 'classic' ? 'Классический' : 'Переводной'}<br />
-                  Подкидывание: {rules.throwingMode === 'standard' ? 'Стандартное' : 'Умное'}<br />
-                  Колода: {rules.cardCount} карт<br />
-                  Игроков: {slots.filter((s) => s.player).length} / {slots.length}
-                </div>
+                {rules ? (
+                  <div style={{ fontSize: '0.9rem' }}>
+                    Режим: {rules.gameMode === 'classic' ? 'Классический' : 'Переводной'}<br />
+                    Подкидывание: {rules.throwingMode === 'standard' ? 'Стандартное' : 'Умное'}<br />
+                    Колода: {rules.cardCount} карт<br />
+                    Игроков: {slots.filter((s) => s.player).length} / {slots.length}
+                  </div>
+                ) : (
+                  <div style={{ fontSize: '0.9rem', color: '#aaa' }}>Нет информации об игре</div>
+                )}
                 <div className="mt-3 text-end">
                   <Button variant="outline-light" size="sm" onClick={() => handleJoin(roomId)}>
                     Войти
