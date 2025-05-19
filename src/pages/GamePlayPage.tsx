@@ -5,11 +5,13 @@ import { Container, Row, Col } from 'react-bootstrap';
 const GamePlayPage: React.FC = () => {
   const { gameState } = useGame();
 
-  if (!gameState) return null;
+  if (!gameState || gameState.phase !== 'playing') return null;
 
   const { players, you, table } = gameState;
 
-  const isYourTurn = players[gameState.currentAttackerIndex].id === you.id;
+  const isYourTurn =
+    typeof gameState.currentAttackerIndex === 'number' &&
+    players[gameState.currentAttackerIndex]?.id === you.id;
 
   return (
     <Container
@@ -52,7 +54,6 @@ const GamePlayPage: React.FC = () => {
 
       <div className="mb-5">
         <h4>Карт на столе: {table.length}</h4>
-        {/* Можно отобразить карты здесь */}
       </div>
 
       <div className="position-fixed bottom-0 start-0 end-0 p-4 bg-dark text-white">

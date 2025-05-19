@@ -1,102 +1,109 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { useGameSettings } from '../context/GameSettingsContext';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { generateId } from '../utils/id';
+
+const WS_URL = 'wss://durak-server-051x.onrender.com';
+
+interface Player {
+  playerId: string;
+  name: string;
+}
+
+interface Slot {
+  player: Player | null;
+}
 
 export function useWebSocketRoom() {
-  const [socket, setSocket] = useState<WebSocket | null>(null);
-  const [roomId, setRoomId] = useState<string>('');
-  const [isConnected, setIsConnected] = useState<boolean>(false);
-  const joinCallback = useRef<(roomId: string) => void>();
-  const [slots, setSlots] = useState<(any | null)[]>([]);
+  const socketRef = useRef<WebSocket | null>(null);
 
-  const { playerCount } = useGameSettings();
+  const [roomId, setRoomId] = useState<string | null>(null);
+  const [you, setYou] = useState<Player | null>(null);
+  const [slots, setSlots] = useState<Slot[]>([]);
+  const [isConnected, setIsConnected] = useState(false);
 
-  const playerId = useMemo(() => {
-    const existing = localStorage.getItem('playerId');
-    if (existing) return existing;
-    const newId = crypto.randomUUID();
-    localStorage.setItem('playerId', newId);
-    return newId;
-  }, []);
-
-  const name = useMemo(() => {
-    const existing = localStorage.getItem('playerName');
-    if (existing) return existing;
-    const generated = 'Игрок ' + Math.floor(Math.random() * 1000);
-    localStorage.setItem('playerName', generated);
-    return generated;
-  }, []);
-
+  // Подключаемся при монтировании
   useEffect(() => {
-    const ws = new WebSocket('wss://durak-server-051x.onrender.com');
+    const socket = new WebSocket(WS_URL);
+    socketRef.current = socket;
 
-    ws.onopen = () => {
+    socket.onopen = () => {
       setIsConnected(true);
-      console.log('[WS] Connected');
+
+      const playerId = localStorage.getItem('playerId') || generateId();
+      const name = localStorage.getItem('playerName') || 'Ты';
+
+      localStorage.setItem('playerId', playerId);
+      localStorage.setItem('playerName', name);
+
+      setYou({ playerId, name });
     };
 
-    ws.onclose = () => {
-      setIsConnected(false);
-      console.log('[WS] Disconnected');
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+
+      if (message.type === 'room_created') {
+        setRoomId(message.roomId);
+      }
+
+      if (message.type === 'room_state') {
+        setSlots(message.slots || []);
+      }
+
+      // другие обработчики при необходимости
     };
 
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data);
+    socket.onclose = () => setIsConnected(false);
+    socket.onerror = () => setIsConnected(false);
 
-      if (data.type === 'room_created') {
-        setRoomId(data.roomId);
-      }
-
-      if (data.type === 'room_joined') {
-        if (joinCallback.current) {
-          joinCallback.current(data.roomId);
-        }
-      }
-
-      if (data.type === 'room_state') {
-        setSlots(data.slots);
-      }
+    return () => {
+      socket.close();
     };
-
-    setSocket(ws);
-    return () => ws.close();
   }, []);
 
-  const createRoom = () => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: 'create_room',
-        playerId,
-        name,
-        maxPlayers: playerCount,
-      }));
-    }
-  };
+  const createRoom = useCallback(() => {
+    const playerId = localStorage.getItem('playerId');
+    const name = localStorage.getItem('playerName');
 
-  const joinRoom = (roomId: string) => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({
-        type: 'join_room',
-        roomId,
-        playerId,
-        name,
-      }));
+    if (socketRef.current && playerId && name) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: 'create_room',
+          playerId,
+          name,
+        })
+      );
     }
-  };
+  }, []);
 
-  const getRooms = () => {
-    if (socket?.readyState === WebSocket.OPEN) {
-      socket.send(JSON.stringify({ type: 'get_rooms' }));
+  const joinRoom = useCallback((roomId: string) => {
+    const playerId = localStorage.getItem('playerId');
+    const name = localStorage.getItem('playerName');
+
+    if (socketRef.current && playerId && name) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: 'join_room',
+          roomId,
+          playerId,
+          name,
+        })
+      );
     }
-  };
+  }, []);
+
+  const getRooms = useCallback(() => {
+    if (socketRef.current) {
+      socketRef.current.send(JSON.stringify({ type: 'get_rooms' }));
+    }
+  }, []);
 
   return {
-    socket,
+    socket: socketRef.current,
     roomId,
+    slots,
     isConnected,
+    you,
     createRoom,
     joinRoom,
     getRooms,
-    slots,
-    you: { playerId, name },
   };
 }

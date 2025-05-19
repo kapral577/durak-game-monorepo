@@ -2,9 +2,11 @@ import React, { useEffect, useMemo } from 'react';
 import { Container } from 'react-bootstrap';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
+import { useGame } from '../context/GameEngineProvider';
 
 const GameRoomPage: React.FC = () => {
   const { joinRoom, slots, you } = useWebSocketRoom();
+  const { gameState } = useGame();
   const navigate = useNavigate();
   const { roomId } = useParams();
 
@@ -21,7 +23,7 @@ const GameRoomPage: React.FC = () => {
     return [...slots.slice(yourIndex), ...slots.slice(0, yourIndex)];
   }, [slots, you]);
 
-  if (!you) return null;
+  if (!you || gameState.phase !== 'waiting') return null;
 
   return (
     <Container
