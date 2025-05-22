@@ -8,6 +8,7 @@ interface GameEngineContextType {
 }
 
 const GameEngineContext = createContext<GameEngineContextType | null>(null);
+export { GameEngineContext }; // 🔧 ЭТО ДОБАВЛЕНО
 
 export const GameEngineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { gameState, setGameState } = useGameEngine();
