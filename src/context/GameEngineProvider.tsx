@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { useGameEngine } from '../hooks/useGameEngine';
+import { GameEngineContext } from '../context/GameEngineProvider';
 import { GameState } from '../types/GameState';
 
 interface GameEngineContextType {
