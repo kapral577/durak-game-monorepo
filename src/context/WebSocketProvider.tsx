@@ -8,6 +8,8 @@ interface WebSocketContextType {
   socket: WebSocket | null;
   isConnected: boolean;
   sendWhenReady: (data: any) => void;
+  rooms: any[];
+  setRooms: React.Dispatch<React.SetStateAction<any[]>>;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | undefined>(undefined);
@@ -18,6 +20,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const queue = useRef<any[]>([]);
   const navigate = useNavigate();
   const { setGameState } = useGame();
+  const [rooms, setRooms] = useState<any[]>([]);
 
   useEffect(() => {
     const socket = new WebSocket(WS_URL);
@@ -38,6 +41,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         setGameState(data.state);
         navigate('/play');
       }
+
+      if (data.type === 'rooms_list') {
+        setRooms(data.rooms);
+      }
     });
 
     socket.addEventListener('close', () => {
@@ -49,7 +56,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     return () => {
-      // socket.close(); // отключаем только если нужно
+      // socket.close();
     };
   }, [navigate, setGameState]);
 
@@ -65,7 +72,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   return (
     <WebSocketContext.Provider
-      value={{ socket: socketRef.current, isConnected, sendWhenReady }}
+      value={{ socket: socketRef.current, isConnected, sendWhenReady, rooms, setRooms }}
     >
       {children}
     </WebSocketContext.Provider>

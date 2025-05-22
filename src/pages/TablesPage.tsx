@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { Container, Card, Button } from 'react-bootstrap';
 import BottomNavbar from '../components/BottomNavbar';
 import { useNavigate } from 'react-router-dom';
-import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
+import { useWebSocketContext } from '../context/WebSocketProvider';
 
 interface PlayerInfo {
   playerId: string;
@@ -27,36 +27,15 @@ interface RoomInfo {
 }
 
 const TablesPage: React.FC = () => {
-  const [rooms, setRooms] = useState<RoomInfo[]>([]);
-  const { socket, joinRoom, getRooms } = useWebSocketRoom();
+  const { rooms, sendWhenReady } = useWebSocketContext();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!socket) return;
-
-    const handleRoomsList = (event: MessageEvent) => {
-      const data = JSON.parse(event.data);
-      if (data.type === 'rooms_list') {
-        setRooms(data.rooms);
-      }
-    };
-
-    socket.addEventListener('message', handleRoomsList);
-
-    if (socket.readyState === WebSocket.OPEN) {
-      getRooms();
-    } else {
-      socket.addEventListener('open', getRooms);
-    }
-
-    return () => {
-      socket.removeEventListener('message', handleRoomsList);
-      socket.removeEventListener('open', getRooms);
-    };
-  }, [socket, getRooms]);
+    sendWhenReady({ type: 'get_rooms' });
+  }, [sendWhenReady]);
 
   const handleJoin = (roomId: string) => {
-    joinRoom(roomId);
+    sendWhenReady({ type: 'join_room', roomId });
     navigate(`/room/${roomId}`);
   };
 
