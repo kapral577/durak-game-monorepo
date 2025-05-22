@@ -1,6 +1,5 @@
-import React, { createContext, useContext } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 import { GameState } from '../types/GameState';
-import { useGameEngine } from '../hooks/useGameEngine';
 
 interface GameEngineContextType {
   gameState: GameState | null;
@@ -8,10 +7,10 @@ interface GameEngineContextType {
 }
 
 const GameEngineContext = createContext<GameEngineContextType | null>(null);
-export { GameEngineContext }; // 🔧 ЭТО ДОБАВЛЕНО
+export { GameEngineContext };
 
 export const GameEngineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { gameState, setGameState } = useGameEngine();
+  const [gameState, setGameState] = useState<GameState | null>(null); // ✅ напрямую
 
   return (
     <GameEngineContext.Provider value={{ gameState, setGameState }}>
