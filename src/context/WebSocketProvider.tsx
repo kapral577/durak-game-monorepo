@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useGame } from '../context/GameEngineProvider';
 
 const WS_URL = 'wss://durak-server-051x.onrender.com';
 
@@ -14,6 +16,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const socketRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const queue = useRef<any[]>([]);
+  const navigate = useNavigate();
+  const { setGameState } = useGame();
 
   useEffect(() => {
     const socket = new WebSocket(WS_URL);
@@ -27,6 +31,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       }
     });
 
+    socket.addEventListener('message', (event) => {
+      const data = JSON.parse(event.data);
+
+      if (data.type === 'start_game') {
+        setGameState(data.state);
+        navigate('/play');
+      }
+    });
+
     socket.addEventListener('close', () => {
       setIsConnected(false);
     });
@@ -36,10 +49,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     });
 
     return () => {
-      // Закрываем только при размонтировании всего приложения (по желанию)
-      // socket.close();
+      // socket.close(); // отключаем только если нужно
     };
-  }, []);
+  }, [navigate, setGameState]);
 
   const sendWhenReady = (data: any) => {
     const socket = socketRef.current;

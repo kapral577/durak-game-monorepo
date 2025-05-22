@@ -1,53 +1,38 @@
-import { useState } from "react";
-import { createDeck } from "../engine/deck";
-import { createPlayer, giveCards } from "../engine/player";
-import { Player } from "../engine/types";
-
-export type GamePhase = 'waiting' | 'dealing' | 'playing' | 'finished';
-
-interface GameState {
-  phase: GamePhase;
-  players: Player[];
-  table: any[];
-  trumpSuit: string | null;
-  currentAttackerIndex: number;
-}
+import { useState } from 'react';
+import { GameState } from '../types/GameState';
 
 export function useGameEngine() {
-  const [gameState, setGameState] = useState<GameState>({
-    phase: 'waiting',
-    players: [],
-    table: [],
-    trumpSuit: null,
-    currentAttackerIndex: 0,
-  });
+  const [gameState, setGameState] = useState<GameState | null>(null);
 
-  function startGame(playerCount: number) {
-    const deck = createDeck();
-    const newPlayers = Array.from({ length: playerCount }, (_, i) =>
-      createPlayer(`player-${i + 1}`, `Игрок ${i + 1}`)
-    );
-    giveCards(newPlayers, deck);
-
-    const trumpCard = deck[deck.length - 1];
-    const trumpSuit = trumpCard.suit;
-
-    setGameState({
-      phase: 'playing',
-      players: newPlayers,
-      table: [],
-      trumpSuit,
-      currentAttackerIndex: 0,
-    });
-  }
-
-  function setPhase(phase: GamePhase) {
-    setGameState((prev) => ({ ...prev, phase }));
-  }
-
-  return {
-    gameState,
-    startGame,
-    setPhase,
-  };
+  return { gameState, setGameState };
 }
+
+// src/context/GameEngineProvider.tsx
+import React, { createContext, useContext } from 'react';
+import { useGameEngine } from '../hooks/useGameEngine';
+import { GameState } from '../types/GameState';
+
+interface GameEngineContextType {
+  gameState: GameState | null;
+  setGameState: (state: GameState) => void;
+}
+
+const GameEngineContext = createContext<GameEngineContextType | null>(null);
+
+export const GameEngineProvider = ({ children }: { children: React.ReactNode }) => {
+  const { gameState, setGameState } = useGameEngine();
+
+  return (
+    <GameEngineContext.Provider value={{ gameState, setGameState }}>
+      {children}
+    </GameEngineContext.Provider>
+  );
+};
+
+export const useGame = () => {
+  const context = useContext(GameEngineContext);
+  if (!context) {
+    throw new Error('useGame must be used within a GameEngineProvider');
+  }
+  return context;
+};

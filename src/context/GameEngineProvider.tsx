@@ -1,21 +1,24 @@
-// src/context/GameEngineProvider.tsx
 import React, { createContext, useContext } from 'react';
 import { useGameEngine } from '../hooks/useGameEngine';
+import { GameState } from '../types/GameState';
 
-// Тип контекста можно вывести автоматически
-const GameEngineContext = createContext<ReturnType<typeof useGameEngine> | null>(null);
+interface GameEngineContextType {
+  gameState: GameState | null;
+  setGameState: (state: GameState) => void;
+}
+
+const GameEngineContext = createContext<GameEngineContextType | null>(null);
 
 export const GameEngineProvider = ({ children }: { children: React.ReactNode }) => {
-  const game = useGameEngine();
+  const { gameState, setGameState } = useGameEngine();
 
   return (
-    <GameEngineContext.Provider value={game}>
+    <GameEngineContext.Provider value={{ gameState, setGameState }}>
       {children}
     </GameEngineContext.Provider>
   );
 };
 
-// Хук доступа к контексту
 export const useGame = () => {
   const context = useContext(GameEngineContext);
   if (!context) {
