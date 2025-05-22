@@ -1,5 +1,4 @@
 import React, { createContext, useContext } from 'react';
-import { GameEngineContext } from '../context/GameEngineProvider';
 import { GameState } from '../types/GameState';
 import { useGameEngine } from '../hooks/useGameEngine';
 
@@ -10,7 +9,7 @@ interface GameEngineContextType {
 
 const GameEngineContext = createContext<GameEngineContextType | null>(null);
 
-export const GameEngineProvider = ({ children }: { children: React.ReactNode }) => {
+export const GameEngineProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { gameState, setGameState } = useGameEngine();
 
   return (
@@ -20,7 +19,7 @@ export const GameEngineProvider = ({ children }: { children: React.ReactNode }) 
   );
 };
 
-export const useGame = () => {
+export const useGame = (): GameEngineContextType => {
   const context = useContext(GameEngineContext);
   if (!context) {
     throw new Error('useGame must be used within a GameEngineProvider');
