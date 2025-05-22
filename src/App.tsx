@@ -1,5 +1,5 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
 import MainMenu from './pages/MainMenu';
 import GameSetupPage from './pages/GameSetupPage';
 import TablesPage from './pages/TablesPage';
@@ -12,22 +12,20 @@ import { WebSocketProvider } from './context/WebSocketProvider';
 
 const App: React.FC = () => {
   return (
-    <BrowserRouter> {/* 🟢 Двигаем сюда */}
-      <WebSocketProvider>
-        <GameEngineProvider>
-          <GameSettingsProvider>
-            <Routes>
-              <Route path="/" element={<MainMenu />} />
-              <Route path="/setup" element={<GameSetupPage />} />
-              <Route path="/tables" element={<TablesPage />} />
-              <Route path="/friends" element={<FriendsPage />} />
-              <Route path="/room/:roomId" element={<GameRoomPage />} />
-              <Route path="/play" element={<GamePlayPage />} />
-            </Routes>
-          </GameSettingsProvider>
-        </GameEngineProvider>
-      </WebSocketProvider>
-    </BrowserRouter>
+    <WebSocketProvider>
+      <GameEngineProvider>
+        <GameSettingsProvider>
+          <Routes>
+            <Route path="/" element={<MainMenu />} />
+            <Route path="/setup" element={<GameSetupPage />} />
+            <Route path="/tables" element={<TablesPage />} />
+            <Route path="/friends" element={<FriendsPage />} />
+            <Route path="/room/:roomId" element={<GameRoomPage />} />
+            <Route path="/play" element={<GamePlayPage />} />
+          </Routes>
+        </GameSettingsProvider>
+      </GameEngineProvider>
+    </WebSocketProvider>
   );
 };
 
