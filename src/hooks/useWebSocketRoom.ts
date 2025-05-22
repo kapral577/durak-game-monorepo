@@ -1,42 +1,44 @@
-import { useCallback, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback } from 'react';
 import { useWebSocketContext } from '../context/WebSocketProvider';
+import { generateId } from '../utils/id';
 
-export function useWebSocketRoom() {
-  const { sendWhenReady } = useWebSocketContext();
-  const socketRef = useRef<WebSocket | null>(null);
+interface CreateRoomParams {
+  rules: any;
+  maxPlayers: number;
+}
 
-  useEffect(() => {
-    if (!socketRef.current && typeof window !== 'undefined') {
-      socketRef.current = new WebSocket('wss://durak-server-051x.onrender.com');
-    }
-  }, []);
+interface UseWebSocketRoom {
+  createRoom: (params: CreateRoomParams) => Promise<string>;
+  joinRoom: (roomId: string) => void;
+  isConnected: boolean;
+}
 
-  const createRoom = useCallback(({ rules, maxPlayers }: { rules: any; maxPlayers: number }) => {
-    return new Promise<string>((resolve) => {
-      sendWhenReady({ type: 'create_room', rules, maxPlayers });
+export function useWebSocketRoom(): UseWebSocketRoom {
+  const { sendWhenReady, isConnected } = useWebSocketContext();
 
-      const socket = socketRef.current;
-      if (!socket) return;
+  const createRoom = useCallback(async ({ rules, maxPlayers }: CreateRoomParams): Promise<string> => {
+    const roomId = generateId();
 
-      const handler = (event: MessageEvent) => {
-        const data = JSON.parse(event.data);
-        if (data.type === 'room_created') {
-          resolve(data.roomId);
-          socket.removeEventListener('message', handler);
-        }
-      };
-
-      socket.addEventListener('message', handler);
+    sendWhenReady({
+      type: 'create_room',
+      roomId,
+      rules,
+      maxPlayers,
     });
+
+    return roomId;
   }, [sendWhenReady]);
 
   const joinRoom = useCallback((roomId: string) => {
-    sendWhenReady({ type: 'join_room', roomId });
+    sendWhenReady({
+      type: 'join_room',
+      roomId,
+    });
   }, [sendWhenReady]);
 
   return {
     createRoom,
     joinRoom,
+    isConnected,
   };
 }
