@@ -1,38 +1,10 @@
-import { useState } from 'react';
-import { GameState } from '../types/GameState';
+import { useContext } from 'react';
+import { GameEngineContext } from '../context/GameEngineProvider';
 
-export function useGameEngine() {
-  const [gameState, setGameState] = useState<GameState | null>(null);
-
-  return { gameState, setGameState };
-}
-
-// src/context/GameEngineProvider.tsx
-import React, { createContext, useContext } from 'react';
-import { useGameEngine } from '../hooks/useGameEngine';
-import { GameState } from '../types/GameState';
-
-interface GameEngineContextType {
-  gameState: GameState | null;
-  setGameState: (state: GameState) => void;
-}
-
-const GameEngineContext = createContext<GameEngineContextType | null>(null);
-
-export const GameEngineProvider = ({ children }: { children: React.ReactNode }) => {
-  const { gameState, setGameState } = useGameEngine();
-
-  return (
-    <GameEngineContext.Provider value={{ gameState, setGameState }}>
-      {children}
-    </GameEngineContext.Provider>
-  );
-};
-
-export const useGame = () => {
+export const useGameEngine = () => {
   const context = useContext(GameEngineContext);
   if (!context) {
-    throw new Error('useGame must be used within a GameEngineProvider');
+    throw new Error('useGameEngine must be used within a GameEngineProvider');
   }
   return context;
 };
