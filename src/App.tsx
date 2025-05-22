@@ -12,10 +12,10 @@ import { WebSocketProvider } from './context/WebSocketProvider';
 
 const App: React.FC = () => {
   return (
-    <WebSocketProvider>
-      <GameEngineProvider>
-        <GameSettingsProvider>
-          <BrowserRouter>
+    <BrowserRouter> {/* 🟢 Двигаем сюда */}
+      <WebSocketProvider>
+        <GameEngineProvider>
+          <GameSettingsProvider>
             <Routes>
               <Route path="/" element={<MainMenu />} />
               <Route path="/setup" element={<GameSetupPage />} />
@@ -24,10 +24,10 @@ const App: React.FC = () => {
               <Route path="/room/:roomId" element={<GameRoomPage />} />
               <Route path="/play" element={<GamePlayPage />} />
             </Routes>
-          </BrowserRouter>
-        </GameSettingsProvider>
-      </GameEngineProvider>
-    </WebSocketProvider>
+          </GameSettingsProvider>
+        </GameEngineProvider>
+      </WebSocketProvider>
+    </BrowserRouter>
   );
 };
 
