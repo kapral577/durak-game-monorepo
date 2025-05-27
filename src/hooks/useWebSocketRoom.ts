@@ -2,13 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import { useWebSocketContext } from '../context/WebSocketProvider';
 import { generateId } from '../utils/id';
 
-/* ────────── Типы ────────── */
+/* ────────── типы ────────── */
 
 interface CreateRoomParams {
   rules: any;
   maxPlayers: number;
 }
-
 interface Slot {
   id: number;
   player: {
@@ -17,17 +16,16 @@ interface Slot {
     isReady: boolean;
   } | null;
 }
-
 interface UseWebSocketRoom {
-  createRoom: (params: CreateRoomParams) => Promise<string>;
+  createRoom: (p: CreateRoomParams) => Promise<string>;
   joinRoom: (roomId: string) => void;
   isConnected: boolean;
-  sendWhenReady: (data: any) => void;
+  sendWhenReady: (d: any) => void;
   slots: Slot[];
   you: { playerId: string; name: string } | null;
 }
 
-/* ────────── Хук ────────── */
+/* ────────── хук ────────── */
 
 export function useWebSocketRoom(): UseWebSocketRoom {
   const { socket, isConnected, sendWhenReady } = useWebSocketContext();
@@ -37,25 +35,19 @@ export function useWebSocketRoom(): UseWebSocketRoom {
     null
   );
 
-  /* Подписка на событие 'slots' от сервера */
+  /* подписка на сообщения сервера */
   useEffect(() => {
     if (!socket) return;
 
     const listener = (event: MessageEvent) => {
       const data = JSON.parse(event.data);
 
+      if (data.type === 'you') {
+        setYou({ playerId: data.playerId, name: data.name });
+      }
+
       if (data.type === 'slots') {
         setSlots(data.slots);
-
-        /* Определяем «себя» по playerId, который хранится в сокете */
-        const myId = (socket as any).playerId as string | undefined;
-        if (!myId) return;
-
-        const me = data.slots
-          .flatMap((s: Slot) => (s.player ? [s.player] : []))
-          .find((p) => p.playerId === myId);
-
-        if (me) setYou({ playerId: me.playerId, name: me.name });
       }
     };
 
@@ -65,16 +57,9 @@ export function useWebSocketRoom(): UseWebSocketRoom {
 
   /* create_room */
   const createRoom = useCallback(
-    async ({ rules, maxPlayers }: CreateRoomParams): Promise<string> => {
+    async ({ rules, maxPlayers }: CreateRoomParams) => {
       const roomId = generateId();
-
-      sendWhenReady({
-        type: 'create_room',
-        roomId,
-        rules,
-        maxPlayers,
-      });
-
+      sendWhenReady({ type: 'create_room', roomId, rules, maxPlayers });
       return roomId;
     },
     [sendWhenReady]
@@ -82,21 +67,9 @@ export function useWebSocketRoom(): UseWebSocketRoom {
 
   /* join_room */
   const joinRoom = useCallback(
-    (roomId: string) => {
-      sendWhenReady({
-        type: 'join_room',
-        roomId,
-      });
-    },
+    (roomId: string) => sendWhenReady({ type: 'join_room', roomId }),
     [sendWhenReady]
   );
 
-  return {
-    createRoom,
-    joinRoom,
-    isConnected,
-    sendWhenReady,
-    slots,
-    you,
-  };
+  return { createRoom, joinRoom, isConnected, sendWhenReady, slots, you };
 }
