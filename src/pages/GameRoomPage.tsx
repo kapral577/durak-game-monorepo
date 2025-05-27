@@ -1,33 +1,46 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
+
 import { useWebSocketRoom } from '../hooks/useWebSocketRoom';
 import { useGame } from '../context/GameEngineProvider';
 import PlayerSlot from '../components/PlayerSlot';
 
 const GameRoomPage: React.FC = () => {
-  const { joinRoom, slots, you, isConnected, sendWhenReady } = useWebSocketRoom();
-  const { gameState } = useGame();
-  const navigate = useNavigate();
-  const { roomId } = useParams();
+  /* ――― WebSocket-слой ――― */
+  const {
+    joinRoom,
+    slots = [],                  // ← если undefined, берём пустой массив
+    you,
+    isConnected,
+    sendWhenReady,
+  } = useWebSocketRoom();
 
+  /* ――― GameState из Engine ――― */
+  const { gameState } = useGame();
+
+  /* ――― React Router ――― */
+  const { roomId } = useParams();
+  const navigate = useNavigate();
+
+  /* ――― Локальное состояние готовности ――― */
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
 
-  /* Подключаемся к комнате */
+  /* Подключаемся к комнате однажды, когда сокет соединён */
   useEffect(() => {
     if (!roomId || !isConnected) return;
     if (slots.some((s) => s.player?.playerId === you?.playerId)) return;
     joinRoom(roomId);
   }, [roomId, isConnected, joinRoom, slots, you]);
 
-  /* Переход в /play, когда сервер прислал GameState с фазой 'playing' */
+  /* Переходим на игровую страницу, когда сервер прислал фазу 'playing' */
   useEffect(() => {
     if (gameState?.phase === 'playing') {
       navigate('/play');
     }
   }, [gameState?.phase, navigate]);
 
-  /* Располагаем слоты так, чтобы «вы» были снизу */
+  /* Индекс «вашего» слота и переупорядоченный массив слотов */
   const yourIndex = useMemo(
     () => slots.findIndex((s) => s.player?.playerId === you?.playerId),
     [slots, you]
@@ -38,14 +51,16 @@ const GameRoomPage: React.FC = () => {
     return [...slots.slice(yourIndex + 1), ...slots.slice(0, yourIndex + 1)];
   }, [slots, yourIndex]);
 
+  /* Отметить готовность */
   const markReady = () => {
-    if (!you) return;
+    if (!you || !roomId) return;
     setReadyPlayers((prev) => [...prev, you.playerId]);
-    sendWhenReady({ type: 'set_ready', playerId: you.playerId, roomId });
+    sendWhenReady({ type: 'set_ready', roomId, playerId: you.playerId });
   };
 
   const isYouReady = you ? readyPlayers.includes(you.playerId) : false;
 
+  /* ――― UI ――― */
   return (
     <Container
       fluid
