@@ -13,20 +13,25 @@ const GameRoomPage: React.FC = () => {
 
   const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
 
+  /* Подключаемся к комнате */
   useEffect(() => {
-    if (!roomId || !isConnected || slots.some(s => s.player?.playerId === you?.playerId)) return;
+    if (!roomId || !isConnected) return;
+    if (slots.some((s) => s.player?.playerId === you?.playerId)) return;
     joinRoom(roomId);
   }, [roomId, isConnected, joinRoom, slots, you]);
 
+  /* Переход в /play, когда сервер прислал GameState с фазой 'playing' */
   useEffect(() => {
-    if (gameState.phase === 'playing') {
+    if (gameState?.phase === 'playing') {
       navigate('/play');
     }
-  }, [gameState.phase, navigate]);
+  }, [gameState?.phase, navigate]);
 
-  const yourIndex = useMemo(() => {
-    return slots.findIndex((s) => s.player?.playerId === you?.playerId);
-  }, [slots, you]);
+  /* Располагаем слоты так, чтобы «вы» были снизу */
+  const yourIndex = useMemo(
+    () => slots.findIndex((s) => s.player?.playerId === you?.playerId),
+    [slots, you]
+  );
 
   const orderedSlots = useMemo(() => {
     if (yourIndex === -1) return slots;
@@ -34,16 +39,19 @@ const GameRoomPage: React.FC = () => {
   }, [slots, yourIndex]);
 
   const markReady = () => {
-    if (you) {
-      setReadyPlayers((prev) => [...prev, you.playerId]);
-      sendWhenReady({ type: 'set_ready', playerId: you.playerId });
-    }
+    if (!you) return;
+    setReadyPlayers((prev) => [...prev, you.playerId]);
+    sendWhenReady({ type: 'set_ready', playerId: you.playerId, roomId });
   };
 
   const isYouReady = you ? readyPlayers.includes(you.playerId) : false;
 
   return (
-    <Container fluid className="position-relative text-light" style={{ minHeight: '100vh', backgroundColor: '#1c1c1c' }}>
+    <Container
+      fluid
+      className="position-relative text-light"
+      style={{ minHeight: '100vh', backgroundColor: '#1c1c1c' }}
+    >
       <h1 className="text-center pt-4">Ожидание игроков</h1>
 
       <div className="d-flex justify-content-center align-items-center flex-wrap gap-3 mt-5">
@@ -52,7 +60,7 @@ const GameRoomPage: React.FC = () => {
             key={slot.id}
             player={slot.player}
             isYou={slot.player?.playerId === you?.playerId}
-            ready={slot.player?.playerId ? readyPlayers.includes(slot.player.playerId) : false}
+            ready={slot.player ? readyPlayers.includes(slot.player.playerId) : false}
           />
         ))}
       </div>
