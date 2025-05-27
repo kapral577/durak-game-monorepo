@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { Container, Button } from 'react-bootstrap';
 import { useParams, useNavigate } from 'react-router-dom';
 
@@ -10,7 +10,7 @@ const GameRoomPage: React.FC = () => {
   /* ――― WebSocket-слой ――― */
   const {
     joinRoom,
-    slots = [],                  // ← если undefined, берём пустой массив
+    slots = [],               // ← на случай undefined
     you,
     isConnected,
     sendWhenReady,
@@ -19,28 +19,23 @@ const GameRoomPage: React.FC = () => {
   /* ――― GameState из Engine ――― */
   const { gameState } = useGame();
 
-  /* ――― React Router ――― */
+  /* ――― Router ――― */
   const { roomId } = useParams();
   const navigate = useNavigate();
 
-  /* ――― Локальное состояние готовности ――― */
-  const [readyPlayers, setReadyPlayers] = useState<string[]>([]);
-
-  /* Подключаемся к комнате однажды, когда сокет соединён */
+  /* ① Вступаем в комнату при первом соединении */
   useEffect(() => {
     if (!roomId || !isConnected) return;
     if (slots.some((s) => s.player?.playerId === you?.playerId)) return;
     joinRoom(roomId);
   }, [roomId, isConnected, joinRoom, slots, you]);
 
-  /* Переходим на игровую страницу, когда сервер прислал фазу 'playing' */
+  /* ② Переход в игровую фазу */
   useEffect(() => {
-    if (gameState?.phase === 'playing') {
-      navigate('/play');
-    }
+    if (gameState?.phase === 'playing') navigate('/play');
   }, [gameState?.phase, navigate]);
 
-  /* Индекс «вашего» слота и переупорядоченный массив слотов */
+  /* ③ Индекс «своего» слота и упорядоченный массив */
   const yourIndex = useMemo(
     () => slots.findIndex((s) => s.player?.playerId === you?.playerId),
     [slots, you]
@@ -51,14 +46,18 @@ const GameRoomPage: React.FC = () => {
     return [...slots.slice(yourIndex + 1), ...slots.slice(0, yourIndex + 1)];
   }, [slots, yourIndex]);
 
-  /* Отметить готовность */
+  /* ④ Отправляем готовность */
   const markReady = () => {
     if (!you || !roomId) return;
-    setReadyPlayers((prev) => [...prev, you.playerId]);
     sendWhenReady({ type: 'set_ready', roomId, playerId: you.playerId });
   };
 
-  const isYouReady = you ? readyPlayers.includes(you.playerId) : false;
+  /* ⑤ Готов ли «я»? */
+  const isYouReady = useMemo(() => {
+    if (!you) return false;
+    const meSlot = slots.find((s) => s.player?.playerId === you.playerId);
+    return !!meSlot?.player?.isReady;
+  }, [slots, you]);
 
   /* ――― UI ――― */
   return (
@@ -75,7 +74,7 @@ const GameRoomPage: React.FC = () => {
             key={slot.id}
             player={slot.player}
             isYou={slot.player?.playerId === you?.playerId}
-            ready={slot.player ? readyPlayers.includes(slot.player.playerId) : false}
+            ready={!!slot.player?.isReady}
           />
         ))}
       </div>
