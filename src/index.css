@@ -1,0 +1,290 @@
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@300;400;600;700&display=swap');
+
+/* Базовые стили */
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  font-family: "Source Sans Pro", -apple-system, system-ui, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+/* Основные стили приложения */
+.App {
+  padding-bottom: 70px;
+  /* Используем Telegram CSS переменные для цветов */
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+  min-height: 100vh;
+}
+
+/* Стили для нижней навигации */
+.navbar.fixed-bottom {
+  height: 65px;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  background: var(--tg-theme-secondary-bg-color, #f8f9fa) !important;
+  border-top: 1px solid var(--tg-theme-section-separator-color, rgba(0,0,0,0.1));
+}
+
+/* Анимация для активных элементов навигации */
+.navbar .nav-link {
+  transition: all 0.2s ease;
+  border-radius: 8px;
+  margin: 0 4px;
+  color: var(--tg-theme-hint-color, #6c757d);
+}
+
+.navbar .nav-link:hover {
+  background-color: var(--tg-theme-section-bg-color, rgba(0,123,255,0.1));
+  transform: translateY(-1px);
+  color: var(--tg-theme-link-color, #007bff);
+}
+
+.navbar .nav-link.text-primary {
+  background-color: var(--tg-theme-section-bg-color, rgba(0,123,255,0.1));
+  color: var(--tg-theme-link-color, #007bff) !important;
+}
+
+.navbar .nav-link.text-muted {
+  color: var(--tg-theme-hint-color, #6c757d) !important;
+}
+
+/* Стили для бейджей */
+.navbar .badge {
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.badge.bg-success {
+  background-color: var(--tg-theme-button-color, #28a745) !important;
+  color: var(--tg-theme-button-text-color, #ffffff) !important;
+}
+
+.badge.bg-danger {
+  background-color: var(--tg-theme-destructive-text-color, #dc3545) !important;
+  color: #ffffff !important;
+}
+
+/* Пульсация для активной игры */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.navbar .bg-success.rounded-circle {
+  animation: pulse 2s infinite;
+  background-color: var(--tg-theme-button-color, #28a745) !important;
+}
+
+/* Дополнительные стили для Telegram мини-приложения */
+
+/* Убираем системные отступы в Telegram */
+body {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -khtml-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  background: var(--tg-theme-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+}
+
+/* Используем безопасные зоны Telegram */
+.container, .container-fluid {
+  padding-left: max(16px, var(--tg-content-safe-area-inset-left, 16px));
+  padding-right: max(16px, var(--tg-content-safe-area-inset-right, 16px));
+  padding-top: max(8px, var(--tg-content-safe-area-inset-top, 8px));
+}
+
+/* Стили для карточек с Telegram темой */
+.card {
+  border-radius: 12px;
+  border: 1px solid var(--tg-theme-section-separator-color, rgba(0,0,0,0.1));
+  background: var(--tg-theme-secondary-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+
+.card-header {
+  background: var(--tg-theme-section-bg-color, #f8f9fa);
+  border-bottom: 1px solid var(--tg-theme-section-separator-color, rgba(0,0,0,0.1));
+  color: var(--tg-theme-section-header-text-color, #000000);
+}
+
+.bg-light {
+  background-color: var(--tg-theme-secondary-bg-color, #f8f9fa) !important;
+}
+
+.bg-primary {
+  background-color: var(--tg-theme-button-color, #007bff) !important;
+  color: var(--tg-theme-button-text-color, #ffffff) !important;
+}
+
+/* Стили для кнопок с Telegram темой */
+.btn {
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn-primary {
+  background-color: var(--tg-theme-button-color, #007bff);
+  border-color: var(--tg-theme-button-color, #007bff);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.btn-primary:hover, .btn-primary:focus {
+  background-color: var(--tg-theme-button-color, #0056b3);
+  border-color: var(--tg-theme-button-color, #0056b3);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.btn-success {
+  background-color: var(--tg-theme-button-color, #28a745);
+  border-color: var(--tg-theme-button-color, #28a745);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.btn-outline-primary {
+  color: var(--tg-theme-link-color, #007bff);
+  border-color: var(--tg-theme-link-color, #007bff);
+}
+
+.btn-outline-primary:hover {
+  background-color: var(--tg-theme-link-color, #007bff);
+  color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+.btn-outline-secondary {
+  color: var(--tg-theme-hint-color, #6c757d);
+  border-color: var(--tg-theme-hint-color, #6c757d);
+}
+
+/* Стили для алертов */
+.alert {
+  border-radius: 10px;
+  border: none;
+}
+
+.alert-danger {
+  background-color: rgba(var(--tg-theme-destructive-text-color, 220, 53, 69), 0.1);
+  color: var(--tg-theme-destructive-text-color, #dc3545);
+}
+
+.alert-info {
+  background-color: rgba(var(--tg-theme-link-color, 0, 123, 255), 0.1);
+  color: var(--tg-theme-link-color, #0dcaf0);
+}
+
+.alert-warning {
+  background-color: rgba(255, 193, 7, 0.1);
+  color: #ff6f00;
+}
+
+/* Стили для форм */
+.form-control {
+  border-radius: 8px;
+  border: 1px solid var(--tg-theme-section-separator-color, #ced4da);
+  background-color: var(--tg-theme-secondary-bg-color, #ffffff);
+  color: var(--tg-theme-text-color, #000000);
+}
+
+.form-control:focus {
+  border-color: var(--tg-theme-link-color, #007bff);
+  box-shadow: 0 0 0 0.2rem rgba(var(--tg-theme-link-color, 0, 123, 255), 0.25);
+}
+
+.form-text {
+  color: var(--tg-theme-hint-color, #6c757d);
+}
+
+/* Стили для текста */
+.text-muted {
+  color: var(--tg-theme-hint-color, #6c757d) !important;
+}
+
+.text-primary {
+  color: var(--tg-theme-link-color, #007bff) !important;
+}
+
+small, .small {
+  color: var(--tg-theme-subtitle-text-color, #6c757d);
+}
+
+/* Стили для спиннеров */
+.spinner-border {
+  color: var(--tg-theme-link-color, #007bff);
+}
+
+.spinner-border-sm {
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 576px) {
+  .container {
+    padding-left: max(12px, var(--tg-content-safe-area-inset-left, 12px));
+    padding-right: max(12px, var(--tg-content-safe-area-inset-right, 12px));
+  }
+  
+  .navbar .nav-link small {
+    font-size: 0.7rem;
+  }
+  
+  .card {
+    margin-bottom: 12px;
+  }
+  
+  .btn {
+    font-size: 0.9rem;
+  }
+}
+
+/* Дополнительные стили для Telegram WebApp */
+@media (max-height: 600px) {
+  .py-4 {
+    padding-top: 1rem !important;
+    padding-bottom: 1rem !important;
+  }
+}
+
+/* Стили для тёмной темы Telegram */
+@media (prefers-color-scheme: dark) {
+  .card {
+    box-shadow: 0 2px 8px rgba(255,255,255,0.1);
+  }
+  
+  .card:hover {
+    box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+  }
+}
+
+/* Убираем скроллбар если не нужен */
+::-webkit-scrollbar {
+  width: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--tg-theme-secondary-bg-color, #f1f1f1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--tg-theme-hint-color, #c1c1c1);
+  border-radius: 2px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--tg-theme-link-color, #a1a1a1);
+}
