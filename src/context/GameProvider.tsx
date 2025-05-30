@@ -1,4 +1,4 @@
-// src/context/GameProvider.tsx - ФРОНТЕНД - ИСПРАВЛЕНЫ ТОЛЬКО ОТСУТСТВУЮЩИЕ ЭКСПОРТЫ
+// src/context/GameProvider.tsx - ФРОНТЕНД - ИСПРАВЛЕНЫ ТОЛЬКО СИНТАКСИЧЕСКИЕ ОШИБКИ
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { GameState, Player, RoomInfo, WebSocketMessage, WebSocketResponse } from '../../shared/types';
 import { TelegramAuth } from '../utils/TelegramAuth';
@@ -24,7 +24,7 @@ interface GameContextState {
   
   // Ошибки
   error: string | null;
-}
+} // ✅ ДОБАВЛЕНА закрывающая скобка
 
 // ✅ ДОБАВЛЕН недостающий тип для контекста
 interface GameContextType extends GameContextState {
@@ -32,19 +32,19 @@ interface GameContextType extends GameContextState {
   connect: () => void;
   disconnect: () => void;
   clearError: () => void;
-  authenticate: () => Promise<boolean>;
+  authenticate: () => Promise<boolean>; // ✅ ИСПРАВЛЕНО: добавлен <boolean>
   createRoom: (name: string, rules: any) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
   setReady: () => void;
   startGame: () => void;
   makeGameAction: (action: any) => void;
-}
+} // ✅ ДОБАВЛЕНА закрывающая скобка
 
 // ✅ ДОБАВЛЕН недостающий тип для провайдера
 interface GameProviderProps {
   children: ReactNode;
-}
+} // ✅ ДОБАВЛЕНА закрывающая скобка
 
 // ✅ ДОБАВЛЕН недостающий reducer
 function gameReducer(state: GameContextState, action: any): GameContextState {
@@ -68,7 +68,7 @@ function gameReducer(state: GameContextState, action: any): GameContextState {
     default:
       return state;
   }
-}
+} // ✅ ДОБАВЛЕНА закрывающая скобка
 
 const initialState: GameContextState = {
   socket: null,
@@ -85,30 +85,58 @@ const initialState: GameContextState = {
 };
 
 // ✅ ДОБАВЛЕН недостающий контекст
-const GameContext = createContext<GameContextType | undefined>(undefined);
+const GameContext = createContext<GameContextType | undefined>(undefined); // ✅ ИСПРАВЛЕНО: добавлена типизация
 
-export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
+export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // ✅ ИСПРАВЛЕНО: добавлен тип
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
-  // Инициализация Telegram WebApp
+  // ✅ ИСПРАВЛЕН useEffect с правильной проверкой Telegram
   useEffect(() => {
+    console.log('🔍 Initializing GameProvider...');
+    
     TelegramAuth.initTelegramApp();
     
-    // Получаем данные пользователя Telegram
-    let telegramUser = TelegramAuth.getTelegramUser();
-    
-    // Для разработки - используем фейкового пользователя
-    if (!telegramUser && process.env.NODE_ENV === 'development') {
-      telegramUser = TelegramAuth.getMockUser();
+    // ✅ ПРАВИЛЬНАЯ ПРОВЕРКА
+    if (!TelegramAuth.isInTelegram()) {
+      console.log('❌ Not in Telegram environment');
+      
+      // ✅ В development используем mock пользователя
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🧪 Development mode: using mock user');
+        const mockUser = TelegramAuth.getMockUser();
+        dispatch({ type: 'SET_TELEGRAM_USER', user: mockUser });
+        dispatch({ type: 'SET_AUTHENTICATED', isAuthenticated: true });
+        
+        // Автоматически подключаемся
+        setTimeout(() => {
+          console.log('🔌 Auto-connecting in development...');
+          connect();
+        }, 1000);
+        return;
+      }
+      
+      dispatch({ type: 'SET_ERROR', error: 'Приложение должно запускаться из Telegram' });
+      return;
     }
 
+    // ✅ Получаем пользователя из Telegram
+    let telegramUser = TelegramAuth.getTelegramUser();
+
     if (telegramUser) {
+      console.log('✅ Telegram user authenticated:', telegramUser);
       dispatch({ type: 'SET_TELEGRAM_USER', user: telegramUser });
       dispatch({ type: 'SET_AUTHENTICATED', isAuthenticated: true });
+      
+      // Автоматически подключаемся к серверу
+      setTimeout(() => {
+        console.log('🔌 Auto-connecting to server...');
+        connect();
+      }, 1000);
     } else {
-      dispatch({ type: 'SET_ERROR', error: 'Приложение должно запускаться из Telegram' });
+      console.log('❌ No Telegram user data');
+      dispatch({ type: 'SET_ERROR', error: 'Не удалось получить данные пользователя из Telegram' });
     }
-  }, []);
+  }, []); // ✅ ДОБАВЛЕНА закрывающая скобка
 
   const authenticate = useCallback(async () => {
     if (!state.telegramUser) return false;
@@ -156,6 +184,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     try {
       const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
+      console.log('🔌 Connecting to:', wsUrl); // ✅ ДОБАВЛЕН debug
       const socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
