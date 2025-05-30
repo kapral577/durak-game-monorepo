@@ -1,4 +1,4 @@
-// src/pages/GameSettingsPage.tsx - ФРОНТЕНД - ИСПРАВЛЕНО
+// src/pages/GameSettingsPage.tsx - ИСПРАВЛЕНЫ ВСЕ ОШИБКИ
 import React, { useState } from 'react';
 import { Container, Row, Col, Card, Form, Button, ButtonGroup, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
@@ -9,41 +9,50 @@ import { Rules } from '../../shared/types';
 const GameSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { createRoom, isConnected, error } = useGame();
-  const { gameSettings, updateGameSettings } = useGameSettings();
   
+  // ✅ ИСПРАВЛЕНО: правильная деструктуризация
+  const { 
+    gameMode, 
+    throwingMode, 
+    cardCount, 
+    maxPlayers,
+    setGameMode,
+    setThrowingMode,
+    setCardCount,
+    setMaxPlayers
+  } = useGameSettings();
+
   const [roomName, setRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
 
+  // ✅ ИСПРАВЛЕНО: используем правильные сеттеры
   const handleGameModeChange = (mode: Rules['gameMode']) => {
-    updateGameSettings({ gameMode: mode });
+    setGameMode(mode);
   };
 
   const handleThrowingModeChange = (mode: Rules['throwingMode']) => {
-    updateGameSettings({ throwingMode: mode });
+    setThrowingMode(mode);
   };
 
   const handleCardCountChange = (count: Rules['cardCount']) => {
-    updateGameSettings({ cardCount: count });
+    setCardCount(count);
   };
 
   const handleMaxPlayersChange = (count: number) => {
-    updateGameSettings({ maxPlayers: count });
+    setMaxPlayers(count);
   };
 
   const validateSettings = (): string | null => {
     if (!roomName.trim()) {
       return 'Введите название комнаты';
     }
-    
     if (roomName.trim().length < 3) {
       return 'Название комнаты должно содержать минимум 3 символа';
     }
-
     if (roomName.trim().length > 30) {
       return 'Название комнаты не должно превышать 30 символов';
     }
-
     return null;
   };
 
@@ -61,22 +70,19 @@ const GameSettingsPage: React.FC = () => {
 
     setIsCreating(true);
     setValidationError(null);
-
+    
     try {
       const rules: Rules = {
-        gameMode: gameSettings.gameMode,
-        throwingMode: gameSettings.throwingMode,
-        cardCount: gameSettings.cardCount,
-        maxPlayers: gameSettings.maxPlayers,
+        gameMode, // ✅ ИСПРАВЛЕНО: прямое использование
+        throwingMode,
+        cardCount,
+        maxPlayers,
       };
 
       createRoom(roomName.trim(), rules);
       
-      // Переходим к комнате (GameProvider обновит currentRoom)
-      // В реальном проекте лучше дождаться ответа от сервера
-      setTimeout(() => {
-        navigate('/room/new'); // Заменится на реальный ID комнаты
-      }, 500);
+      // ✅ УБРАНО: setTimeout navigate - GameProvider сам перенаправит
+      console.log('Room creation initiated');
       
     } catch (err) {
       console.error('Error creating room:', err);
@@ -91,33 +97,29 @@ const GameSettingsPage: React.FC = () => {
 
   return (
     <Container className="py-4">
-      <Row className="justify-content-center">
-        <Col xs={12} md={8} lg={6}>
-          {/* Заголовок */}
-          <div className="d-flex align-items-center mb-4">
-            <Button variant="outline-secondary" onClick={handleBack} className="me-3">
-              ← Назад
-            </Button>
-            <h2 className="mb-0">Настройки игры</h2>
-          </div>
-
-          {/* Ошибки */}
-          {(error || validationError) && (
-            <Alert variant="danger" className="mb-4">
-              {validationError || error}
-            </Alert>
-          )}
-
-          {/* Название комнаты */}
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Название комнаты</h5>
+      <Row>
+        <Col lg={8} className="mx-auto">
+          <Card>
+            <Card.Header className="d-flex align-items-center">
+              <Button variant="link" onClick={handleBack} className="p-0 me-3">
+                ← Назад
+              </Button>
+              <h5 className="mb-0">Настройки игры</h5>
             </Card.Header>
             <Card.Body>
-              <Form.Group>
+              {/* Ошибки */}
+              {(error || validationError) && (
+                <Alert variant="danger">
+                  {validationError || error}
+                </Alert>
+              )}
+
+              {/* Название комнаты */}
+              <Form.Group className="mb-4">
+                <Form.Label>Название комнаты</Form.Label>
                 <Form.Control
                   type="text"
-                  placeholder="Введите название комнаты..."
+                  placeholder="Введите название комнаты"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
                   maxLength={30}
@@ -127,170 +129,123 @@ const GameSettingsPage: React.FC = () => {
                   {roomName.length}/30 символов
                 </Form.Text>
               </Form.Group>
-            </Card.Body>
-          </Card>
 
-          {/* Режим игры */}
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Режим игры</h5>
-            </Card.Header>
-            <Card.Body>
-              <ButtonGroup className="w-100 mb-3">
-                <Button
-                  variant={gameSettings.gameMode === 'classic' ? 'primary' : 'outline-primary'}
-                  onClick={() => handleGameModeChange('classic')}
-                  disabled={isCreating}
-                >
-                  Классический
-                </Button>
-                <Button
-                  variant={gameSettings.gameMode === 'transferable' ? 'primary' : 'outline-primary'}
-                  onClick={() => handleGameModeChange('transferable')}
-                  disabled={isCreating}
-                >
-                  Переводной
-                </Button>
-                <Button
-                  variant={gameSettings.gameMode === 'smart' ? 'primary' : 'outline-primary'}
-                  onClick={() => handleGameModeChange('smart')}
-                  disabled={isCreating}
-                >
-                  Умный
-                </Button>
-              </ButtonGroup>
-
-              <small className="text-muted">
-                {gameSettings.gameMode === 'classic' && 'Стандартные правила дурака'}
-                {gameSettings.gameMode === 'transferable' && 'Можно переводить атаку на следующего игрока'}
-                {gameSettings.gameMode === 'smart' && 'Автоматическое подкидывание карт'}
-              </small>
-            </Card.Body>
-          </Card>
-
-          {/* Подкидывание */}
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Подкидывание</h5>
-            </Card.Header>
-            <Card.Body>
-              <ButtonGroup className="w-100 mb-3">
-                <Button
-                  variant={gameSettings.throwingMode === 'none' ? 'primary' : 'outline-primary'}
-                  onClick={() => handleThrowingModeChange('none')}
-                  disabled={isCreating}
-                >
-                  Нет
-                </Button>
-                <Button
-                  variant={gameSettings.throwingMode === 'neighbors' ? 'primary' : 'outline-primary'}
-                  onClick={() => handleThrowingModeChange('neighbors')}
-                  disabled={isCreating}
-                >
-                  Соседи
-                </Button>
-                <Button
-                  variant={gameSettings.throwingMode === 'all' ? 'primary' : 'outline-primary'}
-                  onClick={() => handleThrowingModeChange('all')}
-                  disabled={isCreating}
-                >
-                  Все
-                </Button>
-              </ButtonGroup>
-
-              <small className="text-muted">
-                {gameSettings.throwingMode === 'none' && 'Подкидывание запрещено'}
-                {gameSettings.throwingMode === 'neighbors' && 'Подкидывать могут только соседние игроки'}
-                {gameSettings.throwingMode === 'all' && 'Подкидывать могут все игроки'}
-              </small>
-            </Card.Body>
-          </Card>
-
-          {/* Количество карт */}
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Карт на руках</h5>
-            </Card.Header>
-            <Card.Body>
-              <ButtonGroup className="w-100 mb-3">
-                <Button
-                  variant={gameSettings.cardCount === 6 ? 'primary' : 'outline-primary'}
-                  onClick={() => handleCardCountChange(6)}
-                  disabled={isCreating}
-                >
-                  6 карт
-                </Button>
-                <Button
-                  variant={gameSettings.cardCount === 8 ? 'primary' : 'outline-primary'}
-                  onClick={() => handleCardCountChange(8)}
-                  disabled={isCreating}
-                >
-                  8 карт
-                </Button>
-                <Button
-                  variant={gameSettings.cardCount === 10 ? 'primary' : 'outline-primary'}
-                  onClick={() => handleCardCountChange(10)}
-                  disabled={isCreating}
-                >
-                  10 карт
-                </Button>
-              </ButtonGroup>
-
-              <small className="text-muted">
-                Количество карт, которые получает каждый игрок в начале игры
-              </small>
-            </Card.Body>
-          </Card>
-
-          {/* Максимальное количество игроков */}
-          <Card className="mb-4">
-            <Card.Header>
-              <h5 className="mb-0">Максимум игроков</h5>
-            </Card.Header>
-            <Card.Body>
-              <ButtonGroup className="w-100 mb-3">
-                {[2, 3, 4, 5, 6].map((count) => (
+              {/* Режим игры */}
+              <Form.Group className="mb-4">
+                <Form.Label>Режим игры</Form.Label>
+                <ButtonGroup className="d-block">
                   <Button
-                    key={count}
-                    variant={gameSettings.maxPlayers === count ? 'primary' : 'outline-primary'}
-                    onClick={() => handleMaxPlayersChange(count)}
+                    variant={gameMode === 'classic' ? 'primary' : 'outline-primary'}
+                    onClick={() => handleGameModeChange('classic')}
                     disabled={isCreating}
+                    className="me-2 mb-2"
                   >
-                    {count}
+                    Классический
                   </Button>
-                ))}
-              </ButtonGroup>
+                  <Button
+                    variant={gameMode === 'transferable' ? 'primary' : 'outline-primary'}
+                    onClick={() => handleGameModeChange('transferable')}
+                    disabled={isCreating}
+                    className="mb-2"
+                  >
+                    Переводной
+                  </Button>
+                </ButtonGroup>
+                <Form.Text className="text-muted d-block">
+                  {gameMode === 'classic' && 'Стандартные правила дурака'}
+                  {gameMode === 'transferable' && 'Можно переводить атаку на следующего игрока'}
+                </Form.Text>
+              </Form.Group>
 
-              <small className="text-muted">
-                Максимальное количество игроков в комнате
-              </small>
+              {/* ✅ ИСПРАВЛЕНО: правильные значения throwingMode */}
+              <Form.Group className="mb-4">
+                <Form.Label>Подкидывание</Form.Label>
+                <ButtonGroup className="d-block">
+                  <Button
+                    variant={throwingMode === 'standard' ? 'primary' : 'outline-primary'}
+                    onClick={() => handleThrowingModeChange('standard')}
+                    disabled={isCreating}
+                    className="me-2 mb-2"
+                  >
+                    Стандартное
+                  </Button>
+                  <Button
+                    variant={throwingMode === 'smart' ? 'primary' : 'outline-primary'}
+                    onClick={() => handleThrowingModeChange('smart')}
+                    disabled={isCreating}
+                    className="mb-2"
+                  >
+                    Умное
+                  </Button>
+                </ButtonGroup>
+                <Form.Text className="text-muted d-block">
+                  {throwingMode === 'standard' && 'Обычные правила подкидывания'}
+                  {throwingMode === 'smart' && 'Автоматическое подкидывание'}
+                </Form.Text>
+              </Form.Group>
+
+              {/* Количество карт */}
+              <Form.Group className="mb-4">
+                <Form.Label>Карт на руках</Form.Label>
+                <ButtonGroup className="d-block">
+                  {[6, 8, 10].map((count) => (
+                    <Button
+                      key={count}
+                      variant={cardCount === count ? 'primary' : 'outline-primary'}
+                      onClick={() => handleCardCountChange(count)}
+                      disabled={isCreating}
+                      className="me-2 mb-2"
+                    >
+                      {count} карт
+                    </Button>
+                  ))}
+                </ButtonGroup>
+                <Form.Text className="text-muted">
+                  Количество карт, которые получает каждый игрок в начале игры
+                </Form.Text>
+              </Form.Group>
+
+              {/* Максимальное количество игроков */}
+              <Form.Group className="mb-4">
+                <Form.Label>Максимум игроков</Form.Label>
+                <ButtonGroup className="d-block">
+                  {[2, 3, 4, 5, 6].map((count) => (
+                    <Button
+                      key={count}
+                      variant={maxPlayers === count ? 'primary' : 'outline-primary'}
+                      onClick={() => handleMaxPlayersChange(count)}
+                      disabled={isCreating}
+                      className="me-2 mb-2"
+                    >
+                      {count}
+                    </Button>
+                  ))}
+                </ButtonGroup>
+                <Form.Text className="text-muted">
+                  Максимальное количество игроков в комнате
+                </Form.Text>
+              </Form.Group>
+
+              {/* Кнопка создания */}
+              <div className="d-grid">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  onClick={handleCreateRoom} 
+                  disabled={isCreating || !isConnected}
+                >
+                  {isCreating ? (
+                    <>
+                      <span className="spinner-border spinner-border-sm me-2" />
+                      Создание комнаты...
+                    </>
+                  ) : (
+                    'Создать комнату'
+                  )}
+                </Button>
+              </div>
             </Card.Body>
           </Card>
-
-          {/* Кнопка создания */}
-          <div className="d-grid">
-            <Button
-              variant="success"
-              size="lg"
-              onClick={handleCreateRoom}
-              disabled={!isConnected || isCreating}
-              className="py-3"
-            >
-              {isCreating ? (
-                <>
-                  <span className="spinner-border spinner-border-sm me-2" role="status">
-                    <span className="visually-hidden">Создание...</span>
-                  </span>
-                  Создание комнаты...
-                </>
-              ) : (
-                <>
-                  <span className="me-2">🎮</span>
-                  Создать комнату
-                </>
-              )}
-            </Button>
-          </div>
         </Col>
       </Row>
     </Container>
