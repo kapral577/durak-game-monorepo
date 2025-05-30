@@ -1,4 +1,4 @@
-// src/context/GameProvider.tsx - ФРОНТЕНД - ОБНОВЛЕНО с аутентификацией
+// src/context/GameProvider.tsx - ФРОНТЕНД - ИСПРАВЛЕНЫ ТОЛЬКО ОТСУТСТВУЮЩИЕ ЭКСПОРТЫ
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { GameState, Player, RoomInfo, WebSocketMessage, WebSocketResponse } from '../../shared/types';
 import { TelegramAuth } from '../utils/TelegramAuth';
@@ -26,7 +26,49 @@ interface GameContextState {
   error: string | null;
 }
 
-// ... остальные типы ...
+// ✅ ДОБАВЛЕН недостающий тип для контекста
+interface GameContextType extends GameContextState {
+  sendMessage: (message: any) => void;
+  connect: () => void;
+  disconnect: () => void;
+  clearError: () => void;
+  authenticate: () => Promise<boolean>;
+  createRoom: (name: string, rules: any) => void;
+  joinRoom: (roomId: string) => void;
+  leaveRoom: () => void;
+  setReady: () => void;
+  startGame: () => void;
+  makeGameAction: (action: any) => void;
+}
+
+// ✅ ДОБАВЛЕН недостающий тип для провайдера
+interface GameProviderProps {
+  children: ReactNode;
+}
+
+// ✅ ДОБАВЛЕН недостающий reducer
+function gameReducer(state: GameContextState, action: any): GameContextState {
+  switch (action.type) {
+    case 'SET_SOCKET':
+      return { ...state, socket: action.socket };
+    case 'SET_CONNECTION_STATUS':
+      return { ...state, connectionStatus: action.status, isConnected: action.status === 'connected' };
+    case 'SET_TELEGRAM_USER':
+      return { ...state, telegramUser: action.user };
+    case 'SET_AUTHENTICATED':
+      return { ...state, isAuthenticated: action.isAuthenticated };
+    case 'SET_AUTH_TOKEN':
+      return { ...state, authToken: action.token };
+    case 'SET_CURRENT_PLAYER':
+      return { ...state, currentPlayer: action.player };
+    case 'SET_ERROR':
+      return { ...state, error: action.error };
+    case 'CLEAR_ERROR':
+      return { ...state, error: null };
+    default:
+      return state;
+  }
+}
 
 const initialState: GameContextState = {
   socket: null,
@@ -41,6 +83,9 @@ const initialState: GameContextState = {
   currentRoom: null,
   error: null,
 };
+
+// ✅ ДОБАВЛЕН недостающий контекст
+const GameContext = createContext<GameContextType | undefined>(undefined);
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
@@ -131,7 +176,26 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         socket.send(JSON.stringify({ type: 'get_rooms' }));
       };
 
-      // ... остальная логика WebSocket ...
+      // ✅ ДОБАВЛЕНА недостающая логика WebSocket
+      socket.onmessage = (event) => {
+        try {
+          const message = JSON.parse(event.data);
+          // Обработка сообщений от сервера
+          console.log('Received message:', message);
+        } catch (error) {
+          console.error('Error parsing message:', error);
+        }
+      };
+
+      socket.onclose = () => {
+        dispatch({ type: 'SET_CONNECTION_STATUS', status: 'disconnected' });
+        dispatch({ type: 'SET_SOCKET', socket: null });
+      };
+
+      socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        dispatch({ type: 'SET_CONNECTION_STATUS', status: 'error' });
+      };
 
     } catch (error) {
       console.error('[GameProvider] Failed to create WebSocket:', error);
@@ -140,7 +204,46 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, [state.isAuthenticated, state.authToken, state.telegramUser, authenticate]);
 
-  // ... остальные методы ...
+  // ✅ ДОБАВЛЕНЫ недостающие методы
+  const sendMessage = useCallback((message: any) => {
+    if (state.socket && state.socket.readyState === WebSocket.OPEN) {
+      state.socket.send(JSON.stringify(message));
+    }
+  }, [state.socket]);
+
+  const disconnect = useCallback(() => {
+    if (state.socket) {
+      state.socket.close();
+    }
+  }, [state.socket]);
+
+  const clearError = useCallback(() => {
+    dispatch({ type: 'CLEAR_ERROR' });
+  }, []);
+
+  const createRoom = useCallback((name: string, rules: any) => {
+    sendMessage({ type: 'create_room', name, rules });
+  }, [sendMessage]);
+
+  const joinRoom = useCallback((roomId: string) => {
+    sendMessage({ type: 'join_room', roomId });
+  }, [sendMessage]);
+
+  const leaveRoom = useCallback(() => {
+    sendMessage({ type: 'leave_room' });
+  }, [sendMessage]);
+
+  const setReady = useCallback(() => {
+    sendMessage({ type: 'set_ready' });
+  }, [sendMessage]);
+
+  const startGame = useCallback(() => {
+    sendMessage({ type: 'start_game' });
+  }, [sendMessage]);
+
+  const makeGameAction = useCallback((action: any) => {
+    sendMessage({ type: 'game_action', action });
+  }, [sendMessage]);
 
   const contextValue: GameContextType = {
     ...state,
@@ -162,4 +265,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       {children}
     </GameContext.Provider>
   );
+};
+
+// ✅ ДОБАВЛЕН недостающий экспорт useGame
+export const useGame = (): GameContextType => {
+  const context = useContext(GameContext);
+  if (context === undefined) {
+    throw new Error('useGame must be used within a GameProvider');
+  }
+  return context;
 };
