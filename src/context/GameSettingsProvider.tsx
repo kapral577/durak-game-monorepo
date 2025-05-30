@@ -1,4 +1,4 @@
-// src/context/GameSettingsProvider.tsx - ИСПРАВЛЕНЫ ТОЛЬКО СИНТАКСИЧЕСКИЕ ОШИБКИ
+// src/context/GameSettingsProvider.tsx - ИСПРАВЛЕНЫ ВСЕ ОШИБКИ
 import React, { createContext, useContext, useState } from 'react';
 import { UseGameSettings, GameMode, ThrowingMode } from '../types/context';
 
@@ -10,19 +10,22 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const [gameMode, setGameMode] = useState<GameMode>('classic'); // ✅ ДОБАВЛЕНА типизация
   const [throwingMode, setThrowingMode] = useState<ThrowingMode>('standard'); // ✅ ДОБАВЛЕНА типизация
   const [cardCount, setCardCount] = useState(36);
+  const [maxPlayers, setMaxPlayers] = useState(4); // ✅ ДОБАВЛЕНО maxPlayers
 
   const value: UseGameSettings = {
     playerCount,
     gameMode,
     throwingMode,
     cardCount,
+    maxPlayers, // ✅ ДОБАВЛЕНО в value
     setPlayerCount,
     setGameMode,
     setThrowingMode,
     setCardCount,
+    setMaxPlayers, // ✅ ДОБАВЛЕНО в value
   };
 
-  // ✅ ИСПРАВЛЕН return - добавлен Provider
+  // ✅ ИСПРАВЛЕН return - правильная JSX структура
   return (
     <GameSettingsContext.Provider value={value}>
       {children}
