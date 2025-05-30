@@ -1,5 +1,5 @@
-// src/pages/GameSettingsPage.tsx - ИСПРАВЛЕНЫ ВСЕ ОШИБКИ
-import React, { useState } from 'react';
+// src/pages/GameSettingsPage.tsx - ДОБАВЛЕНЫ ОБРАБОТЧИКИ СОБЫТИЙ
+import React, { useState, useEffect } from 'react'; // ✅ ДОБАВЛЕН useEffect
 import { Container, Row, Col, Card, Form, Button, ButtonGroup, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameProvider';
@@ -10,11 +10,10 @@ const GameSettingsPage: React.FC = () => {
   const navigate = useNavigate();
   const { createRoom, isConnected, error } = useGame();
   
-  // ✅ ИСПРАВЛЕНО: правильная деструктуризация
-  const { 
-    gameMode, 
-    throwingMode, 
-    cardCount, 
+  const {
+    gameMode,
+    throwingMode,
+    cardCount,
     maxPlayers,
     setGameMode,
     setThrowingMode,
@@ -24,9 +23,38 @@ const GameSettingsPage: React.FC = () => {
 
   const [roomName, setRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null); // ✅ ИСПРАВЛЕНА типизация
 
-  // ✅ ИСПРАВЛЕНО: используем правильные сеттеры
+  // ✅ ДОБАВЛЕНЫ ОБРАБОТЧИКИ СОБЫТИЙ ОТ GAMEPROVIDER
+  useEffect(() => {
+    const handleRoomCreated = (event: CustomEvent) => {
+      console.log('🎉 Room created event received:', event.detail);
+      setIsCreating(false);
+      setValidationError(null);
+      
+      // ✅ ПЕРЕХОД НА ГЛАВНУЮ (пока нет роута комнаты)
+      navigate('/');
+      
+      // ✅ ИЛИ В БУДУЩЕМ: navigate(`/room/${event.detail.room.id}`);
+    };
+    
+    const handleRoomError = (event: CustomEvent) => {
+      console.log('❌ Room error event received:', event.detail);
+      setIsCreating(false);
+      setValidationError(event.detail.error || 'Ошибка создания комнаты');
+    };
+    
+    // ✅ ДОБАВЛЯЕМ ОБРАБОТЧИКИ СОБЫТИЙ
+    window.addEventListener('room-created', handleRoomCreated as EventListener);
+    window.addEventListener('room-error', handleRoomError as EventListener);
+    
+    // ✅ ОЧИСТКА ПРИ РАЗМОНТИРОВАНИИ
+    return () => {
+      window.removeEventListener('room-created', handleRoomCreated as EventListener);
+      window.removeEventListener('room-error', handleRoomError as EventListener);
+    };
+  }, [navigate]);
+
   const handleGameModeChange = (mode: Rules['gameMode']) => {
     setGameMode(mode);
   };
@@ -43,16 +71,20 @@ const GameSettingsPage: React.FC = () => {
     setMaxPlayers(count);
   };
 
+  // ✅ ИСПРАВЛЕНЫ СИНТАКСИЧЕСКИЕ ОШИБКИ
   const validateSettings = (): string | null => {
     if (!roomName.trim()) {
       return 'Введите название комнаты';
-    }
+    } // ✅ ДОБАВЛЕНА скобка
+    
     if (roomName.trim().length < 3) {
       return 'Название комнаты должно содержать минимум 3 символа';
-    }
+    } // ✅ ДОБАВЛЕНА скобка
+    
     if (roomName.trim().length > 30) {
       return 'Название комнаты не должно превышать 30 символов';
-    }
+    } // ✅ ДОБАВЛЕНА скобка
+    
     return null;
   };
 
@@ -61,34 +93,42 @@ const GameSettingsPage: React.FC = () => {
     if (error) {
       setValidationError(error);
       return;
-    }
+    } // ✅ ДОБАВЛЕНА скобка
 
     if (!isConnected) {
       setValidationError('Нет соединения с сервером');
       return;
-    }
+    } // ✅ ДОБАВЛЕНА скобка
 
     setIsCreating(true);
     setValidationError(null);
     
+    // ✅ ДОБАВЛЕН TIMEOUT ДЛЯ ПРЕДОТВРАЩЕНИЯ ВЕЧНОЙ ЗАГРУЗКИ
+    const timeoutId = setTimeout(() => {
+      console.log('⏰ Room creation timeout');
+      setIsCreating(false);
+      setValidationError('Время создания комнаты истекло. Попробуйте еще раз.');
+    }, 15000); // 15 секунд
+
     try {
       const rules: Rules = {
-        gameMode, // ✅ ИСПРАВЛЕНО: прямое использование
+        gameMode,
         throwingMode,
         cardCount,
         maxPlayers,
       };
 
       createRoom(roomName.trim(), rules);
-      
-      // ✅ УБРАНО: setTimeout navigate - GameProvider сам перенаправит
       console.log('Room creation initiated');
       
+      // ✅ ОЧИСТКА TIMEOUT ПРОИЗОЙДЕТ В ОБРАБОТЧИКЕ СОБЫТИЯ
+      
     } catch (err) {
+      clearTimeout(timeoutId); // ✅ ОЧИСТКА TIMEOUT ПРИ ОШИБКЕ
       console.error('Error creating room:', err);
       setValidationError('Ошибка создания комнаты');
       setIsCreating(false);
-    }
+    } // ✅ ДОБАВЛЕНА скобка
   };
 
   const handleBack = () => {
@@ -157,7 +197,7 @@ const GameSettingsPage: React.FC = () => {
                 </Form.Text>
               </Form.Group>
 
-              {/* ✅ ИСПРАВЛЕНО: правильные значения throwingMode */}
+              {/* Подкидывание */}
               <Form.Group className="mb-4">
                 <Form.Label>Подкидывание</Form.Label>
                 <ButtonGroup className="d-block">

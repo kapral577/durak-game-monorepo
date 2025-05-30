@@ -1,4 +1,4 @@
-// src/context/GameProvider.tsx - ФРОНТЕНД - ИСПРАВЛЕНЫ ТОЛЬКО СИНТАКСИЧЕСКИЕ ОШИБКИ
+// src/context/GameProvider.tsx - ПОЛНОЕ ИСПРАВЛЕНИЕ ОБРАБОТКИ WEBSOCKET
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { GameState, Player, RoomInfo, WebSocketMessage, WebSocketResponse } from '../../shared/types';
 import { TelegramAuth } from '../utils/TelegramAuth';
@@ -24,29 +24,27 @@ interface GameContextState {
   
   // Ошибки
   error: string | null;
-} // ✅ ДОБАВЛЕНА закрывающая скобка
+}
 
-// ✅ ДОБАВЛЕН недостающий тип для контекста
 interface GameContextType extends GameContextState {
   sendMessage: (message: any) => void;
   connect: () => void;
   disconnect: () => void;
   clearError: () => void;
-  authenticate: () => Promise<boolean>; // ✅ ИСПРАВЛЕНО: добавлен <boolean>
+  authenticate: () => Promise<boolean>;
   createRoom: (name: string, rules: any) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
   setReady: () => void;
   startGame: () => void;
   makeGameAction: (action: any) => void;
-} // ✅ ДОБАВЛЕНА закрывающая скобка
+}
 
-// ✅ ДОБАВЛЕН недостающий тип для провайдера
 interface GameProviderProps {
   children: ReactNode;
-} // ✅ ДОБАВЛЕНА закрывающая скобка
+}
 
-// ✅ ДОБАВЛЕН недостающий reducer
+// ✅ ИСПРАВЛЕН REDUCER - добавлены новые actions
 function gameReducer(state: GameContextState, action: any): GameContextState {
   switch (action.type) {
     case 'SET_SOCKET':
@@ -61,6 +59,12 @@ function gameReducer(state: GameContextState, action: any): GameContextState {
       return { ...state, authToken: action.token };
     case 'SET_CURRENT_PLAYER':
       return { ...state, currentPlayer: action.player };
+    case 'SET_CURRENT_ROOM':  // ✅ ДОБАВЛЕНО
+      return { ...state, currentRoom: action.room };
+    case 'SET_ROOMS':  // ✅ ДОБАВЛЕНО
+      return { ...state, rooms: action.rooms };
+    case 'SET_GAME_STATE':  // ✅ ДОБАВЛЕНО
+      return { ...state, gameState: action.gameState };
     case 'SET_ERROR':
       return { ...state, error: action.error };
     case 'CLEAR_ERROR':
@@ -68,7 +72,7 @@ function gameReducer(state: GameContextState, action: any): GameContextState {
     default:
       return state;
   }
-} // ✅ ДОБАВЛЕНА закрывающая скобка
+}
 
 const initialState: GameContextState = {
   socket: null,
@@ -84,30 +88,25 @@ const initialState: GameContextState = {
   error: null,
 };
 
-// ✅ ДОБАВЛЕН недостающий контекст
-const GameContext = createContext<GameContextType | undefined>(undefined); // ✅ ИСПРАВЛЕНО: добавлена типизация
+const GameContext = createContext<GameContextType | undefined>(undefined);
 
-export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // ✅ ИСПРАВЛЕНО: добавлен тип
+export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
 
-  // ✅ ИСПРАВЛЕН useEffect с правильной проверкой Telegram
   useEffect(() => {
     console.log('🔍 Initializing GameProvider...');
     
     TelegramAuth.initTelegramApp();
     
-    // ✅ ПРАВИЛЬНАЯ ПРОВЕРКА
     if (!TelegramAuth.isInTelegram()) {
       console.log('❌ Not in Telegram environment');
       
-      // ✅ В development используем mock пользователя
       if (process.env.NODE_ENV === 'development') {
         console.log('🧪 Development mode: using mock user');
         const mockUser = TelegramAuth.getMockUser();
         dispatch({ type: 'SET_TELEGRAM_USER', user: mockUser });
         dispatch({ type: 'SET_AUTHENTICATED', isAuthenticated: true });
         
-        // Автоматически подключаемся
         setTimeout(() => {
           console.log('🔌 Auto-connecting in development...');
           connect();
@@ -119,7 +118,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
       return;
     }
 
-    // ✅ Получаем пользователя из Telegram
     let telegramUser = TelegramAuth.getTelegramUser();
 
     if (telegramUser) {
@@ -127,7 +125,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
       dispatch({ type: 'SET_TELEGRAM_USER', user: telegramUser });
       dispatch({ type: 'SET_AUTHENTICATED', isAuthenticated: true });
       
-      // Автоматически подключаемся к серверу
       setTimeout(() => {
         console.log('🔌 Auto-connecting to server...');
         connect();
@@ -136,7 +133,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
       console.log('❌ No Telegram user data');
       dispatch({ type: 'SET_ERROR', error: 'Не удалось получить данные пользователя из Telegram' });
     }
-  }, []); // ✅ ДОБАВЛЕНА закрывающая скобка
+  }, []);
 
   const authenticate = useCallback(async () => {
     if (!state.telegramUser) return false;
@@ -174,7 +171,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
       return;
     }
 
-    // Сначала аутентифицируемся
     const authSuccess = await authenticate();
     if (!authSuccess) return;
 
@@ -184,13 +180,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
 
     try {
       const wsUrl = import.meta.env.VITE_WS_URL || 'ws://localhost:3001';
-      console.log('🔌 Connecting to:', wsUrl); // ✅ ДОБАВЛЕН debug
+      console.log('🔌 Connecting to:', wsUrl);
       const socket = new WebSocket(wsUrl);
 
       socket.onopen = () => {
         console.log('[GameProvider] WebSocket connected');
         
-        // Отправляем токен аутентификации при подключении
         socket.send(JSON.stringify({ 
           type: 'authenticate', 
           token: state.authToken,
@@ -201,16 +196,79 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
         dispatch({ type: 'SET_SOCKET', socket });
         dispatch({ type: 'SET_ERROR', error: null });
 
-        // Запрашиваем список комнат
         socket.send(JSON.stringify({ type: 'get_rooms' }));
       };
 
-      // ✅ ДОБАВЛЕНА недостающая логика WebSocket
+      // ✅ ИСПРАВЛЕНА ОБРАБОТКА СООБЩЕНИЙ - ПОЛНАЯ РЕАЛИЗАЦИЯ
       socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
-          // Обработка сообщений от сервера
           console.log('Received message:', message);
+          
+          // ✅ ОБРАБОТКА ВСЕХ ТИПОВ СООБЩЕНИЙ
+          switch (message.type) {
+            case 'room_created':
+              console.log('✅ Room created successfully:', message.room);
+              dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              dispatch({ type: 'SET_ERROR', error: null });
+              
+              // ✅ УВЕДОМЛЯЕМ КОМПОНЕНТЫ О СОЗДАНИИ КОМНАТЫ
+              window.dispatchEvent(new CustomEvent('room-created', { 
+                detail: { room: message.room } 
+              }));
+              break;
+              
+            case 'room_joined':
+              console.log('✅ Joined room:', message.room);
+              dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              break;
+              
+            case 'rooms_list':
+              console.log('📋 Rooms list received:', message.rooms);
+              dispatch({ type: 'SET_ROOMS', rooms: message.rooms || [] });
+              break;
+              
+            case 'player_joined':
+              console.log('👤 Player joined:', message.player);
+              if (state.currentRoom && message.room) {
+                dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              }
+              break;
+              
+            case 'player_left':
+              console.log('👤 Player left:', message.playerId);
+              if (state.currentRoom && message.room) {
+                dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              }
+              break;
+              
+            case 'game_started':
+              console.log('🎮 Game started');
+              if (message.gameState) {
+                dispatch({ type: 'SET_GAME_STATE', gameState: message.gameState });
+              }
+              break;
+              
+            case 'error':
+              console.log('❌ Server error:', message.message);
+              dispatch({ type: 'SET_ERROR', error: message.message });
+              
+              // ✅ УВЕДОМЛЯЕМ КОМПОНЕНТЫ ОБ ОШИБКЕ
+              window.dispatchEvent(new CustomEvent('room-error', { 
+                detail: { error: message.message } 
+              }));
+              break;
+              
+            case 'authenticated':
+              console.log('✅ WebSocket authenticated');
+              dispatch({ type: 'SET_AUTH_TOKEN', token: message.token });
+              dispatch({ type: 'SET_CURRENT_PLAYER', player: message.player });
+              break;
+              
+            default:
+              console.log('❓ Unknown message type:', message.type);
+          }
+          
         } catch (error) {
           console.error('Error parsing message:', error);
         }
@@ -233,7 +291,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
     }
   }, [state.isAuthenticated, state.authToken, state.telegramUser, authenticate]);
 
-  // ✅ ДОБАВЛЕНЫ недостающие методы
   const sendMessage = useCallback((message: any) => {
     if (state.socket && state.socket.readyState === WebSocket.OPEN) {
       state.socket.send(JSON.stringify(message));
@@ -296,7 +353,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => { // 
   );
 };
 
-// ✅ ДОБАВЛЕН недостающий экспорт useGame
 export const useGame = (): GameContextType => {
   const context = useContext(GameContext);
   if (context === undefined) {
