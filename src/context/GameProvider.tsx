@@ -59,11 +59,11 @@ function gameReducer(state: GameContextState, action: any): GameContextState {
       return { ...state, authToken: action.token };
     case 'SET_CURRENT_PLAYER':
       return { ...state, currentPlayer: action.player };
-    case 'SET_CURRENT_ROOM':  // ✅ ДОБАВЛЕНО
+    case 'SET_CURRENT_ROOM':
       return { ...state, currentRoom: action.room };
-    case 'SET_ROOMS':  // ✅ ДОБАВЛЕНО
+    case 'SET_ROOMS':
       return { ...state, rooms: action.rooms };
-    case 'SET_GAME_STATE':  // ✅ ДОБАВЛЕНО
+    case 'SET_GAME_STATE':
       return { ...state, gameState: action.gameState };
     case 'SET_ERROR':
       return { ...state, error: action.error };
@@ -135,6 +135,26 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // ✅ HEARTBEAT СИСТЕМА
+  useEffect(() => {
+    let heartbeatInterval: NodeJS.Timeout;
+    
+    if (state.socket && state.isConnected) {
+      heartbeatInterval = setInterval(() => {
+        if (state.socket?.readyState === WebSocket.OPEN) {
+          state.socket.send(JSON.stringify({ type: 'heartbeat' }));
+          console.log('💓 Heartbeat sent');
+        }
+      }, 30000); // 30 секунд
+    }
+    
+    return () => {
+      if (heartbeatInterval) {
+        clearInterval(heartbeatInterval);
+      }
+    };
+  }, [state.socket, state.isConnected]);
+
   const authenticate = useCallback(async () => {
     if (!state.telegramUser) return false;
 
@@ -199,20 +219,18 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         socket.send(JSON.stringify({ type: 'get_rooms' }));
       };
 
-      // ✅ ИСПРАВЛЕНА ОБРАБОТКА СООБЩЕНИЙ - ПОЛНАЯ РЕАЛИЗАЦИЯ
+      // ✅ ПОЛНАЯ ОБРАБОТКА ВСЕХ СООБЩЕНИЙ
       socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
           console.log('Received message:', message);
           
-          // ✅ ОБРАБОТКА ВСЕХ ТИПОВ СООБЩЕНИЙ
           switch (message.type) {
             case 'room_created':
               console.log('✅ Room created successfully:', message.room);
               dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
               dispatch({ type: 'SET_ERROR', error: null });
               
-              // ✅ УВЕДОМЛЯЕМ КОМПОНЕНТЫ О СОЗДАНИИ КОМНАТЫ
               window.dispatchEvent(new CustomEvent('room-created', { 
                 detail: { room: message.room } 
               }));
@@ -241,6 +259,33 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
               }
               break;
+
+            // ✅ ДОБАВЛЕНЫ НЕДОСТАЮЩИЕ ОБРАБОТЧИКИ
+            case 'player_ready_changed':
+              console.log('🔄 Player ready changed:', message.playerId, message.isReady);
+              if (state.currentRoom && message.room) {
+                dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              }
+              break;
+
+            case 'player_reconnected':
+              console.log('🔄 Player reconnected:', message.player);
+              if (state.currentRoom && message.room) {
+                dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              }
+              break;
+
+            case 'player_disconnected':
+              console.log('🔌 Player disconnected:', message.playerId);
+              if (state.currentRoom && message.room) {
+                dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              }
+              break;
+
+            case 'heartbeat_response':
+              // Тихо обрабатываем heartbeat ответы
+              console.log('💓 Heartbeat response received');
+              break;
               
             case 'game_started':
               console.log('🎮 Game started');
@@ -253,7 +298,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               console.log('❌ Server error:', message.message);
               dispatch({ type: 'SET_ERROR', error: message.message });
               
-              // ✅ УВЕДОМЛЯЕМ КОМПОНЕНТЫ ОБ ОШИБКЕ
               window.dispatchEvent(new CustomEvent('room-error', { 
                 detail: { error: message.message } 
               }));
@@ -274,9 +318,21 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         }
       };
 
-      socket.onclose = () => {
+      // ✅ AUTO-RECONNECT ЛОГИКА
+      socket.onclose = (event) => {
+        console.log(`🔌 WebSocket closed: ${event.code} ${event.reason}`);
         dispatch({ type: 'SET_CONNECTION_STATUS', status: 'disconnected' });
         dispatch({ type: 'SET_SOCKET', socket: null });
+        
+        // Автоматический reconnect если соединение оборвалось
+        if (event.code !== 1000) { // Не нормальное закрытие
+          console.log('🔄 Attempting to reconnect in 3 seconds...');
+          setTimeout(() => {
+            if (state.isAuthenticated) {
+              connect();
+            }
+          }, 3000);
+        }
       };
 
       socket.onerror = (error) => {
