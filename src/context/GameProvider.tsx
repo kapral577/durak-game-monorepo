@@ -1,8 +1,8 @@
-// src/context/GameProvider.tsx - ПОЛНОЕ ИСПРАВЛЕНИЕ ОБРАБОТКИ WEBSOCKET
+// src/context/GameProvider.tsx - АВТОМАТИЧЕСКИЙ СТАРТ ИГРЫ И РАСШИРЕННАЯ ОБРАБОТКА
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
-import { GameState, Player, RoomInfo, WebSocketMessage, WebSocketResponse } from '../../shared/types';
 import { TelegramAuth } from '../utils/TelegramAuth';
 
+// ✅ РАСШИРЕННЫЕ ТИПЫ ДЛЯ АВТОСТАРТА
 interface GameContextState {
   // WebSocket состояние
   socket: WebSocket | null;
@@ -15,15 +15,27 @@ interface GameContextState {
   authToken: string | null;
   
   // Игровое состояние
-  gameState: GameState | null;
-  currentPlayer: Player | null;
+  gameState: any | null;
+  currentPlayer: any | null;
   
   // Комнаты
-  rooms: RoomInfo[];
-  currentRoom: RoomInfo | null;
+  rooms: any[];
+  currentRoom: any | null;
   
-  // Ошибки
+  // ✅ НОВЫЕ ПОЛЯ ДЛЯ АВТОСТАРТА
+  autoStartInfo: {
+    readyCount: number;
+    totalCount: number;
+    allReady: boolean;
+    canStartGame: boolean;
+    needMorePlayers: boolean;
+    isAutoStarting: boolean;
+    countdown: number;
+  } | null;
+  
+  // Ошибки и уведомления
   error: string | null;
+  notification: string | null;
 }
 
 interface GameContextType extends GameContextState {
@@ -31,6 +43,7 @@ interface GameContextType extends GameContextState {
   connect: () => void;
   disconnect: () => void;
   clearError: () => void;
+  clearNotification: () => void;
   authenticate: () => Promise<boolean>;
   createRoom: (name: string, rules: any) => void;
   joinRoom: (roomId: string) => void;
@@ -44,7 +57,7 @@ interface GameProviderProps {
   children: ReactNode;
 }
 
-// ✅ ИСПРАВЛЕН REDUCER - добавлены новые actions
+// ✅ РАСШИРЕННЫЙ REDUCER С АВТОСТАРТ ЛОГИКОЙ
 function gameReducer(state: GameContextState, action: any): GameContextState {
   switch (action.type) {
     case 'SET_SOCKET':
@@ -69,6 +82,30 @@ function gameReducer(state: GameContextState, action: any): GameContextState {
       return { ...state, error: action.error };
     case 'CLEAR_ERROR':
       return { ...state, error: null };
+    case 'SET_NOTIFICATION':
+      return { ...state, notification: action.notification };
+    case 'CLEAR_NOTIFICATION':
+      return { ...state, notification: null };
+    
+    // ✅ НОВЫЕ ACTIONS ДЛЯ АВТОСТАРТА
+    case 'SET_AUTO_START_INFO':
+      return { 
+        ...state, 
+        autoStartInfo: action.autoStartInfo,
+        notification: action.notification || state.notification
+      };
+    case 'CLEAR_AUTO_START_INFO':
+      return { ...state, autoStartInfo: null };
+    case 'SET_AUTO_START_COUNTDOWN':
+      return { 
+        ...state, 
+        autoStartInfo: state.autoStartInfo ? {
+          ...state.autoStartInfo,
+          countdown: action.countdown,
+          isAutoStarting: action.countdown > 0
+        } : null
+      };
+    
     default:
       return state;
   }
@@ -85,7 +122,9 @@ const initialState: GameContextState = {
   currentPlayer: null,
   rooms: [],
   currentRoom: null,
+  autoStartInfo: null,
   error: null,
+  notification: null,
 };
 
 const GameContext = createContext<GameContextType | undefined>(undefined);
@@ -135,6 +174,26 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, []);
 
+  // ✅ АВТОСТАРТ COUNTDOWN СИСТЕМА
+  useEffect(() => {
+    let countdownInterval: NodeJS.Timeout;
+    
+    if (state.autoStartInfo?.isAutoStarting && state.autoStartInfo.countdown > 0) {
+      countdownInterval = setInterval(() => {
+        dispatch({ 
+          type: 'SET_AUTO_START_COUNTDOWN', 
+          countdown: state.autoStartInfo!.countdown - 1 
+        });
+      }, 1000);
+    }
+    
+    return () => {
+      if (countdownInterval) {
+        clearInterval(countdownInterval);
+      }
+    };
+  }, [state.autoStartInfo?.isAutoStarting, state.autoStartInfo?.countdown]);
+
   // ✅ HEARTBEAT СИСТЕМА
   useEffect(() => {
     let heartbeatInterval: NodeJS.Timeout;
@@ -145,7 +204,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           state.socket.send(JSON.stringify({ type: 'heartbeat' }));
           console.log('💓 Heartbeat sent');
         }
-      }, 30000); // 30 секунд
+      }, 30000);
     }
     
     return () => {
@@ -219,7 +278,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         socket.send(JSON.stringify({ type: 'get_rooms' }));
       };
 
-      // ✅ ПОЛНАЯ ОБРАБОТКА ВСЕХ СООБЩЕНИЙ
+      // ✅ ПОЛНАЯ ОБРАБОТКА ВСЕХ СООБЩЕНИЙ С АВТОСТАРТОМ
       socket.onmessage = (event) => {
         try {
           const message = JSON.parse(event.data);
@@ -239,6 +298,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
             case 'room_joined':
               console.log('✅ Joined room:', message.room);
               dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+              dispatch({ type: 'CLEAR_AUTO_START_INFO' });
               break;
               
             case 'rooms_list':
@@ -250,6 +310,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               console.log('👤 Player joined:', message.player);
               if (state.currentRoom && message.room) {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+                dispatch({ type: 'SET_NOTIFICATION', notification: `👋 ${message.player.name} присоединился к игре!` });
               }
               break;
               
@@ -257,14 +318,44 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               console.log('👤 Player left:', message.playerId);
               if (state.currentRoom && message.room) {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+                dispatch({ type: 'CLEAR_AUTO_START_INFO' });
+                dispatch({ type: 'SET_NOTIFICATION', notification: `👋 Игрок покинул комнату` });
               }
               break;
 
-            // ✅ ДОБАВЛЕНЫ НЕДОСТАЮЩИЕ ОБРАБОТЧИКИ
+            // ✅ РАСШИРЕННАЯ ОБРАБОТКА ГОТОВНОСТИ С АВТОСТАРТОМ
             case 'player_ready_changed':
               console.log('🔄 Player ready changed:', message.playerId, message.isReady);
               if (state.currentRoom && message.room) {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+                
+                // ✅ ОБНОВЛЯЕМ ИНФОРМАЦИЮ ОБ АВТОСТАРТЕ
+                const autoStartInfo = {
+                  readyCount: message.readyCount || 0,
+                  totalCount: message.totalCount || 0,
+                  allReady: message.allReady || false,
+                  canStartGame: message.canStartGame || false,
+                  needMorePlayers: message.needMorePlayers || false,
+                  isAutoStarting: false,
+                  countdown: 0
+                };
+
+                let notification = null;
+                if (message.canStartGame) {
+                  notification = `🎮 Все игроки готовы! Игра запускается...`;
+                  autoStartInfo.isAutoStarting = true;
+                  autoStartInfo.countdown = 3; // 3 секунды countdown
+                } else if (message.needMorePlayers) {
+                  notification = `👥 Ожидаем больше игроков (${message.totalCount}/2)`;
+                } else {
+                  notification = `⏳ Готовы: ${message.readyCount}/${message.totalCount} игроков`;
+                }
+
+                dispatch({ 
+                  type: 'SET_AUTO_START_INFO', 
+                  autoStartInfo,
+                  notification
+                });
               }
               break;
 
@@ -272,6 +363,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               console.log('🔄 Player reconnected:', message.player);
               if (state.currentRoom && message.room) {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+                dispatch({ type: 'SET_NOTIFICATION', notification: `🔄 ${message.player.name} переподключился!` });
               }
               break;
 
@@ -279,18 +371,34 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               console.log('🔌 Player disconnected:', message.playerId);
               if (state.currentRoom && message.room) {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+                dispatch({ type: 'CLEAR_AUTO_START_INFO' });
+                dispatch({ type: 'SET_NOTIFICATION', notification: `🔌 Игрок отключился` });
               }
               break;
 
             case 'heartbeat_response':
-              // Тихо обрабатываем heartbeat ответы
               console.log('💓 Heartbeat response received');
               break;
               
+            // ✅ РАСШИРЕННАЯ ОБРАБОТКА СТАРТА ИГРЫ
             case 'game_started':
               console.log('🎮 Game started');
               if (message.gameState) {
                 dispatch({ type: 'SET_GAME_STATE', gameState: message.gameState });
+              }
+              
+              dispatch({ type: 'CLEAR_AUTO_START_INFO' });
+              
+              if (message.autoStarted) {
+                dispatch({ 
+                  type: 'SET_NOTIFICATION', 
+                  notification: `🎉 ${message.message || 'Игра началась автоматически!'}` 
+                });
+              } else {
+                dispatch({ 
+                  type: 'SET_NOTIFICATION', 
+                  notification: `🎮 Игра началась!` 
+                });
               }
               break;
               
@@ -301,6 +409,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               window.dispatchEvent(new CustomEvent('room-error', { 
                 detail: { error: message.message } 
               }));
+              break;
+
+            case 'info':
+              console.log('ℹ️ Server info:', message.message);
+              dispatch({ type: 'SET_NOTIFICATION', notification: message.message });
               break;
               
             case 'authenticated':
@@ -323,9 +436,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         console.log(`🔌 WebSocket closed: ${event.code} ${event.reason}`);
         dispatch({ type: 'SET_CONNECTION_STATUS', status: 'disconnected' });
         dispatch({ type: 'SET_SOCKET', socket: null });
+        dispatch({ type: 'CLEAR_AUTO_START_INFO' });
         
-        // Автоматический reconnect если соединение оборвалось
-        if (event.code !== 1000) { // Не нормальное закрытие
+        if (event.code !== 1000) {
           console.log('🔄 Attempting to reconnect in 3 seconds...');
           setTimeout(() => {
             if (state.isAuthenticated) {
@@ -363,6 +476,10 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     dispatch({ type: 'CLEAR_ERROR' });
   }, []);
 
+  const clearNotification = useCallback(() => {
+    dispatch({ type: 'CLEAR_NOTIFICATION' });
+  }, []);
+
   const createRoom = useCallback((name: string, rules: any) => {
     sendMessage({ type: 'create_room', name, rules });
   }, [sendMessage]);
@@ -373,12 +490,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   const leaveRoom = useCallback(() => {
     sendMessage({ type: 'leave_room' });
+    dispatch({ type: 'CLEAR_AUTO_START_INFO' });
   }, [sendMessage]);
 
   const setReady = useCallback(() => {
     sendMessage({ type: 'set_ready' });
   }, [sendMessage]);
 
+  // ✅ ИНФОРМАЦИОННЫЙ startGame (показывает что теперь автостарт)
   const startGame = useCallback(() => {
     sendMessage({ type: 'start_game' });
   }, [sendMessage]);
@@ -393,6 +512,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     connect,
     disconnect,
     clearError,
+    clearNotification,
     authenticate,
     createRoom,
     joinRoom,
