@@ -1,5 +1,5 @@
-// src/pages/GameSettingsPage.tsx - ДОБАВЛЕНЫ ОБРАБОТЧИКИ СОБЫТИЙ
-import React, { useState, useEffect } from 'react'; // ✅ ДОБАВЛЕН useEffect
+// src/pages/GameSettingsPage.tsx - АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ ХОСТА В КОМНАТУ
+import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, ButtonGroup, Alert } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useGame } from '../context/GameProvider';
@@ -23,19 +23,17 @@ const GameSettingsPage: React.FC = () => {
 
   const [roomName, setRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null); // ✅ ИСПРАВЛЕНА типизация
+  const [validationError, setValidationError] = useState<string | null>(null);
 
-  // ✅ ДОБАВЛЕНЫ ОБРАБОТЧИКИ СОБЫТИЙ ОТ GAMEPROVIDER
+  // ✅ АВТОМАТИЧЕСКОЕ ПЕРЕНАПРАВЛЕНИЕ В СОЗДАННУЮ КОМНАТУ
   useEffect(() => {
     const handleRoomCreated = (event: CustomEvent) => {
-      console.log('🎉 Room created event received:', event.detail);
+      console.log('🎉 Room created, redirecting host to room:', event.detail.room.id);
       setIsCreating(false);
       setValidationError(null);
       
-      // ✅ ПЕРЕХОД НА ГЛАВНУЮ (пока нет роута комнаты)
-      navigate('/');
-      
-      // ✅ ИЛИ В БУДУЩЕМ: navigate(`/room/${event.detail.room.id}`);
+      // ✅ СРАЗУ ПЕРЕНАПРАВЛЯЕМ В СОЗДАННУЮ КОМНАТУ
+      navigate(`/room/${event.detail.room.id}`);
     };
     
     const handleRoomError = (event: CustomEvent) => {
@@ -44,11 +42,9 @@ const GameSettingsPage: React.FC = () => {
       setValidationError(event.detail.error || 'Ошибка создания комнаты');
     };
     
-    // ✅ ДОБАВЛЯЕМ ОБРАБОТЧИКИ СОБЫТИЙ
     window.addEventListener('room-created', handleRoomCreated as EventListener);
     window.addEventListener('room-error', handleRoomError as EventListener);
     
-    // ✅ ОЧИСТКА ПРИ РАЗМОНТИРОВАНИИ
     return () => {
       window.removeEventListener('room-created', handleRoomCreated as EventListener);
       window.removeEventListener('room-error', handleRoomError as EventListener);
@@ -71,19 +67,18 @@ const GameSettingsPage: React.FC = () => {
     setMaxPlayers(count);
   };
 
-  // ✅ ИСПРАВЛЕНЫ СИНТАКСИЧЕСКИЕ ОШИБКИ
   const validateSettings = (): string | null => {
     if (!roomName.trim()) {
       return 'Введите название комнаты';
-    } // ✅ ДОБАВЛЕНА скобка
+    }
     
     if (roomName.trim().length < 3) {
       return 'Название комнаты должно содержать минимум 3 символа';
-    } // ✅ ДОБАВЛЕНА скобка
+    }
     
     if (roomName.trim().length > 30) {
       return 'Название комнаты не должно превышать 30 символов';
-    } // ✅ ДОБАВЛЕНА скобка
+    }
     
     return null;
   };
@@ -93,23 +88,16 @@ const GameSettingsPage: React.FC = () => {
     if (error) {
       setValidationError(error);
       return;
-    } // ✅ ДОБАВЛЕНА скобка
+    }
 
     if (!isConnected) {
       setValidationError('Нет соединения с сервером');
       return;
-    } // ✅ ДОБАВЛЕНА скобка
+    }
 
     setIsCreating(true);
     setValidationError(null);
     
-    // ✅ ДОБАВЛЕН TIMEOUT ДЛЯ ПРЕДОТВРАЩЕНИЯ ВЕЧНОЙ ЗАГРУЗКИ
-    const timeoutId = setTimeout(() => {
-      console.log('⏰ Room creation timeout');
-      setIsCreating(false);
-      setValidationError('Время создания комнаты истекло. Попробуйте еще раз.');
-    }, 15000); // 15 секунд
-
     try {
       const rules: Rules = {
         gameMode,
@@ -118,17 +106,17 @@ const GameSettingsPage: React.FC = () => {
         maxPlayers,
       };
 
+      console.log('🏠 Creating room:', roomName.trim(), 'with rules:', rules);
       createRoom(roomName.trim(), rules);
-      console.log('Room creation initiated');
       
-      // ✅ ОЧИСТКА TIMEOUT ПРОИЗОЙДЕТ В ОБРАБОТЧИКЕ СОБЫТИЯ
+      // ✅ НЕ НУЖЕН TIMEOUT - событие room-created обработает все
+      console.log('Room creation request sent to server');
       
     } catch (err) {
-      clearTimeout(timeoutId); // ✅ ОЧИСТКА TIMEOUT ПРИ ОШИБКЕ
       console.error('Error creating room:', err);
       setValidationError('Ошибка создания комнаты');
       setIsCreating(false);
-    } // ✅ ДОБАВЛЕНА скобка
+    }
   };
 
   const handleBack = () => {
@@ -151,6 +139,20 @@ const GameSettingsPage: React.FC = () => {
               {(error || validationError) && (
                 <Alert variant="danger">
                   {validationError || error}
+                </Alert>
+              )}
+
+              {/* Информация об автоматическом перенаправлении */}
+              {isCreating && (
+                <Alert variant="info">
+                  <div className="d-flex align-items-center">
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    <div>
+                      <strong>Создаем комнату...</strong>
+                      <br />
+                      <small>После создания вы автоматически попадете в комнату ожидания</small>
+                    </div>
+                  </div>
                 </Alert>
               )}
 
@@ -280,10 +282,22 @@ const GameSettingsPage: React.FC = () => {
                       Создание комнаты...
                     </>
                   ) : (
-                    'Создать комнату'
+                    <>
+                      🏠 Создать комнату и войти
+                    </>
                   )}
                 </Button>
               </div>
+
+              {/* Подсказка */}
+              {!isCreating && (
+                <div className="mt-3">
+                  <small className="text-muted">
+                    <i className="bi bi-info-circle me-1"></i>
+                    После создания комнаты вы автоматически попадете в меню ожидания игроков
+                  </small>
+                </div>
+              )}
             </Card.Body>
           </Card>
         </Col>

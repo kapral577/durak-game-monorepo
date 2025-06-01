@@ -1,4 +1,4 @@
-// src/context/GameProvider.tsx - АВТОМАТИЧЕСКИЙ СТАРТ ИГРЫ И РАСШИРЕННАЯ ОБРАБОТКА
+// src/context/GameProvider.tsx - ИСПРАВЛЕННАЯ ВЕРСИЯ ДЛЯ АВТОСТАРТА
 import React, { createContext, useContext, useReducer, useEffect, useCallback, ReactNode } from 'react';
 import { TelegramAuth } from '../utils/TelegramAuth';
 
@@ -290,6 +290,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
               dispatch({ type: 'SET_ERROR', error: null });
               
+              // ✅ КРИТИЧЕСКИ ВАЖНО ДЛЯ АВТОПЕРЕНАПРАВЛЕНИЯ
               window.dispatchEvent(new CustomEvent('room-created', { 
                 detail: { room: message.room } 
               }));
@@ -497,7 +498,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     sendMessage({ type: 'set_ready' });
   }, [sendMessage]);
 
-  // ✅ ИНФОРМАЦИОННЫЙ startGame (показывает что теперь автостарт)
   const startGame = useCallback(() => {
     sendMessage({ type: 'start_game' });
   }, [sendMessage]);
