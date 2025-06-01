@@ -308,34 +308,31 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               break;
               
             case 'player_joined':
-              // ✅ ДОБАВЛЕНЫ ДИАГНОСТИЧЕСКИЕ ЛОГИ
-              console.log('👤 Player joined:', message.player);
-              
-              console.log('🔍 GameProvider player_joined debug:', {
-                hasCurrentRoom: !!state.currentRoom,
-                hasMessageRoom: !!message.room,
-                currentRoomId: state.currentRoom?.id,
-                messageRoomId: message.room?.id,
-                currentRoomPlayers: state.currentRoom?.players?.length,
-                messageRoomPlayers: message.room?.players?.length,
-                conditionPasses: !!(state.currentRoom && message.room)
-              });
-              
-              if (message.room) {
-                console.log('✅ Condition passed, dispatching SET_CURRENT_ROOM');
-                console.log('📊 Before dispatch - currentRoom players:', state.currentRoom.players?.length);
-                console.log('📊 Message room players:', message.room.players?.length);
-                
-                dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
-                dispatch({ type: 'SET_NOTIFICATION', notification: `👋 ${message.player.name} присоединился к игре!` });
-                
-                console.log('✅ Dispatched SET_CURRENT_ROOM and notification');
-              } else {
-                console.log('❌ Condition failed - NOT dispatching SET_CURRENT_ROOM');
-                console.log('❌ state.currentRoom:', state.currentRoom);
-                console.log('❌ message.room:', message.room);
-              }
-              break;
+  console.log('👤 Player joined:', message.player);
+  
+  console.log('🔍 GameProvider player_joined debug:', {
+    hasCurrentRoom: !!state.currentRoom,
+    hasMessageRoom: !!message.room,
+    currentRoomId: state.currentRoom?.id,
+    messageRoomId: message.room?.id,
+    currentRoomPlayers: state.currentRoom?.players?.length,
+    messageRoomPlayers: message.room?.players?.length,
+    conditionPasses: !!message.room
+  });
+  
+  if (message.room) {
+    console.log('✅ Condition passed, dispatching SET_CURRENT_ROOM');
+    console.log('📊 Before dispatch - currentRoom players:', state.currentRoom?.players?.length); // ✅ ДОБАВИТЬ ?
+    console.log('📊 Message room players:', message.room.players?.length);
+    
+    dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
+    dispatch({ type: 'SET_NOTIFICATION', notification: `👋 ${message.player.name} присоединился к игре!` });
+    
+    console.log('✅ Dispatched SET_CURRENT_ROOM and notification');
+  } else {
+    console.log('❌ No message.room provided');
+  }
+  break;
               
             case 'player_left':
               console.log('👤 Player left:', message.playerId);
