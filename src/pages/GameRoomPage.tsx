@@ -87,14 +87,46 @@ const GameRoomPage: React.FC = () => {
     } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [notification, currentRoom?.players?.length]);
 
+  // ✅ ДОБАВЛЕНЫ ЛОГИ ДЛЯ ДИАГНОСТИКИ gameState И НАВИГАЦИИ
+  useEffect(() => {
+    console.log('🎮 gameState changed:', {
+      gameState: gameState,
+      hasGameState: !!gameState,
+      currentRoomId: currentRoom?.id,
+      urlRoomId: roomId,
+      isConnected: isConnected,
+      shouldNavigate: !!(gameState && currentRoom?.id === roomId),
+      gameStateType: typeof gameState
+    });
+  }, [gameState]);
+
   // Проверяем соответствие комнаты
   useEffect(() => {
+    console.log('🔍 Room check useEffect triggered:', {
+      isConnected,
+      gameState: !!gameState,
+      currentRoomId: currentRoom?.id,
+      urlRoomId: roomId,
+      condition1: !!gameState,
+      condition2: currentRoom?.id === roomId,
+      shouldNavigate: !!(gameState && currentRoom?.id === roomId)
+    });
+
     if (!isConnected) return;
 
     // Если игра уже началась, переходим на игровую страницу
     if (gameState && currentRoom?.id === roomId) {
+      console.log('✅ Navigating to game page:', `/game/${roomId}`);
       navigate(`/game/${roomId}`);
       return;
+    } else if (gameState) {
+      console.log('❌ Not navigating - gameState exists but room ID mismatch:', {
+        gameState: !!gameState,
+        currentRoomId: currentRoom?.id,
+        urlRoomId: roomId
+      });
+    } else {
+      console.log('❌ Not navigating - no gameState');
     } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
     // Если нет текущей комнаты или не та комната
@@ -110,8 +142,23 @@ const GameRoomPage: React.FC = () => {
 
   // Перенаправление при старте игры
   useEffect(() => {
+    console.log('🎮 Game navigation useEffect triggered:', {
+      gameState: !!gameState,
+      currentRoomId: currentRoom?.id,
+      urlRoomId: roomId,
+      shouldNavigate: !!(gameState && currentRoom?.id === roomId)
+    });
+
     if (gameState && currentRoom?.id === roomId) {
+      console.log('✅ Game navigation triggered, navigating to:', `/game/${roomId}`);
       navigate(`/game/${roomId}`);
+    } else {
+      console.log('❌ Game navigation NOT triggered:', {
+        reason: !gameState ? 'No gameState' : 'Room ID mismatch',
+        gameState: !!gameState,
+        currentRoomId: currentRoom?.id,
+        urlRoomId: roomId
+      });
     } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [gameState, currentRoom, roomId, navigate]);
 
@@ -220,6 +267,7 @@ const GameRoomPage: React.FC = () => {
                 <strong>Players:</strong> {currentRoom?.players?.map(p => p.name).join(', ')}<br/>
                 <strong>Current Player:</strong> {currentPlayer?.name}<br/>
                 <strong>Is Host:</strong> {currentRoom?.hostId === currentPlayer?.id ? 'Yes' : 'No'}<br/>
+                <strong>Game State:</strong> {gameState ? 'EXISTS' : 'NULL'}<br/>
                 <strong>Render #:</strong> {forceRender}<br/>
                 <strong>Time:</strong> {new Date().toLocaleTimeString()}
               </small>
