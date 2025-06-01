@@ -26,6 +26,38 @@ const GameRoomPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [forceRender, setForceRender] = useState(0); // ✅ ДОБАВЛЕНО: принудительный ререндер
 
+  // ✅ ДОБАВЛЕНЫ ТОЛЬКО ДИАГНОСТИЧЕСКИЕ ЛОГИ
+  useEffect(() => {
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('🔍 GameRoomPage render #' + forceRender + ':', {
+        roomId: currentRoom?.id,
+        playersCount: currentRoom?.players?.length,
+        players: currentRoom?.players?.map(p => ({
+          id: p.id,
+          name: p.name,
+          isReady: p.isReady,
+          isConnected: p.isConnected
+        })),
+        currentPlayerId: currentPlayer?.id,
+        isHost: currentRoom?.hostId === currentPlayer?.id,
+        renderTime: new Date().toLocaleTimeString()
+      });
+
+      // Диагностика каждого игрока
+      currentRoom?.players?.forEach((player, index) => {
+        console.log(`👤 Player ${index + 1} render check:`, {
+          id: player.id,
+          name: player.name,
+          isMe: player.id === currentPlayer?.id,
+          isHost: player.id === currentRoom?.hostId,
+          isReady: player.isReady,
+          isConnected: player.isConnected,
+          shouldShow: true
+        });
+      });
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+  }, [forceRender, currentRoom, currentPlayer]); // ✅ зависимости для отслеживания изменений
+
   // ✅ ДОБАВЛЕНО: принудительное обновление при изменении currentRoom
   useEffect(() => {
     console.log('🔄 currentRoom changed, forcing rerender...', {
@@ -35,6 +67,25 @@ const GameRoomPage: React.FC = () => {
     });
     setForceRender(prev => prev + 1);
   }, [currentRoom, currentRoom?.players, currentRoom?.players?.length]);
+
+  // ✅ ДОБАВЛЕНЫ ДОПОЛНИТЕЛЬНЫЕ ЛОГИ ДЛЯ ОТСЛЕЖИВАНИЯ ИЗМЕНЕНИЙ
+  useEffect(() => {
+    console.log('👥 Players list changed:', {
+      count: currentRoom?.players?.length,
+      list: currentRoom?.players?.map(p => ({ id: p.id, name: p.name })),
+      timestamp: new Date().toLocaleTimeString()
+    });
+  }, [currentRoom?.players]);
+
+  useEffect(() => {
+    if (notification) {
+      console.log('🔔 Notification received:', {
+        message: notification,
+        currentPlayers: currentRoom?.players?.length,
+        timestamp: new Date().toLocaleTimeString()
+      });
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+  }, [notification, currentRoom?.players?.length]);
 
   // Проверяем соответствие комнаты
   useEffect(() => {
@@ -159,6 +210,22 @@ const GameRoomPage: React.FC = () => {
     <Container className="py-4" key={forceRender}> {/* ✅ ДОБАВЛЕНО: key для принудительного ререндера */}
       <Row>
         <Col lg={8} className="mx-auto">
+          {/* ✅ ДОБАВЛЕНА DEBUG ПАНЕЛЬ (только в development) */}
+          {process.env.NODE_ENV === 'development' && (
+            <Alert variant="secondary" className="mb-3">
+              <h6>🔍 DEBUG INFO:</h6>
+              <small>
+                <strong>Room ID:</strong> {currentRoom?.id}<br/>
+                <strong>Players Count:</strong> {currentRoom?.players?.length}<br/>
+                <strong>Players:</strong> {currentRoom?.players?.map(p => p.name).join(', ')}<br/>
+                <strong>Current Player:</strong> {currentPlayer?.name}<br/>
+                <strong>Is Host:</strong> {currentRoom?.hostId === currentPlayer?.id ? 'Yes' : 'No'}<br/>
+                <strong>Render #:</strong> {forceRender}<br/>
+                <strong>Time:</strong> {new Date().toLocaleTimeString()}
+              </small>
+            </Alert>
+          )}
+
           {/* Заголовок комнаты */}
           <Card className="mb-4">
             <Card.Header className="d-flex justify-content-between align-items-center">
@@ -279,46 +346,57 @@ const GameRoomPage: React.FC = () => {
 
               {/* Список игроков */}
               <div className="mb-3">
-                {currentRoom.players.map((player, index) => (
-                  <div key={`${player.id}-${forceRender}`} className="d-flex align-items-center mb-2 p-2 border rounded"> {/* ✅ ДОБАВЛЕНО: key с forceRender */}
-                    {/* Аватар игрока */}
-                    <div className="me-3">
-                      {player.telegramId && player.avatar ? (
-                        <img 
-                          src={player.avatar} 
-                          alt={player.name}
-                          className="rounded-circle"
-                          width="40"
-                          height="40"
-                        />
-                      ) : (
-                        <div 
-                          className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                          style={{ width: '40px', height: '40px' }}
-                        >
-                          {player.name.charAt(0).toUpperCase()}
-                        </div>
-                      )}
-                    </div>
+                {currentRoom.players.map((player, index) => {
+                  // ✅ ИСПРАВЛЕН ЛОГ ДЛЯ КАЖДОГО РЕНДЕРА ИГРОКА
+                  console.log(`👤 Rendering player ${index + 1}:`, {
+                    id: player.id,
+                    name: player.name,
+                    isMe: player.id === currentPlayer?.id,
+                    isHost: player.id === currentRoom?.hostId,
+                    renderKey: `${player.id}-${forceRender}`
+                  });
 
-                    {/* Информация игрока */}
-                    <div className="flex-grow-1">
-                      <div className="fw-bold">
-                        {player.name}
-                        {player.id === currentPlayer?.id && <small className="text-muted ms-1">(Вы)</small>}
-                        {index === 0 && <Badge bg="info" className="ms-2">Хост</Badge>}
+                  return (
+                    <div key={`${player.id}-${forceRender}`} className="d-flex align-items-center mb-2 p-2 border rounded"> {/* ✅ ДОБАВЛЕНО: key с forceRender */}
+                      {/* Аватар игрока */}
+                      <div className="me-3">
+                        {player.telegramId && player.avatar ? (
+                          <img 
+                            src={player.avatar} 
+                            alt={player.name}
+                            className="rounded-circle"
+                            width="40"
+                            height="40"
+                          />
+                        ) : (
+                          <div 
+                            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
+                            style={{ width: '40px', height: '40px' }}
+                          >
+                            {player.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
                       </div>
-                      {player.username && (
-                        <small className="text-muted">@{player.username}</small>
-                      )}
-                    </div>
 
-                    {/* Статус готовности */}
-                    <div>
-                      {getPlayerStatus(player)}
+                      {/* Информация игрока */}
+                      <div className="flex-grow-1">
+                        <div className="fw-bold">
+                          {player.name}
+                          {player.id === currentPlayer?.id && <small className="text-muted ms-1">(Вы)</small>}
+                          {index === 0 && <Badge bg="info" className="ms-2">Хост</Badge>}
+                        </div>
+                        {player.username && (
+                          <small className="text-muted">@{player.username}</small>
+                        )}
+                      </div>
+
+                      {/* Статус готовности */}
+                      <div>
+                        {getPlayerStatus(player)}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
 
                 {/* Заглушки для недостающих игроков */}
                 {connectedPlayers.length < currentRoom.maxPlayers && (
