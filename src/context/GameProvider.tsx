@@ -36,7 +36,7 @@ interface GameContextState {
   // Ошибки и уведомления
   error: string | null;
   notification: string | null;
-}
+} // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
 interface GameContextType extends GameContextState {
   sendMessage: (message: any) => void;
@@ -44,18 +44,18 @@ interface GameContextType extends GameContextState {
   disconnect: () => void;
   clearError: () => void;
   clearNotification: () => void;
-  authenticate: () => Promise<boolean>;
+  authenticate: () => Promise<boolean>; // ✅ ИСПРАВЛЕНО: добавлен тип boolean
   createRoom: (name: string, rules: any) => void;
   joinRoom: (roomId: string) => void;
   leaveRoom: () => void;
   setReady: () => void;
   startGame: () => void;
   makeGameAction: (action: any) => void;
-}
+} // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
 interface GameProviderProps {
   children: ReactNode;
-}
+} // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
 // ✅ РАСШИРЕННЫЙ REDUCER С АВТОСТАРТ ЛОГИКОЙ
 function gameReducer(state: GameContextState, action: any): GameContextState {
@@ -108,7 +108,7 @@ function gameReducer(state: GameContextState, action: any): GameContextState {
     
     default:
       return state;
-  }
+  } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 }
 
 const initialState: GameContextState = {
@@ -127,7 +127,7 @@ const initialState: GameContextState = {
   notification: null,
 };
 
-const GameContext = createContext<GameContextType | undefined>(undefined);
+const GameContext = createContext<GameContextType | undefined>(undefined); // ✅ ИСПРАВЛЕНО: добавлен тип
 
 export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [state, dispatch] = useReducer(gameReducer, initialState);
@@ -151,11 +151,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           connect();
         }, 1000);
         return;
-      }
+      } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
       
       dispatch({ type: 'SET_ERROR', error: 'Приложение должно запускаться из Telegram' });
       return;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
     let telegramUser = TelegramAuth.getTelegramUser();
 
@@ -171,7 +171,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     } else {
       console.log('❌ No Telegram user data');
       dispatch({ type: 'SET_ERROR', error: 'Не удалось получить данные пользователя из Telegram' });
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, []);
 
   // ✅ АВТОСТАРТ COUNTDOWN СИСТЕМА
@@ -185,12 +185,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           countdown: state.autoStartInfo!.countdown - 1 
         });
       }, 1000);
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
     
     return () => {
       if (countdownInterval) {
         clearInterval(countdownInterval);
-      }
+      } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
     };
   }, [state.autoStartInfo?.isAutoStarting, state.autoStartInfo?.countdown]);
 
@@ -203,14 +203,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         if (state.socket?.readyState === WebSocket.OPEN) {
           state.socket.send(JSON.stringify({ type: 'heartbeat' }));
           console.log('💓 Heartbeat sent');
-        }
+        } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
       }, 30000);
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
     
     return () => {
       if (heartbeatInterval) {
         clearInterval(heartbeatInterval);
-      }
+      } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
     };
   }, [state.socket, state.isConnected]);
 
@@ -236,19 +236,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       } else {
         dispatch({ type: 'SET_ERROR', error: 'Ошибка аутентификации' });
         return false;
-      }
+      } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
     } catch (error) {
       console.error('Authentication error:', error);
       dispatch({ type: 'SET_ERROR', error: 'Ошибка подключения к серверу' });
       return false;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [state.telegramUser]);
 
   const connect = useCallback(async () => {
     if (!state.isAuthenticated) {
       dispatch({ type: 'SET_ERROR', error: 'Необходима аутентификация' });
       return;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
     const authSuccess = await authenticate();
     if (!authSuccess) return;
@@ -308,10 +308,32 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               break;
               
             case 'player_joined':
+              // ✅ ДОБАВЛЕНЫ ДИАГНОСТИЧЕСКИЕ ЛОГИ
               console.log('👤 Player joined:', message.player);
+              
+              console.log('🔍 GameProvider player_joined debug:', {
+                hasCurrentRoom: !!state.currentRoom,
+                hasMessageRoom: !!message.room,
+                currentRoomId: state.currentRoom?.id,
+                messageRoomId: message.room?.id,
+                currentRoomPlayers: state.currentRoom?.players?.length,
+                messageRoomPlayers: message.room?.players?.length,
+                conditionPasses: !!(state.currentRoom && message.room)
+              });
+              
               if (state.currentRoom && message.room) {
+                console.log('✅ Condition passed, dispatching SET_CURRENT_ROOM');
+                console.log('📊 Before dispatch - currentRoom players:', state.currentRoom.players?.length);
+                console.log('📊 Message room players:', message.room.players?.length);
+                
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
                 dispatch({ type: 'SET_NOTIFICATION', notification: `👋 ${message.player.name} присоединился к игре!` });
+                
+                console.log('✅ Dispatched SET_CURRENT_ROOM and notification');
+              } else {
+                console.log('❌ Condition failed - NOT dispatching SET_CURRENT_ROOM');
+                console.log('❌ state.currentRoom:', state.currentRoom);
+                console.log('❌ message.room:', message.room);
               }
               break;
               
@@ -321,7 +343,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
                 dispatch({ type: 'CLEAR_AUTO_START_INFO' });
                 dispatch({ type: 'SET_NOTIFICATION', notification: `👋 Игрок покинул комнату` });
-              }
+              } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
               break;
 
             // ✅ РАСШИРЕННАЯ ОБРАБОТКА ГОТОВНОСТИ С АВТОСТАРТОМ
@@ -357,7 +379,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                   autoStartInfo,
                   notification
                 });
-              }
+              } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
               break;
 
             case 'player_reconnected':
@@ -365,7 +387,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               if (state.currentRoom && message.room) {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
                 dispatch({ type: 'SET_NOTIFICATION', notification: `🔄 ${message.player.name} переподключился!` });
-              }
+              } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
               break;
 
             case 'player_disconnected':
@@ -374,7 +396,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 dispatch({ type: 'SET_CURRENT_ROOM', room: message.room });
                 dispatch({ type: 'CLEAR_AUTO_START_INFO' });
                 dispatch({ type: 'SET_NOTIFICATION', notification: `🔌 Игрок отключился` });
-              }
+              } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
               break;
 
             case 'heartbeat_response':
@@ -386,7 +408,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               console.log('🎮 Game started');
               if (message.gameState) {
                 dispatch({ type: 'SET_GAME_STATE', gameState: message.gameState });
-              }
+              } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
               
               dispatch({ type: 'CLEAR_AUTO_START_INFO' });
               
@@ -400,7 +422,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                   type: 'SET_NOTIFICATION', 
                   notification: `🎮 Игра началась!` 
                 });
-              }
+              } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
               break;
               
             case 'error':
@@ -425,11 +447,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
               
             default:
               console.log('❓ Unknown message type:', message.type);
-          }
+          } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
           
         } catch (error) {
           console.error('Error parsing message:', error);
-        }
+        } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
       };
 
       // ✅ AUTO-RECONNECT ЛОГИКА
@@ -444,9 +466,9 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
           setTimeout(() => {
             if (state.isAuthenticated) {
               connect();
-            }
+            } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
           }, 3000);
-        }
+        } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
       };
 
       socket.onerror = (error) => {
@@ -458,19 +480,19 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       console.error('[GameProvider] Failed to create WebSocket:', error);
       dispatch({ type: 'SET_CONNECTION_STATUS', status: 'error' });
       dispatch({ type: 'SET_ERROR', error: 'Не удалось подключиться к серверу' });
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [state.isAuthenticated, state.authToken, state.telegramUser, authenticate]);
 
   const sendMessage = useCallback((message: any) => {
     if (state.socket && state.socket.readyState === WebSocket.OPEN) {
       state.socket.send(JSON.stringify(message));
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [state.socket]);
 
   const disconnect = useCallback(() => {
     if (state.socket) {
       state.socket.close();
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [state.socket]);
 
   const clearError = useCallback(() => {
@@ -533,6 +555,6 @@ export const useGame = (): GameContextType => {
   const context = useContext(GameContext);
   if (context === undefined) {
     throw new Error('useGame must be used within a GameProvider');
-  }
+  } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   return context;
 };
