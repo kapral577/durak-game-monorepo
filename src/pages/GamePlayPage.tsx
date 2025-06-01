@@ -113,7 +113,7 @@ const GamePlayPage: React.FC = () => {
     }
   }, [gameState, currentRoom, roomId, isConnected, navigate]);
 
-  // Если нет игрового состояния
+  // ✅ ДОБАВЛЕНО: проверка на undefined для gameState и его свойств
   if (!gameState || !currentPlayer || !currentRoom) {
     return (
       <Container className="py-4">
@@ -133,6 +133,25 @@ const GamePlayPage: React.FC = () => {
     );
   }
 
+  // ✅ ДОБАВЛЕНО: проверка на undefined для gameState.players
+  if (!gameState.players || gameState.players.length === 0) {
+    return (
+      <Container className="py-4">
+        <Row className="justify-content-center">
+          <Col xs={12} md={8} lg={6}>
+            <Alert variant="danger">
+              <Alert.Heading>Ошибка игры</Alert.Heading>
+              <p>Не удалось загрузить список игроков.</p>
+              <Button variant="primary" onClick={() => navigate('/rooms')}>
+                Вернуться к комнатам
+              </Button>
+            </Alert>
+          </Col>
+        </Row>
+      </Container>
+    );
+  }
+
   // Логика игры
   const currentPlayerIndex = gameState.players.findIndex(p => p.id === currentPlayer.id);
   const isCurrentPlayerTurn = gameState.currentAttackerIndex === currentPlayerIndex || 
@@ -140,26 +159,27 @@ const GamePlayPage: React.FC = () => {
   const isAttacker = gameState.currentAttackerIndex === currentPlayerIndex;
   const isDefender = gameState.currentDefenderIndex === currentPlayerIndex;
   
+  // ✅ ДОБАВЛЕНО: защита от undefined для hand
   const currentPlayerHand = gameState.players[currentPlayerIndex]?.hand || [];
-  const canAttack = isAttacker && gameState.table.length === 0;
-  const canDefend = isDefender && gameState.table.some(t => !t.defense);
-  const canThrow = !isDefender && gameState.table.length > 0 && gameState.table.every(t => t.defense);
+  const canAttack = isAttacker && (gameState.table?.length || 0) === 0;
+  const canDefend = isDefender && (gameState.table || []).some(t => !t.defense);
+  const canThrow = !isDefender && (gameState.table?.length || 0) > 0 && (gameState.table || []).every(t => t.defense);
 
   // Определяем какие карты можно играть
   const getPlayableCards = (): CardType[] => {
     if (canAttack) {
       // При атаке можно ходить любой картой если стол пуст
-      if (gameState.table.length === 0) {
+      if ((gameState.table?.length || 0) === 0) {
         return currentPlayerHand;
       }
       // При подкидывании можно подкидывать карты того же ранга
-      const tableRanks = gameState.table.flatMap(t => [t.attack.rank, t.defense?.rank]).filter(Boolean);
+      const tableRanks = (gameState.table || []).flatMap(t => [t.attack.rank, t.defense?.rank]).filter(Boolean);
       return currentPlayerHand.filter(card => tableRanks.includes(card.rank));
     }
     
     if (canDefend) {
       // При защите можно крыть картами той же масти или козырями
-      const undefendedAttacks = gameState.table.filter(t => !t.defense);
+      const undefendedAttacks = (gameState.table || []).filter(t => !t.defense);
       if (undefendedAttacks.length === 0) return [];
       
       const attackCard = undefendedAttacks[0].attack;
@@ -206,9 +226,10 @@ const GamePlayPage: React.FC = () => {
     if (selectedCards.length === 0) return;
     
     const action: GameAction = {
-      type: 'attack',
+      type: 'play_card', // ✅ ИСПРАВЛЕНО: приведено к типу из GameAction
       card: selectedCards[0],
-      playerId: currentPlayer.id
+      playerId: currentPlayer.id,
+      timestamp: Date.now() // ✅ ДОБАВЛЕНО: обязательное поле
     };
     
     makeGameAction(action);
@@ -218,14 +239,15 @@ const GamePlayPage: React.FC = () => {
   const handleDefend = () => {
     if (selectedCards.length === 0) return;
     
-    const undefendedAttack = gameState.table.find(t => !t.defense);
+    // ✅ ДОБАВЛЕНО: проверка на undefined для table
+    const undefendedAttack = (gameState.table || []).find(t => !t.defense);
     if (!undefendedAttack) return;
     
     const action: GameAction = {
       type: 'defend',
       card: selectedCards[0],
-      attackCard: undefendedAttack.attack,
-      playerId: currentPlayer.id
+      playerId: currentPlayer.id,
+      timestamp: Date.now() // ✅ ДОБАВЛЕНО: обязательное поле
     };
     
     makeGameAction(action);
@@ -234,8 +256,9 @@ const GamePlayPage: React.FC = () => {
 
   const handleTake = () => {
     const action: GameAction = {
-      type: 'take',
-      playerId: currentPlayer.id
+      type: 'take_cards', // ✅ ИСПРАВЛЕНО: приведено к типу из GameAction
+      playerId: currentPlayer.id,
+      timestamp: Date.now() // ✅ ДОБАВЛЕНО: обязательное поле
     };
     
     makeGameAction(action);
@@ -244,8 +267,9 @@ const GamePlayPage: React.FC = () => {
 
   const handlePass = () => {
     const action: GameAction = {
-      type: 'pass',
-      playerId: currentPlayer.id
+      type: 'pass_turn', // ✅ ИСПРАВЛЕНО: приведено к типу из GameAction
+      playerId: currentPlayer.id,
+      timestamp: Date.now() // ✅ ДОБАВЛЕНО: обязательное поле
     };
     
     makeGameAction(action);
@@ -269,12 +293,15 @@ const GamePlayPage: React.FC = () => {
   }, [gameState.players, currentPlayerIndex]);
 
   const getCurrentTurnInfo = () => {
-    const attacker = gameState.players[gameState.currentAttackerIndex];
-    const defender = gameState.players[gameState.currentDefenderIndex];
+    // ✅ ДОБАВЛЕНО: проверка на undefined для players
+    const attacker = gameState.players[gameState.currentAttackerIndex || 0];
+    const defender = gameState.players[gameState.currentDefenderIndex || 0];
     
-    if (gameState.table.length === 0) {
+    if (!attacker || !defender) return 'Ожидание...';
+    
+    if ((gameState.table?.length || 0) === 0) {
       return `${attacker.name} атакует`;
-    } else if (gameState.table.some(t => !t.defense)) {
+    } else if ((gameState.table || []).some(t => !t.defense)) {
       return `${defender.name} защищается`;
     } else {
       return `Ход ${attacker.name}`;
@@ -309,7 +336,7 @@ const GamePlayPage: React.FC = () => {
                   )}
                   <div className="text-center">
                     <small className="d-block opacity-75">Колода</small>
-                    <Badge bg="light" text="dark">{gameState.deck.length}</Badge>
+                    <Badge bg="light" text="dark">{gameState.deck?.length || 0}</Badge> {/* ✅ ДОБАВЛЕНО: защита от undefined */}
                   </div>
                   <Button variant="outline-light" size="sm" onClick={() => setShowExitModal(true)}>
                     ✕
@@ -348,16 +375,16 @@ const GamePlayPage: React.FC = () => {
                     
                     {/* Показываем только количество карт */}
                     <div className="d-flex justify-content-center gap-1">
-                      {Array.from({ length: Math.min(player.hand.length, 10) }).map((_, cardIndex) => (
+                      {Array.from({ length: Math.min(player.hand?.length || 0, 10) }).map((_, cardIndex) => ( // ✅ ДОБАВЛЕНО: защита от undefined
                         <div
                           key={cardIndex}
                           className="bg-primary rounded"
                           style={{ width: '15px', height: '20px' }}
-                          title={`${player.hand.length} карт`}
+                          title={`${player.hand?.length || 0} карт`} // ✅ ДОБАВЛЕНО: защита от undefined
                         />
                       ))}
-                      {player.hand.length > 10 && (
-                        <small className="text-muted">+{player.hand.length - 10}</small>
+                      {(player.hand?.length || 0) > 10 && ( // ✅ ДОБАВЛЕНО: защита от undefined
+                        <small className="text-muted">+{(player.hand?.length || 0) - 10}</small>
                       )}
                     </div>
                     
@@ -366,7 +393,7 @@ const GamePlayPage: React.FC = () => {
                       text={isCurrentTurn ? 'dark' : 'muted'}
                       className="mt-1"
                     >
-                      {player.hand.length}
+                      {player.hand?.length || 0} {/* ✅ ДОБАВЛЕНО: защита от undefined */}
                     </Badge>
                   </Card.Body>
                 </Card>
@@ -381,14 +408,14 @@ const GamePlayPage: React.FC = () => {
         <Col>
           <Card className="bg-success bg-opacity-10" style={{ minHeight: '120px' }}>
             <Card.Body className="d-flex align-items-center justify-content-center">
-              {gameState.table.length === 0 ? (
+              {(gameState.table?.length || 0) === 0 ? ( // ✅ ДОБАВЛЕНО: защита от undefined
                 <div className="text-center text-muted">
                   <div style={{ fontSize: '2rem' }}>🃏</div>
                   <small>Стол пуст</small>
                 </div>
               ) : (
                 <div className="d-flex flex-wrap gap-3 justify-content-center">
-                  {gameState.table.map((tableCard, index) => (
+                  {(gameState.table || []).map((tableCard, index) => ( // ✅ ДОБАВЛЕНО: защита от undefined
                     <div key={index} className="d-flex align-items-center gap-2">
                       <GameCard card={tableCard.attack} size="medium" />
                       {tableCard.defense ? (
