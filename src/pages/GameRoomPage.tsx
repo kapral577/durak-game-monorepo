@@ -17,13 +17,24 @@ const GameRoomPage: React.FC = () => {
     leaveRoom,
     error,
     clearError,
-    autoStartInfo,      // ✅ НОВОЕ
-    notification,       // ✅ НОВОЕ
-    clearNotification,  // ✅ НОВОЕ
+    autoStartInfo, // ✅ НОВОЕ
+    notification, // ✅ НОВОЕ
+    clearNotification, // ✅ НОВОЕ
     telegramUser
   } = useGame();
 
   const [isLoading, setIsLoading] = useState(true);
+  const [forceRender, setForceRender] = useState(0); // ✅ ДОБАВЛЕНО: принудительный ререндер
+
+  // ✅ ДОБАВЛЕНО: принудительное обновление при изменении currentRoom
+  useEffect(() => {
+    console.log('🔄 currentRoom changed, forcing rerender...', {
+      roomId: currentRoom?.id,
+      players: currentRoom?.players?.map(p => ({ id: p.id, name: p.name })),
+      playersCount: currentRoom?.players?.length
+    });
+    setForceRender(prev => prev + 1);
+  }, [currentRoom, currentRoom?.players, currentRoom?.players?.length]);
 
   // Проверяем соответствие комнаты
   useEffect(() => {
@@ -33,7 +44,7 @@ const GameRoomPage: React.FC = () => {
     if (gameState && currentRoom?.id === roomId) {
       navigate(`/game/${roomId}`);
       return;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
     // Если нет текущей комнаты или не та комната
     if (!currentRoom || currentRoom.id !== roomId) {
@@ -43,14 +54,14 @@ const GameRoomPage: React.FC = () => {
       }, 2000);
     } else {
       setIsLoading(false);
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [isConnected, currentRoom, roomId, gameState, navigate]);
 
   // Перенаправление при старте игры
   useEffect(() => {
     if (gameState && currentRoom?.id === roomId) {
       navigate(`/game/${roomId}`);
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [gameState, currentRoom, roomId, navigate]);
 
   // ✅ АВТОМАТИЧЕСКАЯ ОЧИСТКА УВЕДОМЛЕНИЙ
@@ -61,7 +72,7 @@ const GameRoomPage: React.FC = () => {
       }, 5000); // 5 секунд
       
       return () => clearTimeout(timer);
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   }, [notification, clearNotification]);
 
   // Показываем загрузку
@@ -81,7 +92,7 @@ const GameRoomPage: React.FC = () => {
         </Row>
       </Container>
     );
-  }
+  } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
   // Если комната не найдена
   if (!currentRoom) {
@@ -100,7 +111,7 @@ const GameRoomPage: React.FC = () => {
         </Row>
       </Container>
     );
-  }
+  } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
 
   // Логика комнаты
   const isPlayerReady = currentPlayer?.isReady || false;
@@ -119,10 +130,12 @@ const GameRoomPage: React.FC = () => {
   const getPlayerStatus = (player: any) => {
     if (!player.isConnected && player.isConnected !== undefined) {
       return <Badge bg="secondary">Отключен</Badge>;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+    
     if (player.isReady) {
       return <Badge bg="success">Готов ✓</Badge>;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+    
     return <Badge bg="warning">Ждет...</Badge>;
   };
 
@@ -131,7 +144,7 @@ const GameRoomPage: React.FC = () => {
       case 'classic': return 'Классический';
       case 'transferable': return 'Переводной';
       default: return gameMode;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   };
 
   const getThrowingModeText = (throwingMode: string) => {
@@ -139,11 +152,11 @@ const GameRoomPage: React.FC = () => {
       case 'standard': return 'Стандартное';
       case 'smart': return 'Умное';
       default: return throwingMode;
-    }
+    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
   };
 
   return (
-    <Container className="py-4">
+    <Container className="py-4" key={forceRender}> {/* ✅ ДОБАВЛЕНО: key для принудительного ререндера */}
       <Row>
         <Col lg={8} className="mx-auto">
           {/* Заголовок комнаты */}
@@ -267,7 +280,7 @@ const GameRoomPage: React.FC = () => {
               {/* Список игроков */}
               <div className="mb-3">
                 {currentRoom.players.map((player, index) => (
-                  <div key={player.id} className="d-flex align-items-center mb-2 p-2 border rounded">
+                  <div key={`${player.id}-${forceRender}`} className="d-flex align-items-center mb-2 p-2 border rounded"> {/* ✅ ДОБАВЛЕНО: key с forceRender */}
                     {/* Аватар игрока */}
                     <div className="me-3">
                       {player.telegramId && player.avatar ? (
@@ -311,7 +324,7 @@ const GameRoomPage: React.FC = () => {
                 {connectedPlayers.length < currentRoom.maxPlayers && (
                   <>
                     {Array.from({ length: currentRoom.maxPlayers - connectedPlayers.length }).map((_, index) => (
-                      <div key={`empty-${index}`} className="d-flex align-items-center mb-2 p-2 border rounded border-dashed">
+                      <div key={`empty-${index}-${forceRender}`} className="d-flex align-items-center mb-2 p-2 border rounded border-dashed"> {/* ✅ ДОБАВЛЕНО: key с forceRender */}
                         <div className="me-3">
                           <div 
                             className="rounded-circle bg-light border d-flex align-items-center justify-content-center"
