@@ -321,7 +321,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
                 conditionPasses: !!(state.currentRoom && message.room)
               });
               
-              if (state.currentRoom && message.room) {
+              if (message.room) {
                 console.log('✅ Condition passed, dispatching SET_CURRENT_ROOM');
                 console.log('📊 Before dispatch - currentRoom players:', state.currentRoom.players?.length);
                 console.log('📊 Message room players:', message.room.players?.length);
