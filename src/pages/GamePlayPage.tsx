@@ -1,4 +1,6 @@
 // src/pages/GamePlayPage.tsx - ФРОНТЕНД - ИСПРАВЛЕНО
+import '@mantine/core/styles.css';
+import { MantineProvider } from '@mantine/core';
 import React, { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Badge, Modal, ButtonGroup } from 'react-bootstrap';
