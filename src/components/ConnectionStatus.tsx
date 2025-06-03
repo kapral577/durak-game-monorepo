@@ -1,15 +1,19 @@
-import React from 'react';
-import { Alert, Spinner } from 'react-bootstrap';
+import React, { useCallback } from 'react';
+import { Alert, Spinner, Button } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
+
+// Константы для сообщений
+const MESSAGES = {
+  CONNECTING: 'Подключение к серверу...',
+  ERROR: 'Ошибка соединения с сервером',
+  DISCONNECTED: 'Нет соединения с сервером',
+} as const;
 
 const ConnectionStatus: React.FC = () => {
   const { connectionStatus, error, clearError, connect } = useGame();
 
-  if (connectionStatus === 'connected' && !error) {
-    return null; // Не показываем ничего, если всё в порядке
-  }
-
-  const getVariant = () => {
+  // Мемоизированная функция получения варианта Alert
+  const getVariant = useCallback(() => {
     switch (connectionStatus) {
       case 'connecting':
         return 'info';
@@ -20,44 +24,60 @@ const ConnectionStatus: React.FC = () => {
       default:
         return 'info';
     }
-  };
+  }, [connectionStatus]);
 
-  const getMessage = () => {
+  // Мемоизированная функция получения сообщения
+  const getMessage = useCallback(() => {
     if (error) return error;
     
     switch (connectionStatus) {
       case 'connecting':
-        return 'Подключение к серверу...';
+        return MESSAGES.CONNECTING;
       case 'error':
-        return 'Ошибка соединения с сервером';
+        return MESSAGES.ERROR;
       case 'disconnected':
-        return 'Нет соединения с сервером';
+        return MESSAGES.DISCONNECTED;
       default:
         return '';
     }
-  };
+  }, [connectionStatus, error]);
 
-  const handleRetry = () => {
+  // Мемоизированный обработчик переподключения
+  const handleRetry = useCallback(() => {
     clearError();
     connect();
-  };
+  }, [clearError, connect]);
+
+  // Не показываем компонент если все в порядке
+  if (connectionStatus === 'connected' && !error) {
+    return null;
+  }
 
   return (
-    <Alert variant={getVariant()} className="mb-0 rounded-0">
+    <Alert variant={getVariant()} className="mb-3">
       <div className="d-flex align-items-center justify-content-between">
         <div className="d-flex align-items-center">
           {connectionStatus === 'connecting' && (
-            <Spinner animation="border" size="sm" className="me-2" />
+            <Spinner 
+              animation="border" 
+              size="sm" 
+              className="me-2"
+              role="status"
+              aria-label="Подключение..."
+            />
           )}
           <span>{getMessage()}</span>
         </div>
+        
         {(connectionStatus === 'error' || connectionStatus === 'disconnected') && (
-          <button
-            className="btn btn-link btn-sm p-0 text-decoration-none"
+          <Button 
+            variant="outline-primary" 
+            size="sm" 
             onClick={handleRetry}
+            disabled={connectionStatus === 'connecting'}
           >
             Переподключиться
-          </button>
+          </Button>
         )}
       </div>
     </Alert>

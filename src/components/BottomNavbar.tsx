@@ -1,184 +1,168 @@
-import React from 'react';
+import React, { useCallback, useMemo } from 'react';
 import { Navbar, Nav, Badge } from 'react-bootstrap';
 import { Link, useLocation } from 'react-router-dom';
 import { useGame } from '../context/GameProvider';
 
+// Константы для эмодзи и UI
+const EMOJI = {
+  HOME_ACTIVE: '🏠',
+  HOME_INACTIVE: '🏡',
+  ROOMS_ACTIVE: '🎯', 
+  ROOMS_INACTIVE: '🎲',
+  GAME_ACTIVE: '🃏',
+  WAITING: '⏳',
+  FRIENDS_ACTIVE: '👥',
+  FRIENDS_INACTIVE: '👤',
+  SETTINGS_ACTIVE: '⚙️',
+  CREATE: '➕',
+  ACTIVE_GAME: '🔴',
+  NOTIFICATION: '🔔',
+  DISCONNECTED: '⚠️'
+} as const;
+
 const BottomNavbar: React.FC = () => {
   const location = useLocation();
-  const { 
-    isConnected, 
-    currentRoom, 
-    gameState, 
+  const {
+    isConnected,
+    currentRoom,
+    gameState,
     rooms,
-    telegramUser 
+    telegramUser
   } = useGame();
 
-  // Определяем активную страницу
-  const isActive = (path: string): boolean => {
+  // Мемоизированная функция определения активной страницы
+  const isActive = useCallback((path: string): boolean => {
     if (path === '/' && location.pathname === '/') return true;
     if (path !== '/' && location.pathname.startsWith(path)) return true;
     return false;
-  };
+  }, [location.pathname]);
 
-  // Получаем количество доступных комнат
-  const availableRoomsCount = rooms.filter(room => 
-    room.status === 'waiting' && room.players.length < room.maxPlayers
-  ).length;
+  // Мемоизированное количество доступных комнат
+  const availableRoomsCount = useMemo(() => {
+    if (!rooms || !Array.isArray(rooms)) return 0;
+    return rooms.filter(room => 
+      room?.status === 'waiting' && 
+      room?.players?.length < (room?.maxPlayers || 0)
+    ).length;
+  }, [rooms]);
 
-  // Проверяем, есть ли уведомления (например, приглашения)
-  const hasNotifications = false; // Можно добавить логику уведомлений
+  // TODO: Добавить логику уведомлений
+  const hasNotifications = false;
 
   return (
-    <Navbar bg="light" className="border-top justify-content-center fixed-bottom">
-      <Nav className="d-flex justify-content-around w-100">
+    <Navbar 
+      fixed="bottom" 
+      bg="dark" 
+      variant="dark" 
+      className="justify-content-around px-0"
+    >
+      {/* Главная */}
+      <Nav.Link 
+        as={Link} 
+        to="/" 
+        className={`text-center ${isActive('/') ? 'text-primary' : 'text-light'}`}
+      >
+        <div>
+          {isActive('/') ? EMOJI.HOME_ACTIVE : EMOJI.HOME_INACTIVE}
+        </div>
+        <small>Главная</small>
+      </Nav.Link>
+
+      {/* Комнаты */}
+      <Nav.Link 
+        as={Link} 
+        to="/rooms" 
+        className={`text-center position-relative ${isActive('/rooms') ? 'text-primary' : 'text-light'}`}
+      >
+        <div>
+          {isActive('/rooms') ? EMOJI.ROOMS_ACTIVE : EMOJI.ROOMS_INACTIVE}
+        </div>
+        <small>Комнаты</small>
         
-        {/* Главная */}
-        <Nav.Item className="text-center">
-          <Nav.Link
-            as={Link}
-            to="/"
-            className={`d-flex flex-column align-items-center p-2 ${
-              isActive('/') ? 'text-primary' : 'text-muted'
-            }`}
+        {/* Бейдж с количеством доступных комнат */}
+        {availableRoomsCount > 0 && (
+          <Badge 
+            bg="success" 
+            pill 
+            className="position-absolute top-0 start-100 translate-middle"
           >
-            <span style={{ fontSize: '1.2rem' }}>
-              {isActive('/') ? '🏠' : '🏡'}
-            </span>
-            <small>Главная</small>
-          </Nav.Link>
-        </Nav.Item>
-
-        {/* Комнаты */}
-        <Nav.Item className="text-center position-relative">
-          <Nav.Link
-            as={Link}
-            to="/rooms"
-            className={`d-flex flex-column align-items-center p-2 ${
-              isActive('/rooms') ? 'text-primary' : 'text-muted'
-            }`}
-          >
-            <span style={{ fontSize: '1.2rem' }}>
-              {isActive('/rooms') ? '🎯' : '🎲'}
-            </span>
-            <small>Комнаты</small>
-            
-            {/* Бейдж с количеством доступных комнат */}
-            {availableRoomsCount > 0 && (
-              <Badge 
-                bg="success" 
-                pill 
-                className="position-absolute"
-                style={{ 
-                  top: '0px', 
-                  right: '8px',
-                  fontSize: '0.6rem',
-                  minWidth: '16px',
-                  height: '16px'
-                }}
-              >
-                {availableRoomsCount}
-              </Badge>
-            )}
-          </Nav.Link>
-        </Nav.Item>
-
-        {/* Текущая игра (если в комнате или игре) */}
-        {(currentRoom || gameState) && (
-          <Nav.Item className="text-center">
-            <Nav.Link
-              as={Link}
-              to={gameState ? `/game/${currentRoom?.id}` : `/room/${currentRoom?.id}`}
-              className={`d-flex flex-column align-items-center p-2 ${
-                isActive('/room/') || isActive('/game/') ? 'text-primary' : 'text-muted'
-              }`}
-            >
-              <span style={{ fontSize: '1.2rem' }}>
-                {gameState ? '🃏' : '⏳'}
-              </span>
-              <small>{gameState ? 'Игра' : 'Комната'}</small>
-              
-              {/* Индикатор активной игры */}
-              {gameState && (
-                <div 
-                  className="position-absolute bg-success rounded-circle"
-                  style={{ 
-                    top: '8px', 
-                    right: '8px',
-                    width: '8px',
-                    height: '8px'
-                  }}
-                />
-              )}
-            </Nav.Link>
-          </Nav.Item>
+            {availableRoomsCount}
+          </Badge>
         )}
+      </Nav.Link>
 
-        {/* Друзья */}
-        <Nav.Item className="text-center position-relative">
-          <Nav.Link
-            as={Link}
-            to="/friends"
-            className={`d-flex flex-column align-items-center p-2 ${
-              isActive('/friends') ? 'text-primary' : 'text-muted'
-            }`}
+      {/* Текущая игра (если в комнате или игре) */}
+      {(currentRoom || gameState) && (
+        <Nav.Link 
+          as={Link} 
+          to={gameState ? "/game" : `/room/${currentRoom?.id}`}
+          className={`text-center position-relative ${
+            (gameState && isActive('/game')) || 
+            (currentRoom && isActive('/room')) 
+              ? 'text-primary' 
+              : 'text-light'
+          }`}
+        >
+          <div>
+            {gameState ? EMOJI.GAME_ACTIVE : EMOJI.WAITING}
+          </div>
+          <small>{gameState ? 'Игра' : 'Комната'}</small>
+          
+          {/* Индикатор активной игры */}
+          {gameState && (
+            <Badge 
+              bg="danger" 
+              pill 
+              className="position-absolute top-0 start-100 translate-middle p-1"
+            >
+              {EMOJI.ACTIVE_GAME}
+            </Badge>
+          )}
+        </Nav.Link>
+      )}
+
+      {/* Друзья */}
+      <Nav.Link 
+        as={Link} 
+        to="/friends" 
+        className={`text-center position-relative ${isActive('/friends') ? 'text-primary' : 'text-light'}`}
+      >
+        <div>
+          {isActive('/friends') ? EMOJI.FRIENDS_ACTIVE : EMOJI.FRIENDS_INACTIVE}
+        </div>
+        <small>Друзья</small>
+        
+        {/* Бейдж уведомлений */}
+        {hasNotifications && (
+          <Badge 
+            bg="warning" 
+            pill 
+            className="position-absolute top-0 start-100 translate-middle"
           >
-            <span style={{ fontSize: '1.2rem' }}>
-              {isActive('/friends') ? '👥' : '👤'}
-            </span>
-            <small>Друзья</small>
-            
-            {/* Бейдж уведомлений */}
-            {hasNotifications && (
-              <Badge 
-                bg="danger" 
-                pill 
-                className="position-absolute"
-                style={{ 
-                  top: '0px', 
-                  right: '8px',
-                  fontSize: '0.6rem',
-                  minWidth: '16px',
-                  height: '16px'
-                }}
-              >
-                !
-              </Badge>
-            )}
-          </Nav.Link>
-        </Nav.Item>
+            {EMOJI.NOTIFICATION}
+          </Badge>
+        )}
+      </Nav.Link>
 
-        {/* Создать игру */}
-        <Nav.Item className="text-center">
-          <Nav.Link
-            as={Link}
-            to="/settings"
-            className={`d-flex flex-column align-items-center p-2 ${
-              isActive('/settings') ? 'text-primary' : 'text-muted'
-            }`}
-            style={{ opacity: isConnected ? 1 : 0.5 }}
-          >
-            <span style={{ fontSize: '1.2rem' }}>
-              {isActive('/settings') ? '⚙️' : '➕'}
-            </span>
-            <small>Создать</small>
-          </Nav.Link>
-        </Nav.Item>
-
-      </Nav>
+      {/* Создать игру */}
+      <Nav.Link 
+        as={Link} 
+        to="/settings" 
+        className={`text-center ${isActive('/settings') ? 'text-primary' : 'text-light'}`}
+      >
+        <div>
+          {isActive('/settings') ? EMOJI.SETTINGS_ACTIVE : EMOJI.CREATE}
+        </div>
+        <small>Создать</small>
+      </Nav.Link>
 
       {/* Индикатор соединения */}
       {!isConnected && (
-        <div 
-          className="position-absolute bg-warning rounded-circle"
-          style={{ 
-            top: '5px', 
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: '6px',
-            height: '6px'
-          }}
-          title="Нет соединения"
-        />
+        <div className="position-absolute top-0 end-0 m-2">
+          <Badge bg="danger">
+            {EMOJI.DISCONNECTED}
+          </Badge>
+        </div>
       )}
     </Navbar>
   );

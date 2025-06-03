@@ -1,8 +1,56 @@
-// src/pages/GameRoomPage.tsx - АВТОМАТИЧЕСКИЙ СТАРТ ИГРЫ
-import React, { useEffect, useState } from 'react';
+// src/pages/GameRoomPage.tsx - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
+
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, ProgressBar } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
+
+// ===== КОНСТАНТЫ =====
+const UI_TEXT = {
+  PAGE_TITLE: '🏠 Комната',
+  LOADING_ROOM: 'Подключение к комнате...',
+  LOADING_DATA: 'Загружаем данные комнаты',
+  ROOM_NOT_FOUND: 'Комната не найдена',
+  ROOM_NOT_EXISTS: 'Комната с ID {roomId} не существует или вы не подключены к ней.',
+  BACK_TO_ROOMS: 'Вернуться к списку комнат',
+  GAME_RULES: '⚙️ Правила игры',
+  PLAYERS_TITLE: '👥 Игроки',
+  READY_PROGRESS: 'Прогресс готовности',
+  READY_BUTTON: 'Готов!',
+  NOT_READY_BUTTON: 'Нажмите когда будете готовы',
+  CANCEL_READY: 'Готов! (нажмите чтобы отменить)',
+  LEAVE_ROOM: 'Покинуть комнату',
+  WAITING_PLAYER: 'Ожидание игрока...',
+  SLOT_FREE: 'Слот свободен',
+  FREE_STATUS: 'Свободно',
+  YOU_LABEL: '(Вы)',
+  HOST_LABEL: 'Хост',
+  READY_STATUS: 'Готов ✓',
+  WAITING_STATUS: 'Ждет...',
+  DISCONNECTED_STATUS: 'Отключен',
+  GAME_STARTING: '🎮 Игра начинается через {countdown} сек!',
+  AUTO_START_HINT: 'Игра запускается автоматически когда все игроки нажмут "Готов"',
+  NEED_MORE_PLAYERS: '💡 Нужно больше игроков: Для начала игры нужно минимум 2 игрока.',
+  WAITING_READY: '⏳ Ожидание готовности: Не все игроки готовы.',
+  ALL_READY: '🎮 Готово! Все игроки готовы. Игра запустится автоматически!',
+  MIN_PLAYERS_HINT: '💡 Совет: Для начала игры нужно минимум 2 игрока.',
+} as const;
+
+const GAME_MODE_TEXTS = {
+  classic: 'Классический',
+  transferable: 'Переводной',
+} as const;
+
+const THROWING_MODE_TEXTS = {
+  standard: 'Стандартное',
+  smart: 'Умное',
+} as const;
+
+const STATUS_VARIANTS = {
+  waiting: 'warning',
+  playing: 'success',
+  finished: 'secondary',
+} as const;
 
 const GameRoomPage: React.FC = () => {
   const { roomId } = useParams<{ roomId: string }>();
@@ -16,335 +64,183 @@ const GameRoomPage: React.FC = () => {
     setReady,
     leaveRoom,
     error,
-    clearError,
-    autoStartInfo, // ✅ НОВОЕ
-    notification, // ✅ НОВОЕ
-    clearNotification, // ✅ НОВОЕ
-    telegramUser
+    autoStartInfo,
+    notification,
+    clearNotification,
   } = useGame();
 
   const [isLoading, setIsLoading] = useState(true);
-  const [forceRender, setForceRender] = useState(0); // ✅ ДОБАВЛЕНО: принудительный ререндер
 
-  // ✅ ДОБАВЛЕНЫ ТОЛЬКО ДИАГНОСТИЧЕСКИЕ ЛОГИ
+  // Мемоизированные вычисления
+  const roomStats = useMemo(() => {
+    if (!currentRoom) return { connectedPlayers: [], readyPlayers: [], isPlayerReady: false };
+    
+    const connectedPlayers = currentRoom.players.filter(p => p.isConnected !== false);
+    const readyPlayers = connectedPlayers.filter(p => p.isReady);
+    const isPlayerReady = currentPlayer?.isReady || false;
+    
+    return { connectedPlayers, readyPlayers, isPlayerReady };
+  }, [currentRoom, currentPlayer]);
+
+  // Навигация при старте игры
   useEffect(() => {
-    if (process.env.NODE_ENV !== 'production') {
-      console.log('🔍 GameRoomPage render #' + forceRender + ':', {
-        roomId: currentRoom?.id,
-        playersCount: currentRoom?.players?.length,
-        players: currentRoom?.players?.map(p => ({
-          id: p.id,
-          name: p.name,
-          isReady: p.isReady,
-          isConnected: p.isConnected
-        })),
-        currentPlayerId: currentPlayer?.id,
-        isHost: currentRoom?.hostId === currentPlayer?.id,
-        renderTime: new Date().toLocaleTimeString()
-      });
-
-      // Диагностика каждого игрока
-      currentRoom?.players?.forEach((player, index) => {
-        console.log(`👤 Player ${index + 1} render check:`, {
-          id: player.id,
-          name: player.name,
-          isMe: player.id === currentPlayer?.id,
-          isHost: player.id === currentRoom?.hostId,
-          isReady: player.isReady,
-          isConnected: player.isConnected,
-          shouldShow: true
-        });
-      });
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-  }, [forceRender, currentRoom, currentPlayer]); // ✅ зависимости для отслеживания изменений
-
-  // ✅ ДОБАВЛЕНО: принудительное обновление при изменении currentRoom
-  useEffect(() => {
-    console.log('🔄 currentRoom changed, forcing rerender...', {
-      roomId: currentRoom?.id,
-      players: currentRoom?.players?.map(p => ({ id: p.id, name: p.name })),
-      playersCount: currentRoom?.players?.length
-    });
-    setForceRender(prev => prev + 1);
-  }, [currentRoom, currentRoom?.players, currentRoom?.players?.length]);
-
-  // ✅ ДОБАВЛЕНЫ ДОПОЛНИТЕЛЬНЫЕ ЛОГИ ДЛЯ ОТСЛЕЖИВАНИЯ ИЗМЕНЕНИЙ
-  useEffect(() => {
-    console.log('👥 Players list changed:', {
-      count: currentRoom?.players?.length,
-      list: currentRoom?.players?.map(p => ({ id: p.id, name: p.name })),
-      timestamp: new Date().toLocaleTimeString()
-    });
-  }, [currentRoom?.players]);
-
-  useEffect(() => {
-    if (notification) {
-      console.log('🔔 Notification received:', {
-        message: notification,
-        currentPlayers: currentRoom?.players?.length,
-        timestamp: new Date().toLocaleTimeString()
-      });
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-  }, [notification, currentRoom?.players?.length]);
-
-  // ✅ ДОБАВЛЕНЫ ЛОГИ ДЛЯ ДИАГНОСТИКИ gameState И НАВИГАЦИИ
-  useEffect(() => {
-    console.log('🎮 gameState changed:', {
-      gameState: gameState,
-      hasGameState: !!gameState,
-      currentRoomId: currentRoom?.id,
-      urlRoomId: roomId,
-      isConnected: isConnected,
-      shouldNavigate: !!(gameState && currentRoom?.id === roomId),
-      gameStateType: typeof gameState
-    });
-  }, [gameState]);
-
-  // Проверяем соответствие комнаты
-  useEffect(() => {
-    console.log('🔍 Room check useEffect triggered:', {
-      isConnected,
-      gameState: !!gameState,
-      currentRoomId: currentRoom?.id,
-      urlRoomId: roomId,
-      condition1: !!gameState,
-      condition2: currentRoom?.id === roomId,
-      shouldNavigate: !!(gameState && currentRoom?.id === roomId)
-    });
-
-    if (!isConnected) return;
-
-    // Если игра уже началась, переходим на игровую страницу
     if (gameState && currentRoom?.id === roomId) {
-      console.log('✅ Navigating to game page:', `/game/${roomId}`);
-      navigate(`/game/${roomId}`);
-      return;
-    } else if (gameState) {
-      console.log('❌ Not navigating - gameState exists but room ID mismatch:', {
-        gameState: !!gameState,
-        currentRoomId: currentRoom?.id,
-        urlRoomId: roomId
-      });
-    } else {
-      console.log('❌ Not navigating - no gameState');
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-
-    // Если нет текущей комнаты или не та комната
-    if (!currentRoom || currentRoom.id !== roomId) {
-      console.warn('Room mismatch or not found');
-      setTimeout(() => {
-        setIsLoading(false);
-      }, 2000);
-    } else {
-      setIsLoading(false);
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-  }, [isConnected, currentRoom, roomId, gameState, navigate]);
-
-  // Перенаправление при старте игры
-  useEffect(() => {
-    console.log('🎮 Game navigation useEffect triggered:', {
-      gameState: !!gameState,
-      currentRoomId: currentRoom?.id,
-      urlRoomId: roomId,
-      shouldNavigate: !!(gameState && currentRoom?.id === roomId)
-    });
-
-    if (gameState && currentRoom?.id === roomId) {
-      console.log('✅ Game navigation triggered, navigating to:', `/game/${roomId}`);
-      navigate(`/game/${roomId}`);
-    } else {
-      console.log('❌ Game navigation NOT triggered:', {
-        reason: !gameState ? 'No gameState' : 'Room ID mismatch',
-        gameState: !!gameState,
-        currentRoomId: currentRoom?.id,
-        urlRoomId: roomId
-      });
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+      navigate(`/game`);
+    }
   }, [gameState, currentRoom, roomId, navigate]);
 
-  // ✅ АВТОМАТИЧЕСКАЯ ОЧИСТКА УВЕДОМЛЕНИЙ
+  // Проверка соответствия комнаты
+  useEffect(() => {
+    if (!isConnected) return;
+    
+    if (!currentRoom || currentRoom.id !== roomId) {
+      const timer = setTimeout(() => setIsLoading(false), 2000);
+      return () => clearTimeout(timer);
+    } else {
+      setIsLoading(false);
+    }
+  }, [isConnected, currentRoom, roomId]);
+
+  // Автоматическая очистка уведомлений
   useEffect(() => {
     if (notification) {
-      const timer = setTimeout(() => {
-        clearNotification();
-      }, 5000); // 5 секунд
-      
+      const timer = setTimeout(() => clearNotification(), 5000);
       return () => clearTimeout(timer);
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+    }
   }, [notification, clearNotification]);
 
-  // Показываем загрузку
+  // Обработчики событий
+  const handleReadyToggle = useCallback(() => {
+    setReady();
+  }, [setReady]);
+
+  const handleLeaveRoom = useCallback(() => {
+    leaveRoom();
+    navigate('/rooms');
+  }, [leaveRoom, navigate]);
+
+  const handleBackToRooms = useCallback(() => {
+    navigate('/rooms');
+  }, [navigate]);
+
+  // Утилиты
+  const getPlayerStatus = useCallback((player: any) => {
+    if (!player.isConnected && player.isConnected !== undefined) {
+      return <Badge bg="danger">{UI_TEXT.DISCONNECTED_STATUS}</Badge>;
+    }
+    if (player.isReady) {
+      return <Badge bg="success">{UI_TEXT.READY_STATUS}</Badge>;
+    }
+    return <Badge bg="secondary">{UI_TEXT.WAITING_STATUS}</Badge>;
+  }, []);
+
+  const getGameModeText = useCallback((gameMode: string) => {
+    return GAME_MODE_TEXTS[gameMode as keyof typeof GAME_MODE_TEXTS] || gameMode;
+  }, []);
+
+  const getThrowingModeText = useCallback((throwingMode: string) => {
+    return THROWING_MODE_TEXTS[throwingMode as keyof typeof THROWING_MODE_TEXTS] || throwingMode;
+  }, []);
+
+  // Loading состояние
   if (!isConnected || isLoading) {
     return (
-      <Container className="py-4">
-        <Row>
-          <Col md={8} className="mx-auto text-center">
-            <Card>
-              <Card.Body>
-                <Spinner animation="border" className="mb-3" />
-                <h5>Подключение к комнате...</h5>
-                <p className="text-muted">Загружаем данные комнаты</p>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
+      <Container className="py-4 text-center">
+        <Spinner animation="border" className="me-2" />
+        <div>
+          <h4>{UI_TEXT.LOADING_ROOM}</h4>
+          <p className="text-muted">{UI_TEXT.LOADING_DATA}</p>
+        </div>
       </Container>
     );
-  } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+  }
 
-  // Если комната не найдена
+  // Комната не найдена
   if (!currentRoom) {
     return (
       <Container className="py-4">
-        <Row>
-          <Col md={8} className="mx-auto">
-            <Alert variant="danger">
-              <Alert.Heading>Комната не найдена</Alert.Heading>
-              <p>Комната с ID {roomId} не существует или вы не подключены к ней.</p>
-              <Button variant="outline-primary" onClick={() => navigate('/rooms')}>
-                Вернуться к списку комнат
-              </Button>
-            </Alert>
-          </Col>
-        </Row>
+        <Alert variant="danger">
+          <Alert.Heading>{UI_TEXT.ROOM_NOT_FOUND}</Alert.Heading>
+          <p>{UI_TEXT.ROOM_NOT_EXISTS.replace('{roomId}', roomId || '')}</p>
+          <Button variant="primary" onClick={handleBackToRooms}>
+            {UI_TEXT.BACK_TO_ROOMS}
+          </Button>
+        </Alert>
       </Container>
     );
-  } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
+  }
 
-  // Логика комнаты
-  const isPlayerReady = currentPlayer?.isReady || false;
-  const connectedPlayers = currentRoom.players.filter(p => p.isConnected !== false);
-  const readyPlayers = connectedPlayers.filter(p => p.isReady);
-
-  const handleReadyToggle = () => {
-    setReady();
-  };
-
-  const handleLeaveRoom = () => {
-    leaveRoom();
-    navigate('/rooms');
-  };
-
-  const getPlayerStatus = (player: any) => {
-    if (!player.isConnected && player.isConnected !== undefined) {
-      return <Badge bg="secondary">Отключен</Badge>;
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-    
-    if (player.isReady) {
-      return <Badge bg="success">Готов ✓</Badge>;
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-    
-    return <Badge bg="warning">Ждет...</Badge>;
-  };
-
-  const getGameModeText = (gameMode: string) => {
-    switch (gameMode) {
-      case 'classic': return 'Классический';
-      case 'transferable': return 'Переводной';
-      default: return gameMode;
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-  };
-
-  const getThrowingModeText = (throwingMode: string) => {
-    switch (throwingMode) {
-      case 'standard': return 'Стандартное';
-      case 'smart': return 'Умное';
-      default: return throwingMode;
-    } // ✅ ИСПРАВЛЕНО: добавлена закрывающая скобка
-  };
+  const { connectedPlayers, readyPlayers, isPlayerReady } = roomStats;
 
   return (
-    <Container className="py-4" key={forceRender}> {/* ✅ ДОБАВЛЕНО: key для принудительного ререндера */}
-      <Row>
-        <Col lg={8} className="mx-auto">
-          {/* ✅ ДОБАВЛЕНА DEBUG ПАНЕЛЬ (только в development) */}
-          {process.env.NODE_ENV === 'development' && (
-            <Alert variant="secondary" className="mb-3">
-              <h6>🔍 DEBUG INFO:</h6>
-              <small>
-                <strong>Room ID:</strong> {currentRoom?.id}<br/>
-                <strong>Players Count:</strong> {currentRoom?.players?.length}<br/>
-                <strong>Players:</strong> {currentRoom?.players?.map(p => p.name).join(', ')}<br/>
-                <strong>Current Player:</strong> {currentPlayer?.name}<br/>
-                <strong>Is Host:</strong> {currentRoom?.hostId === currentPlayer?.id ? 'Yes' : 'No'}<br/>
-                <strong>Game State:</strong> {gameState ? 'EXISTS' : 'NULL'}<br/>
-                <strong>Render #:</strong> {forceRender}<br/>
-                <strong>Time:</strong> {new Date().toLocaleTimeString()}
-              </small>
-            </Alert>
-          )}
-
-          {/* Заголовок комнаты */}
-          <Card className="mb-4">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <div>
-                <h5 className="mb-0">🏠 {currentRoom.name}</h5>
+    <Container className="py-4">
+      {/* Заголовок комнаты */}
+      <Row className="mb-4">
+        <Col>
+          <Card>
+            <Card.Body className="text-center">
+              <h2>{UI_TEXT.PAGE_TITLE} {currentRoom.name}</h2>
+              <div className="d-flex justify-content-center align-items-center gap-3">
                 <small className="text-muted">ID: {currentRoom.id}</small>
+                <Badge bg={STATUS_VARIANTS[currentRoom.status as keyof typeof STATUS_VARIANTS] as any}>
+                  {currentRoom.status === 'waiting' ? 'Ожидание' : 'В игре'}
+                </Badge>
               </div>
-              <Badge bg={currentRoom.status === 'waiting' ? 'primary' : 'success'}>
-                {currentRoom.status === 'waiting' ? 'Ожидание' : 'В игре'}
-              </Badge>
-            </Card.Header>
-            
-            {/* ✅ АВТОСТАРТ СТАТУС */}
-            {autoStartInfo?.isAutoStarting && (
-              <Alert variant="success" className="mb-0">
-                <div className="d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong>🎮 Игра начинается через {autoStartInfo.countdown} сек!</strong>
-                  </div>
-                  <Spinner animation="border" size="sm" />
-                </div>
-              </Alert>
-            )}
-
-            {/* ✅ УВЕДОМЛЕНИЯ */}
-            {notification && !autoStartInfo?.isAutoStarting && (
-              <Alert 
-                variant={notification.includes('✅') || notification.includes('🎮') ? 'success' : 'info'} 
-                className="mb-0"
-                dismissible
-                onClose={clearNotification}
-              >
-                {notification}
-              </Alert>
-            )}
+            </Card.Body>
           </Card>
+        </Col>
+      </Row>
 
-          {/* Ошибки */}
-          {error && (
-            <Alert variant="danger" className="mb-4" dismissible onClose={clearError}>
-              <Alert.Heading>Ошибка</Alert.Heading>
-              {error}
-            </Alert>
-          )}
+      {/* Автостарт статус */}
+      {autoStartInfo?.isAutoStarting && (
+        <Alert variant="info" className="mb-3">
+          <div className="text-center fw-bold">
+            {UI_TEXT.GAME_STARTING.replace('{countdown}', autoStartInfo.countdown.toString())}
+          </div>
+        </Alert>
+      )}
 
-          {/* Правила игры */}
-          <Card className="mb-4">
-            <Card.Header>
-              <h6 className="mb-0">⚙️ Правила игры</h6>
-            </Card.Header>
+      {/* Уведомления */}
+      {notification && !autoStartInfo?.isAutoStarting && (
+        <Alert variant="info" className="mb-3">
+          {notification}
+        </Alert>
+      )}
+
+      {/* Ошибки */}
+      {error && (
+        <Alert variant="danger" className="mb-3">
+          <Alert.Heading>Ошибка</Alert.Heading>
+          {error}
+        </Alert>
+      )}
+
+      <Row className="g-4">
+        {/* Правила игры */}
+        <Col md={6}>
+          <Card>
             <Card.Body>
-              <Row>
-                <Col md={3}>
+              <Card.Title>{UI_TEXT.GAME_RULES}</Card.Title>
+              <Row className="g-2">
+                <Col xs={6}>
                   <div className="text-center">
                     <div className="fw-bold">{getGameModeText(currentRoom.rules.gameMode)}</div>
                     <small className="text-muted">Режим</small>
                   </div>
                 </Col>
-                <Col md={3}>
+                <Col xs={6}>
                   <div className="text-center">
                     <div className="fw-bold">{currentRoom.rules.cardCount}</div>
                     <small className="text-muted">Карт</small>
                   </div>
                 </Col>
-                <Col md={3}>
+                <Col xs={6}>
                   <div className="text-center">
                     <div className="fw-bold">{getThrowingModeText(currentRoom.rules.throwingMode)}</div>
                     <small className="text-muted">Подкидывание</small>
                   </div>
                 </Col>
-                <Col md={3}>
+                <Col xs={6}>
                   <div className="text-center">
                     <div className="fw-bold">{currentRoom.maxPlayers}</div>
                     <small className="text-muted">Макс. игроков</small>
@@ -353,200 +249,177 @@ const GameRoomPage: React.FC = () => {
               </Row>
             </Card.Body>
           </Card>
+        </Col>
 
-          {/* ✅ АВТОСТАРТ ПРОГРЕСС */}
-          <Card className="mb-4">
-            <Card.Header className="d-flex justify-content-between align-items-center">
-              <h6 className="mb-0">👥 Игроки ({connectedPlayers.length}/{currentRoom.maxPlayers})</h6>
-              <div>
+        {/* Прогресс готовности */}
+        <Col md={6}>
+          <Card>
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span>{UI_TEXT.PLAYERS_TITLE} ({connectedPlayers.length}/{currentRoom.maxPlayers})</span>
                 {autoStartInfo ? (
-                  <Badge bg={autoStartInfo.allReady ? 'success' : 'warning'}>
+                  <Badge bg="primary">
                     Готовы: {autoStartInfo.readyCount}/{autoStartInfo.totalCount}
                   </Badge>
                 ) : (
-                  <Badge bg={readyPlayers.length === connectedPlayers.length && connectedPlayers.length >= 2 ? 'success' : 'warning'}>
+                  <Badge bg={readyPlayers.length >= 2 ? 'success' : 'warning'}>
                     Готовы: {readyPlayers.length}/{connectedPlayers.length}
                   </Badge>
                 )}
               </div>
-            </Card.Header>
-
-            {/* ✅ ПРОГРЕСС-БАР АВТОСТАРТА */}
-            <Card.Body>
-              <div className="mb-3">
-                <div className="d-flex justify-content-between mb-1">
-                  <small>Прогресс готовности</small>
-                  <small>
-                    {autoStartInfo ? 
-                      `${autoStartInfo.readyCount}/${autoStartInfo.totalCount}` : 
-                      `${readyPlayers.length}/${connectedPlayers.length}`
-                    }
-                  </small>
-                </div>
+              
+              <div className="mb-2">
+                <small className="text-muted">{UI_TEXT.READY_PROGRESS}</small>
                 <ProgressBar 
                   now={autoStartInfo ? 
-                    (autoStartInfo.readyCount / Math.max(autoStartInfo.totalCount, 1)) * 100 : 
+                    (autoStartInfo.readyCount / autoStartInfo.totalCount) * 100 :
                     (readyPlayers.length / Math.max(connectedPlayers.length, 1)) * 100
                   }
-                  variant={autoStartInfo?.allReady ? 'success' : 'primary'}
+                  variant={readyPlayers.length >= 2 ? 'success' : 'warning'}
+                  label={autoStartInfo ?
+                    `${autoStartInfo.readyCount}/${autoStartInfo.totalCount}` :
+                    `${readyPlayers.length}/${connectedPlayers.length}`
+                  }
                 />
               </div>
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
 
-              {/* Список игроков */}
-              <div className="mb-3">
-                {currentRoom.players.map((player, index) => {
-                  // ✅ ИСПРАВЛЕН ЛОГ ДЛЯ КАЖДОГО РЕНДЕРА ИГРОКА
-                  console.log(`👤 Rendering player ${index + 1}:`, {
-                    id: player.id,
-                    name: player.name,
-                    isMe: player.id === currentPlayer?.id,
-                    isHost: player.id === currentRoom?.hostId,
-                    renderKey: `${player.id}-${forceRender}`
-                  });
-
-                  return (
-                    <div key={`${player.id}-${forceRender}`} className="d-flex align-items-center mb-2 p-2 border rounded"> {/* ✅ ДОБАВЛЕНО: key с forceRender */}
-                      {/* Аватар игрока */}
-                      <div className="me-3">
-                        {player.telegramId && player.avatar ? (
-                          <img 
-                            src={player.avatar} 
-                            alt={player.name}
-                            className="rounded-circle"
-                            width="40"
-                            height="40"
-                          />
-                        ) : (
+      {/* Список игроков */}
+      <Row className="mt-4">
+        <Col>
+          <Card>
+            <Card.Body>
+              <Row className="g-3">
+                {currentRoom.players.map((player, index) => (
+                  <Col md={6} lg={4} key={player.id}>
+                    <Card className="h-100">
+                      <Card.Body className="d-flex align-items-center">
+                        {/* Аватар */}
+                        <div className="me-3">
                           <div 
-                            className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center"
-                            style={{ width: '40px', height: '40px' }}
+                            className="rounded-circle bg-primary d-flex align-items-center justify-content-center"
+                            style={{ width: '50px', height: '50px' }}
                           >
-                            {player.name.charAt(0).toUpperCase()}
+                            <span className="text-white fw-bold">
+                              {player.name.charAt(0).toUpperCase()}
+                            </span>
                           </div>
-                        )}
-                      </div>
-
-                      {/* Информация игрока */}
-                      <div className="flex-grow-1">
-                        <div className="fw-bold">
-                          {player.name}
-                          {player.id === currentPlayer?.id && <small className="text-muted ms-1">(Вы)</small>}
-                          {index === 0 && <Badge bg="info" className="ms-2">Хост</Badge>}
                         </div>
-                        {player.username && (
-                          <small className="text-muted">@{player.username}</small>
-                        )}
-                      </div>
+                        
+                        {/* Информация */}
+                        <div className="flex-grow-1">
+                          <div className="fw-bold">
+                            {player.name}
+                            {player.id === currentPlayer?.id && (
+                              <small className="text-primary ms-1">{UI_TEXT.YOU_LABEL}</small>
+                            )}
+                            {index === 0 && (
+                              <small className="text-warning ms-1">{UI_TEXT.HOST_LABEL}</small>
+                            )}
+                          </div>
+                          {player.username && (
+                            <small className="text-muted">@{player.username}</small>
+                          )}
+                          <div className="mt-1">
+                            {getPlayerStatus(player)}
+                          </div>
+                        </div>
+                      </Card.Body>
+                    </Card>
+                  </Col>
+                ))}
 
-                      {/* Статус готовности */}
-                      <div>
-                        {getPlayerStatus(player)}
-                      </div>
-                    </div>
-                  );
-                })}
-
-                {/* Заглушки для недостающих игроков */}
+                {/* Пустые слоты */}
                 {connectedPlayers.length < currentRoom.maxPlayers && (
                   <>
                     {Array.from({ length: currentRoom.maxPlayers - connectedPlayers.length }).map((_, index) => (
-                      <div key={`empty-${index}-${forceRender}`} className="d-flex align-items-center mb-2 p-2 border rounded border-dashed"> {/* ✅ ДОБАВЛЕНО: key с forceRender */}
-                        <div className="me-3">
-                          <div 
-                            className="rounded-circle bg-light border d-flex align-items-center justify-content-center"
-                            style={{ width: '40px', height: '40px' }}
-                          >
-                            ?
-                          </div>
-                        </div>
-                        <div className="flex-grow-1">
-                          <div className="text-muted">Ожидание игрока...</div>
-                          <small className="text-muted">Слот свободен</small>
-                        </div>
-                        <Badge bg="secondary">Свободно</Badge>
-                      </div>
+                      <Col md={6} lg={4} key={`empty-${index}`}>
+                        <Card className="h-100">
+                          <Card.Body className="d-flex align-items-center text-muted">
+                            <div className="me-3">
+                              <div 
+                                className="rounded-circle bg-light d-flex align-items-center justify-content-center"
+                                style={{ width: '50px', height: '50px' }}
+                              >
+                                <span>?</span>
+                              </div>
+                            </div>
+                            <div>
+                              <div>{UI_TEXT.WAITING_PLAYER}</div>
+                              <small>{UI_TEXT.SLOT_FREE}</small>
+                              <div className="mt-1">
+                                <Badge bg="light" text="dark">{UI_TEXT.FREE_STATUS}</Badge>
+                              </div>
+                            </div>
+                          </Card.Body>
+                        </Card>
+                      </Col>
                     ))}
                   </>
                 )}
-              </div>
+              </Row>
             </Card.Body>
           </Card>
+        </Col>
+      </Row>
 
-          {/* ✅ ДЕЙСТВИЯ БЕЗ КНОПКИ "НАЧАТЬ ИГРУ" */}
-          <Card>
-            <Card.Body>
-              <div className="d-grid gap-2">
-                {/* Кнопка готовности */}
-                <Button 
-                  variant={isPlayerReady ? 'success' : 'outline-primary'}
-                  size="lg"
-                  onClick={handleReadyToggle}
-                  disabled={autoStartInfo?.isAutoStarting}
-                >
-                  {isPlayerReady ? (
-                    <>
-                      <i className="bi bi-check-circle-fill me-2"></i>
-                      Готов! (нажмите чтобы отменить)
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-circle me-2"></i>
-                      Нажмите когда будете готовы
-                    </>
-                  )}
-                </Button>
+      {/* Действия */}
+      <Row className="mt-4">
+        <Col>
+          <div className="d-grid gap-2">
+            {/* Кнопка готовности */}
+            <Button
+              variant={isPlayerReady ? 'warning' : 'success'}
+              size="lg"
+              onClick={handleReadyToggle}
+            >
+              {isPlayerReady ? UI_TEXT.CANCEL_READY : UI_TEXT.NOT_READY_BUTTON}
+            </Button>
+            
+            {/* Кнопка выхода */}
+            <Button variant="outline-danger" onClick={handleLeaveRoom}>
+              {UI_TEXT.LEAVE_ROOM}
+            </Button>
+          </div>
+        </Col>
+      </Row>
 
-                {/* Кнопка выхода */}
-                <Button 
-                  variant="outline-danger" 
-                  onClick={handleLeaveRoom}
-                  disabled={autoStartInfo?.isAutoStarting}
-                >
-                  <i className="bi bi-box-arrow-left me-2"></i>
-                  Покинуть комнату
-                </Button>
-              </div>
+      {/* Подсказки */}
+      <Row className="mt-3">
+        <Col>
+          {autoStartInfo?.needMorePlayers && (
+            <Alert variant="info">
+              <div className="fw-bold">{UI_TEXT.NEED_MORE_PLAYERS}</div>
+              <small>Пригласите друзей или дождитесь других игроков.</small>
+            </Alert>
+          )}
 
-              {/* ✅ АВТОСТАРТ ПОДСКАЗКИ */}
-              <div className="mt-3">
-                {autoStartInfo?.needMorePlayers && (
-                  <Alert variant="info" className="mb-2">
-                    <i className="bi bi-info-circle me-2"></i>
-                    <strong>💡 Нужно больше игроков:</strong> Для начала игры нужно минимум 2 игрока.
-                    Пригласите друзей или дождитесь других игроков.
-                  </Alert>
-                )}
+          {autoStartInfo && !autoStartInfo.needMorePlayers && !autoStartInfo.allReady && (
+            <Alert variant="warning">
+              <div className="fw-bold">{UI_TEXT.WAITING_READY}</div>
+              <small>Готовых: {autoStartInfo.readyCount} из {autoStartInfo.totalCount}</small>
+            </Alert>
+          )}
 
-                {autoStartInfo && !autoStartInfo.needMorePlayers && !autoStartInfo.allReady && (
-                  <Alert variant="warning" className="mb-2">
-                    <i className="bi bi-clock me-2"></i>
-                    <strong>⏳ Ожидание готовности:</strong> Не все игроки готовы.
-                    Готовых: {autoStartInfo.readyCount} из {autoStartInfo.totalCount}
-                  </Alert>
-                )}
+          {autoStartInfo?.allReady && !autoStartInfo.isAutoStarting && (
+            <Alert variant="success">
+              <div className="fw-bold">{UI_TEXT.ALL_READY}</div>
+            </Alert>
+          )}
 
-                {autoStartInfo?.allReady && !autoStartInfo.isAutoStarting && (
-                  <Alert variant="success" className="mb-2">
-                    <i className="bi bi-play-circle me-2"></i>
-                    <strong>🎮 Готово!</strong> Все игроки готовы. Игра запустится автоматически!
-                  </Alert>
-                )}
+          {!autoStartInfo && connectedPlayers.length < 2 && (
+            <Alert variant="info">
+              <small>{UI_TEXT.MIN_PLAYERS_HINT}</small>
+            </Alert>
+          )}
 
-                {!autoStartInfo && connectedPlayers.length < 2 && (
-                  <Alert variant="info" className="mb-2">
-                    <i className="bi bi-people me-2"></i>
-                    <strong>💡 Совет:</strong> Для начала игры нужно минимум 2 игрока.
-                  </Alert>
-                )}
-
-                {/* Информация об автостарте */}
-                <small className="text-muted">
-                  <i className="bi bi-lightning me-1"></i>
-                  Игра запускается автоматически когда все игроки нажмут "Готов"
-                </small>
-              </div>
-            </Card.Body>
-          </Card>
+          {/* Информация об автостарте */}
+          <div className="text-center">
+            <small className="text-muted">{UI_TEXT.AUTO_START_HINT}</small>
+          </div>
         </Col>
       </Row>
     </Container>

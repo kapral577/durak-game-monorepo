@@ -1,4 +1,8 @@
-// src/utils/TelegramAuth.ts - ФРОНТЕНД - ИСПРАВЛЕНЫ ТОЛЬКО СИНТАКСИЧЕСКИЕ ОШИБКИ
+// src/utils/TelegramAuth.ts - ПОЛНОСТЬЮ РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
+
+import { Player } from '../shared/types';
+
+// ===== ТИПЫ =====
 interface TelegramUser {
   id: number;
   first_name: string;
@@ -14,11 +18,14 @@ interface TelegramWebApp {
     user?: TelegramUser;
     auth_date: number;
     hash: string;
+    query_id?: string;
   };
   ready: () => void;
   expand: () => void;
   close: () => void;
-} // ✅ ДОБАВЛЕНА недостающая скобка
+  enableClosingConfirmation: () => void;
+  disableVerticalSwipes: () => void;
+}
 
 declare global {
   interface Window {
@@ -26,57 +33,224 @@ declare global {
       WebApp: TelegramWebApp;
     };
   }
-} // ✅ ДОБАВЛЕНА недостающая скобка
+}
+
+// ===== КОНСТАНТЫ =====
+const AUTH_DATE_VALIDITY = 24 * 60 * 60; // 24 часа в секундах
+const MOCK_USER_ID = 123456789;
 
 export class TelegramAuth {
-  static getTelegramUser(): TelegramUser | null {
-    console.log('🔍 Getting Telegram user...'); // ✅ ДОБАВЛЕН debug
-    
-    if (window.Telegram?.WebApp?.initDataUnsafe?.user) {
-      const user = window.Telegram.WebApp.initDataUnsafe.user;
-      console.log('✅ Telegram user found:', user);
-      return user;
+  /**
+   * Получает данные пользователя Telegram
+   */
+  static getTelegramUser(): Player | null {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Getting Telegram user...');
     }
 
-    console.log('❌ No Telegram user found');
-    return null;
-  } // ✅ ДОБАВЛЕНА недостающая скобка
+    try {
+      const user = window.Telegram?.WebApp?.initDataUnsafe?.user;
+      
+      if (user && this.isValidUser(user)) {
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Telegram user found:', user.first_name);
+        }
+        
+        return this.convertToPlayer(user);
+      }
 
+      if (process.env.NODE_ENV === 'development') {
+        console.log('❌ No valid Telegram user found');
+      }
+      
+      return null;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting Telegram user:', error);
+      }
+      return null;
+    }
+  }
+
+  /**
+   * Получает initData для валидации на сервере
+   */
   static getTelegramInitData(): string {
-    const initData = window.Telegram?.WebApp?.initData || '';
-    console.log('📄 Init data length:', initData.length);
-    return initData;
-  } // ✅ ДОБАВЛЕНА недостающая скобка
+    try {
+      const initData = window.Telegram?.WebApp?.initData || '';
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📄 Init data available:', initData.length > 0);
+      }
+      
+      return initData;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error getting init data:', error);
+      }
+      return '';
+    }
+  }
 
+  /**
+   * Проверяет, запущено ли приложение в Telegram
+   */
   static isInTelegram(): boolean {
     const isInTelegram = Boolean(window.Telegram?.WebApp);
-    console.log('🔍 Is in Telegram:', isInTelegram);
-    return isInTelegram;
-  } // ✅ ДОБАВЛЕНА недостающая скобка
-
-  static initTelegramApp(): void {
-    console.log('🚀 Initializing Telegram App...');
     
-    if (window.Telegram?.WebApp) {
-      console.log('✅ Telegram WebApp detected, calling ready() and expand()');
-      window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand();
-      console.log('✅ Telegram WebApp initialized successfully');
-    } else {
-      console.log('❌ Telegram WebApp not available');
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🔍 Is in Telegram:', isInTelegram);
     }
-  } // ✅ ДОБАВЛЕНА недостающая скобка
+    
+    return isInTelegram;
+  }
 
-  // Для разработки - фейковый пользователь
-  static getMockUser(): TelegramUser {
-    console.log('🧪 Using mock user for development');
+  /**
+   * Инициализирует Telegram WebApp
+   */
+  static initTelegramApp(): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🚀 Initializing Telegram App...');
+    }
+
+    try {
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        
+        // Основная инициализация
+        tg.ready();
+        tg.expand();
+        
+        // Настройки для игры
+        tg.enableClosingConfirmation();
+        tg.disableVerticalSwipes();
+        
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ Telegram WebApp initialized successfully');
+        }
+      } else if (process.env.NODE_ENV === 'development') {
+        console.log('❌ Telegram WebApp not available');
+      }
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error initializing Telegram App:', error);
+      }
+    }
+  }
+
+  /**
+   * Валидирует актуальность auth_date (клиентская проверка)
+   */
+  static isAuthDateValid(): boolean {
+    try {
+      const authDate = window.Telegram?.WebApp?.initDataUnsafe?.auth_date;
+      
+      if (!authDate) return false;
+      
+      const now = Math.floor(Date.now() / 1000);
+      const isValid = (now - authDate) < AUTH_DATE_VALIDITY;
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('📅 Auth date valid:', isValid);
+      }
+      
+      return isValid;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error validating auth date:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Проверяет наличие hash для валидации
+   */
+  static hasValidHash(): boolean {
+    try {
+      const hash = window.Telegram?.WebApp?.initDataUnsafe?.hash;
+      const hasHash = Boolean(hash && hash.length > 0);
+      
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🔐 Has valid hash:', hasHash);
+      }
+      
+      return hasHash;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Error checking hash:', error);
+      }
+      return false;
+    }
+  }
+
+  /**
+   * Возвращает mock пользователя для разработки
+   */
+  static getMockUser(): Player {
+    if (process.env.NODE_ENV === 'development') {
+      console.log('🧪 Using mock user for development');
+    }
     
     return {
-      id: 123456789,
-      first_name: 'Test',
-      last_name: 'User',
-      username: 'testuser',
-      language_code: 'ru',
+      id: MOCK_USER_ID.toString(),
+      name: 'Test User',
+      isReady: false,
+      isConnected: true,
+      lastSeen: Date.now(),
     };
-  } // ✅ ДОБАВЛЕНА недостающая скобка
-} // ✅ ДОБАВЛЕНА недостающая скобка
+  }
+
+  // ===== ПРИВАТНЫЕ МЕТОДЫ =====
+
+  /**
+   * Валидирует структуру пользователя
+   */
+  private static isValidUser(user: TelegramUser): boolean {
+    return Boolean(
+      user &&
+      typeof user.id === 'number' &&
+      typeof user.first_name === 'string' &&
+      user.first_name.length > 0
+    );
+  }
+
+  /**
+   * Конвертирует TelegramUser в Player
+   */
+  private static convertToPlayer(user: TelegramUser): Player {
+    const displayName = user.last_name 
+      ? `${user.first_name} ${user.last_name}`
+      : user.first_name;
+
+    return {
+      id: user.id.toString(),
+      name: displayName,
+      isReady: false,
+      isConnected: true,
+      lastSeen: Date.now(),
+    };
+  }
+
+  /**
+   * Валидирует данные на сервере (должно быть реализовано на бэкенде)
+   */
+  static async validateOnServer(initData: string, botToken: string): Promise<boolean> {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/auth/validate-telegram`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ initData, botToken }),
+      });
+
+      return response.ok;
+    } catch (error) {
+      if (process.env.NODE_ENV === 'development') {
+        console.error('Server validation failed:', error);
+      }
+      return false;
+    }
+  }
+}

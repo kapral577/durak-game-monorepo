@@ -3,6 +3,7 @@ import { Alert, Button, Container } from 'react-bootstrap';
 
 interface Props {
   children: ReactNode;
+  fallback?: ReactNode;
 }
 
 interface State {
@@ -25,19 +26,21 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[ErrorBoundary] Caught error:', error, errorInfo);
+    }
     this.setState({
       error,
       errorInfo,
     });
   }
 
-  handleReload = () => {
+  handleReload = (): void => {
     window.location.reload();
   };
 
-  handleReset = () => {
+  handleReset = (): void => {
     this.setState({
       hasError: false,
       error: null,
@@ -45,30 +48,31 @@ class ErrorBoundary extends Component<Props, State> {
     });
   };
 
-  render() {
+  render(): ReactNode {
     if (this.state.hasError) {
+      if (this.props.fallback) {
+        return this.props.fallback;
+      }
+
       return (
         <Container className="mt-5">
           <Alert variant="danger">
             <Alert.Heading>Произошла ошибка</Alert.Heading>
-            <p>
-              Что-то пошло не так. Пожалуйста, перезагрузите страницу или попробуйте позже.
-            </p>
+            <p>Что-то пошло не так. Пожалуйста, перезагрузите страницу или попробуйте позже.</p>
+            
             {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="mt-3">
+              <details style={{ whiteSpace: 'pre-wrap' }}>
                 <summary>Детали ошибки (только для разработки)</summary>
-                <pre className="mt-2 small">
-                  {this.state.error.toString()}
-                  {this.state.errorInfo?.componentStack}
-                </pre>
+                <pre>{this.state.error.toString()}</pre>
+                <pre>{this.state.errorInfo?.componentStack}</pre>
               </details>
             )}
-            <hr />
-            <div className="d-flex gap-2">
-              <Button variant="outline-danger" onClick={this.handleReset}>
+            
+            <div className="d-flex justify-content-between mt-3">
+              <Button variant="primary" onClick={this.handleReset}>
                 Попробовать снова
               </Button>
-              <Button variant="danger" onClick={this.handleReload}>
+              <Button variant="secondary" onClick={this.handleReload}>
                 Перезагрузить страницу
               </Button>
             </div>

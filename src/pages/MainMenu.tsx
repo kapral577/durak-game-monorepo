@@ -1,260 +1,243 @@
-// src/pages/MainMenu.tsx - ФРОНТЕНД - ИСПРАВЛЕНО
-import React from 'react';
-import { Container, Row, Col, Card, Button, Alert, Badge } from 'react-bootstrap';
+// src/pages/MainMenu.tsx - ПОЛНОСТЬЮ РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
+
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Alert, Badge } from 'react-bootstrap';
+import { TelegramAuth } from '../utils/TelegramAuth';
 import { useGame } from '../context/GameProvider';
+
+// ===== КОНСТАНТЫ =====
+const UI_TEXT = {
+  GAME_TITLE: '🃏 Дурак Онлайн',
+  GAME_SUBTITLE: 'Классическая карточная игра онлайн',
+  WELCOME_MESSAGE: 'Добро пожаловать, {name}!',
+  QUICK_GAME: '⚡ Быстрая игра',
+  CREATE_ROOM: '🏠 Создать комнату',
+  JOIN_ROOM: '🎯 Найти игру',
+  INVITE_FRIENDS: '👥 Пригласить друзей',
+  GAME_RULES: '📖 Правила игры',
+  SETTINGS: '⚙️ Настройки',
+  TELEGRAM_ERROR: 'Это приложение должно запускаться из Telegram.',
+  DEV_MODE_NOTICE: '**Режим разработки:** Используется тестовый пользователь',
+  LOADING_TEXT: 'Инициализация...',
+  RECONNECT_BUTTON: '🔄 Переподключиться',
+  CONNECTION_STATUS: 'Статус соединения',
+} as const;
 
 const MainMenu: React.FC = () => {
   const navigate = useNavigate();
-  const { 
-    isConnected, 
-    error, 
-    clearError, 
-    telegramUser, 
-    isAuthenticated,
-    rooms,
-    currentRoom,
-    gameState
-  } = useGame();
+  const { telegramUser, isConnected, error, connect } = useGame();
+  
+  const [isInitializing, setIsInitializing] = useState(true);
 
-  const handleCreateGame = () => {
-    if (!isConnected || !isAuthenticated) {
-      return;
-    }
-    navigate('/settings');
-  };
+  // Инициализация Telegram WebApp
+  useEffect(() => {
+    const initializeApp = async () => {
+      try {
+        // Инициализация Telegram WebApp
+        if (window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+          tg.ready();
+          tg.expand();
+          
+          // Настройки для игры
+          tg.enableClosingConfirmation();
+          tg.disableVerticalSwipes();
+        }
+        
+        // Небольшая задержка для корректной инициализации
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        setIsInitializing(false);
+      } catch (err) {
+        console.error('Initialization error:', err);
+        setIsInitializing(false);
+      }
+    };
 
-  const handleJoinGame = () => {
-    if (!isConnected || !isAuthenticated) {
-      return;
-    }
+    initializeApp();
+  }, []);
+
+  // Обработчики навигации
+  const handleQuickGame = () => {
     navigate('/rooms');
   };
 
-  const handleFriends = () => {
-    if (!isConnected || !isAuthenticated) {
-      return;
-    }
+  const handleCreateRoom = () => {
+    navigate('/settings');
+  };
+
+  const handleJoinRoom = () => {
+    navigate('/rooms');
+  };
+
+  const handleInviteFriends = () => {
     navigate('/friends');
   };
 
-  const handleContinueGame = () => {
-    if (currentRoom) {
-      if (gameState) {
-        navigate(`/game/${currentRoom.id}`);
-      } else {
-        navigate(`/room/${currentRoom.id}`);
-      }
-    }
+  const handleReconnect = () => {
+    connect();
   };
 
-  // Подсчет доступных комнат
-  const availableRoomsCount = rooms.filter(room => 
-    room.status === 'waiting' && room.players.length < room.maxPlayers
-  ).length;
+  // Loading состояние
+  if (isInitializing) {
+    return (
+      <Container className="main-menu-container">
+        <div className="text-center">
+          <div className="spinner-border text-primary mb-3" role="status">
+            <span className="visually-hidden">{UI_TEXT.LOADING_TEXT}</span>
+          </div>
+          <p className="text-muted">{UI_TEXT.LOADING_TEXT}</p>
+        </div>
+      </Container>
+    );
+  }
 
   return (
-    <Container className="py-4">
+    <Container className="main-menu-container">
       <Row className="justify-content-center">
-        <Col xs={12} md={8} lg={6}>
-          {/* Заголовок */}
-          <Card className="text-center mb-4 border-0 bg-primary text-white">
+        <Col md={8} lg={6}>
+          {/* Заголовок игры */}
+          <Card className="text-center mb-4">
             <Card.Body>
-              <h1 className="mb-0">🃏 Дурак</h1>
-              <p className="mb-0 mt-2 opacity-75">
-                Классическая карточная игра онлайн
-              </p>
+              <h1 className="display-4 mb-2">{UI_TEXT.GAME_TITLE}</h1>
+              <p className="lead text-muted">{UI_TEXT.GAME_SUBTITLE}</p>
+              
+              {/* Приветствие пользователя */}
               {telegramUser && (
-                <small className="d-block mt-2 opacity-50">
-                  Добро пожаловать, {telegramUser.first_name}!
-                </small>
+                <Alert variant="success" className="mb-0">
+                  <h5 className="mb-0">
+                    {UI_TEXT.WELCOME_MESSAGE.replace('{name}', telegramUser.name)}
+                  </h5>
+                </Alert>
               )}
+            </Card.Body>
+          </Card>
+
+          {/* Статус соединения */}
+          <Card className="mb-4">
+            <Card.Body>
+              <div className="d-flex justify-content-between align-items-center">
+                <span>{UI_TEXT.CONNECTION_STATUS}:</span>
+                <div>
+                  <Badge bg={isConnected ? 'success' : 'danger'} className="me-2">
+                    {isConnected ? 'Подключено' : 'Отключено'}
+                  </Badge>
+                  {!isConnected && (
+                    <Button variant="outline-primary" size="sm" onClick={handleReconnect}>
+                      {UI_TEXT.RECONNECT_BUTTON}
+                    </Button>
+                  )}
+                </div>
+              </div>
             </Card.Body>
           </Card>
 
           {/* Ошибки */}
           {error && (
-            <Alert variant="danger" dismissible onClose={clearError}>
-              <Alert.Heading>Ошибка</Alert.Heading>
-              <p className="mb-0">{error}</p>
+            <Alert variant="danger" className="mb-4">
+              {error}
             </Alert>
           )}
 
-          {/* Ошибка аутентификации */}
-          {!isAuthenticated && (
+          {/* Ошибка Telegram */}
+          {!TelegramAuth.isInTelegram() && process.env.NODE_ENV === 'production' && (
             <Alert variant="warning" className="mb-4">
-              <Alert.Heading>Требуется аутентификация</Alert.Heading>
-              <p className="mb-0">
-                Это приложение должно запускаться из Telegram. 
-                {process.env.NODE_ENV === 'development' && (
-                  <span className="d-block mt-2 small">
-                    <strong>Режим разработки:</strong> Используется тестовый пользователь
-                  </span>
-                )}
-              </p>
+              <Alert.Heading>⚠️ Внимание</Alert.Heading>
+              {UI_TEXT.TELEGRAM_ERROR}
             </Alert>
           )}
 
-          {/* Продолжить текущую игру */}
-          {(currentRoom || gameState) && isAuthenticated && (
-            <Card className="mb-4 border-warning">
-              <Card.Body>
-                <div className="d-flex align-items-center justify-content-between">
-                  <div>
-                    <h6 className="mb-1 text-warning">
-                      {gameState ? '🎮 Активная игра' : '⏳ Ожидание в комнате'}
-                    </h6>
-                    <small className="text-muted">
-                      {currentRoom?.name || 'Неизвестная комната'}
-                    </small>
-                  </div>
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    onClick={handleContinueGame}
-                  >
-                    Продолжить
-                  </Button>
-                </div>
-              </Card.Body>
-            </Card>
+          {/* Режим разработки */}
+          {process.env.NODE_ENV === 'development' && (
+            <Alert variant="info" className="mb-4">
+              <small>{UI_TEXT.DEV_MODE_NOTICE}</small>
+            </Alert>
           )}
 
           {/* Основные действия */}
           <Card className="mb-4">
             <Card.Body>
               <div className="d-grid gap-3">
-                
-                {/* Создать игру */}
-                <Button
-                  variant="success"
-                  size="lg"
-                  onClick={handleCreateGame}
-                  disabled={!isConnected || !isAuthenticated}
-                  className="py-3"
+                {/* Быстрая игра */}
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  onClick={handleQuickGame}
+                  disabled={!isConnected}
                 >
-                  <div className="d-flex align-items-center justify-content-center">
-                    <span className="me-2">➕</span>
-                    <div>
-                      <div className="fw-bold">Создать игру</div>
-                      <small className="opacity-75">
-                        Настройте правила и пригласите друзей
-                      </small>
-                    </div>
-                  </div>
+                  {UI_TEXT.QUICK_GAME}
+                </Button>
+
+                {/* Создать комнату */}
+                <Button 
+                  variant="success" 
+                  size="lg" 
+                  onClick={handleCreateRoom}
+                  disabled={!isConnected}
+                >
+                  {UI_TEXT.CREATE_ROOM}
                 </Button>
 
                 {/* Найти игру */}
-                <Button
-                  variant="primary"
-                  size="lg"
-                  onClick={handleJoinGame}
-                  disabled={!isConnected || !isAuthenticated}
-                  className="py-3 position-relative"
+                <Button 
+                  variant="outline-primary" 
+                  size="lg" 
+                  onClick={handleJoinRoom}
+                  disabled={!isConnected}
                 >
-                  <div className="d-flex align-items-center justify-content-center">
-                    <span className="me-2">🔍</span>
-                    <div>
-                      <div className="fw-bold">Найти игру</div>
-                      <small className="opacity-75">
-                        Присоединиться к существующей комнате
-                        {availableRoomsCount > 0 && (
-                          <span className="ms-1">({availableRoomsCount} доступно)</span>
-                        )}
-                      </small>
-                    </div>
-                  </div>
-                  
-                  {/* Бейдж с количеством комнат */}
-                  {availableRoomsCount > 0 && (
-                    <Badge 
-                      bg="light" 
-                      text="dark" 
-                      pill 
-                      className="position-absolute top-0 end-0 me-2 mt-2"
-                    >
-                      {availableRoomsCount}
-                    </Badge>
-                  )}
+                  {UI_TEXT.JOIN_ROOM}
                 </Button>
-
-                {/* Играть с друзьями */}
-                <Button
-                  variant="info"
-                  size="lg"
-                  onClick={handleFriends}
-                  disabled={!isConnected || !isAuthenticated}
-                  className="py-3"
-                >
-                  <div className="d-flex align-items-center justify-content-center">
-                    <span className="me-2">👥</span>
-                    <div>
-                      <div className="fw-bold">Играть с друзьями</div>
-                      <small className="opacity-75">
-                        Пригласите друзей в приватную игру
-                      </small>
-                    </div>
-                  </div>
-                </Button>
-
               </div>
             </Card.Body>
           </Card>
 
-          {/* Статус соединения */}
-          {!isConnected && (
-            <Card className="mb-3 bg-light">
-              <Card.Body className="text-center">
-                <div className="text-muted">
-                  <div className="spinner-border spinner-border-sm me-2" role="status">
-                    <span className="visually-hidden">Загрузка...</span>
-                  </div>
-                  Подключение к серверу...
-                </div>
-              </Card.Body>
-            </Card>
-          )}
-
-          {/* Статистика онлайн */}
-          {isConnected && isAuthenticated && (
-            <Card className="bg-light">
-              <Card.Body className="text-center">
-                <h6 className="text-muted mb-2">📊 Статистика онлайн</h6>
-                <div className="row text-center">
-                  <div className="col-4">
-                    <div className="fw-bold text-primary">{rooms.length}</div>
-                    <small className="text-muted">Комнат</small>
-                  </div>
-                  <div className="col-4">
-                    <div className="fw-bold text-success">{availableRoomsCount}</div>
-                    <small className="text-muted">Доступно</small>
-                  </div>
-                  <div className="col-4">
-                    <div className="fw-bold text-warning">
-                      {rooms.filter(r => r.status === 'playing').length}
-                    </div>
-                    <small className="text-muted">В игре</small>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          )}
-
-          {/* Правила игры */}
-          <Card className="mt-4 bg-light">
+          {/* Дополнительные действия */}
+          <Card>
             <Card.Body>
-              <h6 className="text-muted mb-3">📖 Правила игры</h6>
-              <ul className="list-unstyled small text-muted mb-0">
-                <li className="mb-1">🎯 <strong>Цель:</strong> избавиться от всех карт первым</li>
-                <li className="mb-1">🃏 <strong>Колода:</strong> 36 карт (от 6 до туза)</li>
-                <li className="mb-1">👥 <strong>Игроки:</strong> от 2 до 6 человек</li>
-                <li className="mb-1">♠ <strong>Козырь:</strong> определяется автоматически</li>
-                <li className="mb-1">⚔️ <strong>Правила:</strong> классический, переводной или умный дурак</li>
-              </ul>
+              <Row className="g-2">
+                {/* Пригласить друзей */}
+                <Col xs={6}>
+                  <Button 
+                    variant="outline-secondary" 
+                    className="w-100"
+                    onClick={handleInviteFriends}
+                    disabled={!isConnected}
+                  >
+                    {UI_TEXT.INVITE_FRIENDS}
+                  </Button>
+                </Col>
+
+                {/* Правила игры */}
+                <Col xs={6}>
+                  <Button 
+                    variant="outline-info" 
+                    className="w-100"
+                    onClick={() => {
+                      // TODO: Добавить модальное окно с правилами
+                      alert('Правила игры будут добавлены в следующем обновлении');
+                    }}
+                  >
+                    {UI_TEXT.GAME_RULES}
+                  </Button>
+                </Col>
+              </Row>
             </Card.Body>
           </Card>
+
+          {/* Информация о версии */}
+          <div className="text-center mt-4">
+            <small className="text-muted">
+              Версия 1.0.0 | Telegram Mini App
+            </small>
+          </div>
         </Col>
       </Row>
+
+      {/* Декоративные элементы */}
+      <div className="decorative-blur top-center"></div>
+      <div className="decorative-blur bottom-right"></div>
+      <div className="decorative-blur left-side"></div>
     </Container>
   );
 };
