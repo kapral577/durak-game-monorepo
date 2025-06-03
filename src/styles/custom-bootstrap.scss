@@ -1,0 +1,54 @@
+// src/styles/custom-bootstrap.scss
+
+// Royal Blue тема для карточной игры
+$primary: #536976;              // Основной цвет
+$secondary: #292E49;            // Вторичный темный
+$success: #28a745;              // Зеленый для защиты  
+$danger: #dc3545;               // Красный для атаки
+$warning: #ffc107;              // Желтый для действий
+$dark: #292E49;                 // Темный цвет
+$body-bg: #292E49;              // Фон страницы
+$body-color: #ffffff;           // Белый текст на темном фоне
+
+$btn-border-radius: 25px;
+$card-border-radius: 16px;
+
+@import '~bootstrap/scss/bootstrap';
+
+// Royal Blue градиенты
+body {
+  background: linear-gradient(135deg, #536976 0%, #292E49 100%);
+  min-height: 100vh;
+}
+
+.game-table {
+  background: linear-gradient(135deg, #536976 0%, #292E49 100%);
+  border-radius: 20px;
+  padding: 30px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+}
+
+.game-card {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.game-card:hover {
+  transform: translateY(-5px);
+  background: rgba(255, 255, 255, 0.15);
+}
+
+// Кнопки с Royal Blue акцентом
+.btn-royal {
+  background: linear-gradient(45deg, #536976, #292E49);
+  border: none;
+  color: white;
+  font-weight: bold;
+}
+
+.btn-royal:hover {
+  background: linear-gradient(45deg, #5f7582, #323954);
+  transform: translateY(-2px);
+}
