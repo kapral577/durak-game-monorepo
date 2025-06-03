@@ -13,7 +13,8 @@ $body-color: #ffffff;           // Белый текст на темном фо�
 $btn-border-radius: 25px;
 $card-border-radius: 16px;
 
-@import '~bootstrap/scss/bootstrap';
+// ✅ ИСПРАВЛЕНО: убрал ~ для Vite
+@import 'bootstrap/scss/bootstrap';
 
 // Royal Blue градиенты
 body {
