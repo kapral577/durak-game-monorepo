@@ -12,35 +12,35 @@ $info: #0070F3;                 // HeroUI Info
 $body-bg: #292E49;              // Ваш темный фон (для fallback)
 $body-color: #ffffff;           // Белый текст
 
-// ===== HEROUI ТИПОГРАФИКА =====
+// ===== HEROUI ТИПОГРАФИКА (ИСПРАВЛЕНО: rem вместо px) =====
 $font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
-$font-size-base: 14px;          // HeroUI стандарт
+$font-size-base: 0.875rem;      // 14px = 0.875rem - ИСПРАВЛЕНО
 $font-weight-base: 400;
 $btn-font-weight: 600;          // Semi-bold как в HeroUI
 
-// ===== HEROUI СКРУГЛЕНИЯ =====
-$border-radius: 12px;           // HeroUI medium
-$border-radius-sm: 8px;         // HeroUI small  
-$border-radius-lg: 16px;        // HeroUI large
-$btn-border-radius: 8px;        // Кнопки как в HeroUI
-$card-border-radius: 12px;      // Карточки как в HeroUI
+// ===== HEROUI СКРУГЛЕНИЯ (ИСПРАВЛЕНО: rem вместо px) =====
+$border-radius: 0.75rem;        // 12px = 0.75rem - ИСПРАВЛЕНО
+$border-radius-sm: 0.5rem;      // 8px = 0.5rem - ИСПРАВЛЕНО
+$border-radius-lg: 1rem;        // 16px = 1rem - ИСПРАВЛЕНО
+$btn-border-radius: 0.5rem;     // 8px = 0.5rem - ИСПРАВЛЕНО
+$card-border-radius: 0.75rem;   // 12px = 0.75rem - ИСПРАВЛЕНО
 
 // ===== HEROUI ГРАНИЦЫ =====
 $border-width: 1px;
 $border-color: #e4e4e7;         // HeroUI border color
 
 // ===== HEROUI ТЕНИ =====
-$box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-$box-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
-$box-shadow-lg: 0 4px 15px rgba(0, 0, 0, 0.1);
+$box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
+$box-shadow-sm: 0 0.0625rem 0.125rem rgba(0, 0, 0, 0.05);
+$box-shadow-lg: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.1);
 
 // ===== HEROUI ПЕРЕХОДЫ =====
 $transition-base: all 0.2s ease;
 
-// ===== HEROUI ОТСТУПЫ =====
+// ===== HEROUI ОТСТУПЫ (ИСПРАВЛЕНО: rem вместо px) =====
 $spacer: 1rem;                  // HeroUI стандарт
-$btn-padding-y: 8px;            // Высота кнопок как в HeroUI
-$btn-padding-x: 16px;           // Ширина кнопок
+$btn-padding-y: 0.5rem;         // 8px = 0.5rem - ИСПРАВЛЕНО
+$btn-padding-x: 1rem;           // 16px = 1rem - ИСПРАВЛЕНО
 
 @import 'bootstrap/scss/bootstrap';
 
@@ -55,14 +55,14 @@ body {
 // Кнопки в стиле HeroUI:
 .btn {
   font-weight: 600;               // Semi-bold как в HeroUI
-  font-size: 14px;                // HeroUI размер
-  border-radius: 8px;             // HeroUI скругление
-  padding: 8px 16px;              // HeroUI отступы
+  font-size: 0.875rem;            // 14px = 0.875rem - ИСПРАВЛЕНО
+  border-radius: 0.5rem;          // 8px = 0.5rem - ИСПРАВЛЕНО
+  padding: 0.5rem 1rem;           // 8px 16px = 0.5rem 1rem - ИСПРАВЛЕНО
   transition: all 0.2s ease;     // HeroUI анимация
   border: none;                   // Без границ как в HeroUI
   
   &:hover {
-    transform: translateY(-1px);  // HeroUI hover эффект
+    transform: translateY(-0.0625rem);  // 1px = 0.0625rem - ИСПРАВЛЕНО
   }
   
   &:active {
@@ -74,37 +74,37 @@ body {
 .card {
   background: rgba(255, 255, 255, 0.95);  // Светлые на темном фоне
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 12px;                     // HeroUI medium radius
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;                  // 12px = 0.75rem - ИСПРАВЛЕНО
+  box-shadow: 0 0.0625rem 0.1875rem rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease;
   
   &:hover {
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    transform: translateY(-2px);           // HeroUI hover
+    box-shadow: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.1);
+    transform: translateY(-0.125rem);      // 2px = 0.125rem - ИСПРАВЛЕНО
   }
 }
 
 // Поля ввода в стиле HeroUI:
 .form-control {
   border: 1px solid #e4e4e7;             // HeroUI border
-  border-radius: 8px;                    // HeroUI radius
-  padding: 12px 16px;                    // HeroUI отступы
-  font-size: 14px;                       // HeroUI размер
+  border-radius: 0.5rem;                 // 8px = 0.5rem - ИСПРАВЛЕНО
+  padding: 0.75rem 1rem;                 // 12px 16px = 0.75rem 1rem - ИСПРАВЛЕНО
+  font-size: 0.875rem;                   // 14px = 0.875rem - ИСПРАВЛЕНО
   background: rgba(255, 255, 255, 0.95);
   
   &:focus {
     border-color: #006FEE;               // HeroUI primary
-    box-shadow: 0 0 0 3px rgba(0, 111, 238, 0.1);
+    box-shadow: 0 0 0 0.1875rem rgba(0, 111, 238, 0.1); // 3px = 0.1875rem - ИСПРАВЛЕНО
     outline: none;
   }
 }
 
 // Алерты в стиле HeroUI:
 .alert {
-  border-radius: 12px;                   // HeroUI radius
+  border-radius: 0.75rem;                // 12px = 0.75rem - ИСПРАВЛЕНО
   border: none;                          // Без границ
-  padding: 16px 20px;                    // HeroUI отступы
-  font-size: 14px;
+  padding: 1rem 1.25rem;                 // 16px 20px = 1rem 1.25rem - ИСПРАВЛЕНО
+  font-size: 0.875rem;                   // 14px = 0.875rem - ИСПРАВЛЕНО
 }
 
 .alert-primary {
@@ -126,9 +126,9 @@ body {
 .pagination {
   .page-link {
     border: none;
-    border-radius: 6px;                  // HeroUI small radius
-    margin: 0 2px;
-    padding: 8px 12px;
+    border-radius: 0.375rem;             // 6px = 0.375rem - ИСПРАВЛЕНО
+    margin: 0 0.125rem;                  // 2px = 0.125rem - ИСПРАВЛЕНО
+    padding: 0.5rem 0.75rem;             // 8px 12px = 0.5rem 0.75rem - ИСПРАВЛЕНО
     color: #71717a;                      // HeroUI secondary
     background: transparent;
     
@@ -146,10 +146,10 @@ body {
 
 // Badge в стиле HeroUI:
 .badge {
-  border-radius: 6px;                    // HeroUI small radius
+  border-radius: 0.375rem;               // 6px = 0.375rem - ИСПРАВЛЕНО
   font-weight: 500;                      // Medium weight
-  font-size: 12px;                       // Мелкий размер
-  padding: 4px 8px;
+  font-size: 0.75rem;                    // 12px = 0.75rem - ИСПРАВЛЕНО
+  padding: 0.25rem 0.5rem;               // 4px 8px = 0.25rem 0.5rem - ИСПРАВЛЕНО
 }
 
 // Убираем ваши старые игровые стили:
@@ -158,15 +158,15 @@ body {
 // Новые классы в стиле HeroUI:
 .heroui-card {
   background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-radius: 12px;
-  padding: 24px;
+  backdrop-filter: blur(0.625rem);       // 10px = 0.625rem - ИСПРАВЛЕНО
+  border-radius: 0.75rem;                // 12px = 0.75rem - ИСПРАВЛЕНО
+  padding: 1.5rem;                       // 24px = 1.5rem - ИСПРАВЛЕНО
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
 
 .heroui-button-group {
   display: flex;
-  gap: 8px;                              // HeroUI spacing
+  gap: 0.5rem;                           // 8px = 0.5rem - ИСПРАВЛЕНО
   
   .btn {
     flex: 1;
