@@ -1,8 +1,11 @@
-// src/App.tsx - ФРОНТЕНД - ИСПРАВЛЕНО
+// src/App.tsx - ИСПРАВЛЕНО с Login логикой
+
 import React from 'react';
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Container } from 'react-bootstrap';
-import 'bootstrap/dist/css/bootstrap.min.css';
+
+// ❌ УДАЛЕНО: import 'bootstrap/dist/css/bootstrap.min.css';
+// Стили загружаются через main.tsx → custom-bootstrap.scss
 
 // Провайдеры
 import { GameProvider } from './context/GameProvider';
@@ -14,53 +17,83 @@ import ErrorBoundary from './components/ErrorBoundary';
 import ConnectionStatus from './components/ConnectionStatus';
 
 // Страницы
-import MainMenu from './pages/MainMenu';                    // ваш существующий файл
-import GameSettingsPage from './pages/GameSettingsPage';   // ваш новый файл
-import RoomListPage from './pages/RoomListPage';           // ваш новый файл  
-import GameRoomPage from './pages/GameRoomPage';           // ваш существующий файл
-import GamePlayPage from './pages/GamePlayPage';           // ваш существующий файл
-import FriendsPage from './pages/FriendsPage';             // ваш существующий файл (если нужен)
+import LoginPage from './pages/LoginPage';           // ✅ ДОБАВЛЕНО
+import MainMenu from './pages/MainMenu';
+import GameSettingsPage from './pages/GameSettingsPage';
+import RoomListPage from './pages/RoomListPage';
+import GameRoomPage from './pages/GameRoomPage';
+import GamePlayPage from './pages/GamePlayPage';
+import FriendsPage from './pages/FriendsPage';
+
+// ✅ ДОБАВЛЕНО: Компонент для защиты маршрутов
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const isAuthenticated = localStorage.getItem('gameToken');
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
 
 const App: React.FC = () => {
   return (
     <ErrorBoundary>
-      <GameSettingsProvider>
-        <GameProvider>
-          <div className="App min-vh-100 d-flex flex-column">
+      <GameProvider>
+        <GameSettingsProvider>
+          <Container fluid className="p-0">
             {/* Индикатор соединения */}
             <ConnectionStatus />
-            
-            {/* Основной контент */}
-            <Container fluid className="flex-grow-1 p-0">
-              <Routes>
-                {/* Главное меню */}
-                <Route path="/" element={<MainMenu />} />
-                
-                {/* Настройки и создание игры */}
-                <Route path="/settings" element={<GameSettingsPage />} />
-                
-                {/* Список комнат */}
-                <Route path="/rooms" element={<RoomListPage />} />
-                
-                {/* Комната ожидания */}
-                <Route path="/room/:roomId" element={<GameRoomPage />} />
-                
-                {/* Игровая страница */}
-                <Route path="/game/:roomId" element={<GamePlayPage />} />
-                
-                {/* Друзья (если нужно) */}
-                <Route path="/friends" element={<FriendsPage />} />
-                
-                {/* Fallback на главную */}
-                <Route path="*" element={<MainMenu />} />
-              </Routes>
-            </Container>
 
-            {/* Нижняя навигация */}
-            <BottomNavbar />
-          </div>
-        </GameProvider>
-      </GameSettingsProvider>
+            {/* Основной контент */}
+            <Routes>
+              {/* ✅ ДОБАВЛЕНО: Login экран - ПЕРВЫЙ */}
+              <Route path="/login" element={<LoginPage />} />
+              
+              {/* ✅ ИЗМЕНЕНО: Все остальные маршруты защищены */}
+              <Route path="/main-menu" element={
+                <ProtectedRoute>
+                  <MainMenu />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/game-settings" element={
+                <ProtectedRoute>
+                  <GameSettingsPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/rooms" element={
+                <ProtectedRoute>
+                  <RoomListPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/room/:roomId" element={
+                <ProtectedRoute>
+                  <GameRoomPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/game/:gameId" element={
+                <ProtectedRoute>
+                  <GamePlayPage />
+                </ProtectedRoute>
+              } />
+              
+              <Route path="/friends" element={
+                <ProtectedRoute>
+                  <FriendsPage />
+                </ProtectedRoute>
+              } />
+
+              {/* ✅ ИЗМЕНЕНО: Редирект на login по умолчанию */}
+              <Route path="/" element={<Navigate to="/login" replace />} />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+
+            {/* ✅ ИЗМЕНЕНО: Навигация только для аутентифицированных */}
+            <ProtectedRoute>
+              <BottomNavbar />
+            </ProtectedRoute>
+          </Container>
+        </GameSettingsProvider>
+      </GameProvider>
     </ErrorBoundary>
   );
 };
