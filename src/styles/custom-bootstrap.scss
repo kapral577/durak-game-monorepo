@@ -1,55 +1,174 @@
 // src/styles/custom-bootstrap.scss
 
-// Royal Blue тема для карточной игры
-$primary: #536976;              // Основной цвет
-$secondary: #292E49;            // Вторичный темный
-$success: #28a745;              // Зеленый для защиты  
-$danger: #dc3545;               // Красный для атаки
-$warning: #ffc107;              // Желтый для действий
-$dark: #292E49;                 // Темный цвет
-$body-bg: #292E49;              // Фон страницы
-$body-color: #ffffff;           // Белый текст на темном фоне
+// ===== ЦВЕТА HEROUI =====
+$primary: #006FEE;              // HeroUI Primary синий
+$secondary: #71717a;            // HeroUI Secondary серый
+$success: #17C964;              // HeroUI Success зеленый
+$danger: #F31260;               // HeroUI Danger красный
+$warning: #F5A524;              // HeroUI Warning оранжевый
+$info: #0070F3;                 // HeroUI Info
 
-$btn-border-radius: 25px;
-$card-border-radius: 16px;
+// ===== ФОН ОСТАВЛЯЕМ ВАШ ГРАДИЕНТ =====
+$body-bg: #292E49;              // Ваш темный фон (для fallback)
+$body-color: #ffffff;           // Белый текст
 
-// ✅ ИСПРАВЛЕНО: убрал ~ для Vite
+// ===== HEROUI ТИПОГРАФИКА =====
+$font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
+$font-size-base: 14px;          // HeroUI стандарт
+$font-weight-base: 400;
+$btn-font-weight: 600;          // Semi-bold как в HeroUI
+
+// ===== HEROUI СКРУГЛЕНИЯ =====
+$border-radius: 12px;           // HeroUI medium
+$border-radius-sm: 8px;         // HeroUI small  
+$border-radius-lg: 16px;        // HeroUI large
+$btn-border-radius: 8px;        // Кнопки как в HeroUI
+$card-border-radius: 12px;      // Карточки как в HeroUI
+
+// ===== HEROUI ГРАНИЦЫ =====
+$border-width: 1px;
+$border-color: #e4e4e7;         // HeroUI border color
+
+// ===== HEROUI ТЕНИ =====
+$box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+$box-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+$box-shadow-lg: 0 4px 15px rgba(0, 0, 0, 0.1);
+
+// ===== HEROUI ПЕРЕХОДЫ =====
+$transition-base: all 0.2s ease;
+
+// ===== HEROUI ОТСТУПЫ =====
+$spacer: 1rem;                  // HeroUI стандарт
+$btn-padding-y: 8px;            // Высота кнопок как в HeroUI
+$btn-padding-x: 16px;           // Ширина кнопок
+
 @import 'bootstrap/scss/bootstrap';
 
-// Royal Blue градиенты
+// ===== ВАШ ГРАДИЕНТНЫЙ ФОН (ОСТАЕТСЯ) =====
 body {
   background: linear-gradient(135deg, #536976 0%, #292E49 100%);
   min-height: 100vh;
 }
 
-.game-table {
-  background: linear-gradient(135deg, #536976 0%, #292E49 100%);
-  border-radius: 20px;
-  padding: 30px;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+// ===== HEROUI СТИЛИ КОМПОНЕНТОВ =====
+
+// Кнопки в стиле HeroUI:
+.btn {
+  font-weight: 600;               // Semi-bold как в HeroUI
+  font-size: 14px;                // HeroUI размер
+  border-radius: 8px;             // HeroUI скругление
+  padding: 8px 16px;              // HeroUI отступы
+  transition: all 0.2s ease;     // HeroUI анимация
+  border: none;                   // Без границ как в HeroUI
+  
+  &:hover {
+    transform: translateY(-1px);  // HeroUI hover эффект
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
 }
 
-.game-card {
-  background: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(10px);
+// Карточки в стиле HeroUI:
+.card {
+  background: rgba(255, 255, 255, 0.95);  // Светлые на темном фоне
   border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: transform 0.2s ease;
+  border-radius: 12px;                     // HeroUI medium radius
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);           // HeroUI hover
+  }
 }
 
-.game-card:hover {
-  transform: translateY(-5px);
-  background: rgba(255, 255, 255, 0.15);
+// Поля ввода в стиле HeroUI:
+.form-control {
+  border: 1px solid #e4e4e7;             // HeroUI border
+  border-radius: 8px;                    // HeroUI radius
+  padding: 12px 16px;                    // HeroUI отступы
+  font-size: 14px;                       // HeroUI размер
+  background: rgba(255, 255, 255, 0.95);
+  
+  &:focus {
+    border-color: #006FEE;               // HeroUI primary
+    box-shadow: 0 0 0 3px rgba(0, 111, 238, 0.1);
+    outline: none;
+  }
 }
 
-// Кнопки с Royal Blue акцентом
-.btn-royal {
-  background: linear-gradient(45deg, #536976, #292E49);
-  border: none;
-  color: white;
-  font-weight: bold;
+// Алерты в стиле HeroUI:
+.alert {
+  border-radius: 12px;                   // HeroUI radius
+  border: none;                          // Без границ
+  padding: 16px 20px;                    // HeroUI отступы
+  font-size: 14px;
 }
 
-.btn-royal:hover {
-  background: linear-gradient(45deg, #5f7582, #323954);
-  transform: translateY(-2px);
+.alert-primary {
+  background: rgba(0, 111, 238, 0.1);
+  color: #006FEE;
+}
+
+.alert-success {
+  background: rgba(23, 201, 100, 0.1);
+  color: #17C964;
+}
+
+.alert-danger {
+  background: rgba(243, 18, 96, 0.1);
+  color: #F31260;
+}
+
+// Пагинация в стиле HeroUI:
+.pagination {
+  .page-link {
+    border: none;
+    border-radius: 6px;                  // HeroUI small radius
+    margin: 0 2px;
+    padding: 8px 12px;
+    color: #71717a;                      // HeroUI secondary
+    background: transparent;
+    
+    &:hover {
+      background: rgba(0, 111, 238, 0.1);
+      color: #006FEE;
+    }
+  }
+  
+  .page-item.active .page-link {
+    background: #006FEE;                 // HeroUI primary
+    color: white;
+  }
+}
+
+// Badge в стиле HeroUI:
+.badge {
+  border-radius: 6px;                    // HeroUI small radius
+  font-weight: 500;                      // Medium weight
+  font-size: 12px;                       // Мелкий размер
+  padding: 4px 8px;
+}
+
+// Убираем ваши старые игровые стили:
+// .game-table, .game-card, .btn-royal - больше не нужны
+
+// Новые классы в стиле HeroUI:
+.heroui-card {
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.heroui-button-group {
+  display: flex;
+  gap: 8px;                              // HeroUI spacing
+  
+  .btn {
+    flex: 1;
+  }
 }
