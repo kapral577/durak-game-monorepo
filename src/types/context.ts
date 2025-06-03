@@ -1,7 +1,14 @@
 // src/types/context.ts - ИСПРАВЛЕНЫ ВСЕ ОШИБКИ
-export type GameMode = 'classic' | 'transferable';
 
-export type ThrowingMode = 'standard' | 'smart';
+export enum GameMode {
+  Classic = 'classic',
+  Transferable = 'transferable'
+}
+
+export enum ThrowingMode {
+  Standard = 'standard',
+  Smart = 'smart'
+}
 
 export interface GameRules {
   gameMode: GameMode;
@@ -21,4 +28,4 @@ export interface UseGameSettings {
   setThrowingMode: (mode: ThrowingMode) => void;
   setCardCount: (count: number) => void;
   setMaxPlayers: (count: number) => void; // ✅ ДОБАВЛЕНО setMaxPlayers
-}
+} // ✅ ДОБАВЛЕНА закрывающая скобка

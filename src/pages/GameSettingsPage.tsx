@@ -55,7 +55,7 @@ const GameSettingsPage: React.FC = () => {
 
   const [roomName, setRoomName] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
+  const [validationError, setValidationError] = useState(null);
 
   // Автоматическое перенаправление при создании комнаты
   React.useEffect(() => {
