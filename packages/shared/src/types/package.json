@@ -1,0 +1,12 @@
+{
+  "name": "@durak/shared",
+  "version": "1.0.0",
+  "main": "src/types/index.ts",
+  "types": "src/types/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/types/index.ts",
+      "import": "./src/types/index.ts"
+    }
+  }
+}
