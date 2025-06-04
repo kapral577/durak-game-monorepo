@@ -1,11 +1,15 @@
-echo '{
+cat > package.json << 'EOF'
+{
   "name": "durak-game-monorepo",
+  "version": "1.0.0",
   "private": true,
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
-    "build": "cd apps/frontend && npm run build"
+    "build": "cd apps/frontend && npm run build",
+    "dev": "cd apps/frontend && npm run dev"
   }
-}' > package.json
+}
+EOF
