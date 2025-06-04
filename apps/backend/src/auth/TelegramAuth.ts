@@ -1,10 +1,13 @@
 // durak-server/auth/TelegramAuth.ts - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
 
 import crypto from 'crypto';
-import { TelegramUser, TelegramInitData } from '../shared/types';
+
+import { TelegramUser, TelegramInitData } from '../../packages/shared/src/types';
 
 // ===== КОНСТАНТЫ =====
+
 const AUTH_VALIDITY_HOURS = 24;
+
 const AUTH_VALIDITY_SECONDS = AUTH_VALIDITY_HOURS * 60 * 60;
 
 interface AuthTokenPayload {
@@ -32,13 +35,11 @@ export class TelegramAuth {
     try {
       const urlParams = new URLSearchParams(initData);
       const hash = urlParams.get('hash');
-      
       if (!hash) {
         return null;
       }
 
       urlParams.delete('hash');
-
       // Создаем строку для проверки согласно Telegram документации
       const dataCheckString = Array.from(urlParams.entries())
         .sort(([a], [b]) => a.localeCompare(b))
@@ -63,7 +64,6 @@ export class TelegramAuth {
       // Проверяем время (данные не старше 24 часов)
       const authDate = parseInt(urlParams.get('auth_date') || '0');
       const currentTime = Math.floor(Date.now() / 1000);
-      
       if (currentTime - authDate > AUTH_VALIDITY_SECONDS) {
         return null;
       }
@@ -75,14 +75,12 @@ export class TelegramAuth {
       }
 
       const userData = JSON.parse(userParam);
-      
       // Валидируем структуру пользователя
       if (!this.isValidTelegramUser(userData)) {
         return null;
       }
 
       return userData;
-
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('Telegram auth validation error:', error);
@@ -106,7 +104,6 @@ export class TelegramAuth {
     // В production используйте proper JWT библиотеку
     const tokenData = JSON.stringify(payload);
     const signature = this.createTokenSignature(tokenData);
-    
     return Buffer.from(`${tokenData}.${signature}`).toString('base64');
   }
 
@@ -129,14 +126,12 @@ export class TelegramAuth {
       }
 
       const payload: AuthTokenPayload = JSON.parse(tokenData);
-      
       // Проверяем срок действия
       if (Date.now() > payload.exp) {
         return null;
       }
 
       return payload;
-
     } catch (error) {
       return null;
     }

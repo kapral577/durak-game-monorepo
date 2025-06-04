@@ -1,19 +1,26 @@
 // durak-server/logic/messageHandler.ts - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
 
-import type { WebSocket } from 'ws';
-import { WebSocketMessage, TelegramUser } from '../shared/types';
+import { WebSocket } from 'ws';
+
+import { WebSocketMessage, TelegramUser } from '../../packages/shared/src/types';
+
 import { RoomManager } from './RoomManager';
+
 import { TelegramAuth } from '../auth/TelegramAuth';
 
 // ===== КОНСТАНТЫ =====
+
 const MESSAGE_RATE_LIMIT = 10; // сообщений в секунду
+
 const AUTH_TIMEOUT = 30000; // 30 секунд на аутентификацию
 
 // ===== SINGLETON ROOM MANAGER =====
+
 const roomManager = new RoomManager();
 
 // ===== RATE LIMITING =====
-const rateLimitMap = new Map<WebSocket, { count: number; resetTime: number }>();
+
+const rateLimitMap = new Map();
 
 interface AuthenticatedSocket extends WebSocket {
   playerId?: string;
@@ -141,7 +148,6 @@ export function messageHandler(socket: AuthenticatedSocket, message: string): vo
         sendError(socket, `Unknown message type: ${data.type}`);
         break;
     }
-
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {
       console.error('❌ Error parsing message:', error);
@@ -155,7 +161,6 @@ export function messageHandler(socket: AuthenticatedSocket, message: string): vo
 function handleAuthentication(socket: AuthenticatedSocket, data: any): void {
   try {
     const { token, telegramUser } = data;
-
     if (!token || !telegramUser) {
       sendError(socket, 'Token and telegramUser required');
       return;
@@ -199,7 +204,6 @@ function handleAuthentication(socket: AuthenticatedSocket, data: any): void {
         username: telegramUser.username,
       }
     }));
-
   } catch (error) {
     sendError(socket, 'Authentication failed');
   }
@@ -244,6 +248,7 @@ function sendError(socket: WebSocket, error: string): void {
 }
 
 // ===== ЭКСПОРТЫ =====
+
 export { roomManager };
 
 export function setupAuthTimeout(socket: AuthenticatedSocket): void {
