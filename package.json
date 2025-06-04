@@ -1,4 +1,3 @@
-cat > package.json << 'EOF'
 {
   "name": "durak-game-monorepo",
   "version": "1.0.0",
@@ -12,4 +11,3 @@ cat > package.json << 'EOF'
     "dev": "cd apps/frontend && npm run dev"
   }
 }
-EOF
