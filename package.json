@@ -1,0 +1,11 @@
+echo '{
+  "name": "durak-game-monorepo",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "cd apps/frontend && npm run build"
+  }
+}' > package.json
