@@ -1,6 +1,6 @@
 // durak-server/logic/startGame.ts - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
 
-import { GameState, Player, Card, GameRules } from '../../packages/shared/src/types';
+import { GameState, Player, Card, GameRules } from '@shared/types';
 
 import { v4 as uuidv4 } from 'uuid';
 

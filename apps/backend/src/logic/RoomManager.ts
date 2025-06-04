@@ -12,7 +12,7 @@ import {
   GameState,
   GameAction,
   AutoStartInfo
-} from '../../packages/shared/src/types';
+} from '@shared/types';
 
 import { startGame } from './startGame';
 

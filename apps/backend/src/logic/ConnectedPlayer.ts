@@ -2,7 +2,7 @@
 
 import { WebSocket } from 'ws';
 
-import { Player } from '../../packages/shared/src/types';
+import { Player } from '@shared/types';
 
 /**
 * Расширенная модель игрока, используемая только на сервере.

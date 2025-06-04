@@ -9,10 +9,10 @@ export {
   TableCard,
   GameAction,
   AutoStartInfo
-} from '../shared/types';
+} from '@shared/types';
 
 // ✅ СЕРВЕРНЫЕ РАСШИРЕНИЯ (ЕСЛИ НУЖНЫ)
-import { GameState as BaseGameState } from '../shared/types';
+import { GameState as BaseGameState } from '@shared/types';
 
 export interface ServerGameState extends BaseGameState {
   // Серверная специфика, если нужна

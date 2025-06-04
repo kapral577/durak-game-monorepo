@@ -1,0 +1,1 @@
+{"version":3,"file":"GameState.d.ts","sourceRoot":"","sources":["../../../../../src/types/GameState.ts"],"names":[],"mappings":"AAGA,OAAO,EACL,IAAI,EACJ,MAAM,EACN,SAAS,EACT,SAAS,EACT,SAAS,EACT,UAAU,EACV,aAAa,EACd,MAAM,eAAe,CAAC;AAGvB,OAAO,EAAE,SAAS,IAAI,aAAa,EAAE,MAAM,eAAe,CAAC;AAE3D,MAAM,WAAW,eAAgB,SAAQ,aAAa;IAEpD,YAAY,CAAC,EAAE,GAAG,CAAC;CACpB"}

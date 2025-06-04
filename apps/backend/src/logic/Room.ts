@@ -2,7 +2,7 @@
 
 import { WebSocket } from 'ws';
 
-import { GameState, Player, GameRules, Room as RoomType } from '../../packages/shared/src/types';
+import { GameState, Player, GameRules, Room as RoomType } from '@shared/types';
 
 export class Room {
 

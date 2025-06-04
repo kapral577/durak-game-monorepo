@@ -2,7 +2,7 @@
 
 import { WebSocket } from 'ws';
 
-import { WebSocketMessage, TelegramUser } from '../../packages/shared/src/types';
+import { WebSocketMessage, TelegramUser } from '@shared/types';
 
 import { RoomManager } from './RoomManager';
 
@@ -142,11 +142,13 @@ export function messageHandler(socket: AuthenticatedSocket, message: string): vo
       }
 
       default:
-        if (process.env.NODE_ENV === 'development') {
-          console.warn('⚠️ Unknown message type:', data.type);
-        }
-        sendError(socket, `Unknown message type: ${data.type}`);
-        break;
+  const unknownMessage = data as WebSocketMessage;
+  if (process.env.NODE_ENV === 'development') {
+    console.warn('⚠️ Unknown message type:', unknownMessage.type);
+  }
+  sendError(socket, `Unknown message type: ${unknownMessage.type}`);
+  break;
+
     }
   } catch (error) {
     if (process.env.NODE_ENV === 'development') {

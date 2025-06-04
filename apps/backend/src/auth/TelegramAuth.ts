@@ -2,7 +2,7 @@
 
 import crypto from 'crypto';
 
-import { TelegramUser, TelegramInitData } from '../../packages/shared/src/types';
+import { TelegramUser, TelegramInitData } from '@shared/types';
 
 // ===== КОНСТАНТЫ =====
 
