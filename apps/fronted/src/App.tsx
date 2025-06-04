@@ -1,66 +1,302 @@
-// src/App.tsx - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ ДЛЯ TELEGRAM MINI APP
+// src/App.tsx - КОРНЕВОЙ КОМПОНЕНТ ПРИЛОЖЕНИЯ
 
-import React from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
-import { Container } from 'react-bootstrap';
-
-// Провайдеры
-import { GameProvider } from './context/GameProvider';
-import { GameSettingsProvider } from './context/GameSettingsProvider';
-
-// Компоненты
-import BottomNavbar from './components/BottomNavbar';
+import React, { useEffect, useState, Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Container, Spinner, Alert } from 'react-bootstrap';
+import { Helmet, HelmetProvider } from 'react-helmet-async';
+import { GameSettingsProvider } from './contexts/GameSettingsProvider';
+import { GameProvider } from './contexts/GameProvider';
+import { useGame } from './contexts/GameProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConnectionStatus from './components/ConnectionStatus';
+import BottomNavbar from './components/BottomNavbar';
 
-// Страницы
-import MainMenu from './pages/MainMenu';
-import GameSettingsPage from './pages/GameSettingsPage';
-import RoomListPage from './pages/RoomListPage';
-import GameRoomPage from './pages/GameRoomPage';
-import GamePlayPage from './pages/GamePlayPage';
-import FriendsPage from './pages/FriendsPage';
+// ===== LAZY LOADING СТРАНИЦ =====
 
-const App: React.FC = () => {
+const MainMenu = lazy(() => import('./pages/MainMenu'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const GameSettingsPage = lazy(() => import('./pages/GameSettingsPage'));
+const RoomListPage = lazy(() => import('./pages/RoomListPage'));
+const GameRoomPage = lazy(() => import('./pages/GameRoomPage'));
+const GamePlayPage = lazy(() => import('./pages/GamePlayPage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
+
+// ===== ИНТЕРФЕЙСЫ =====
+
+/**
+ * Props для App
+ */
+export interface AppProps {
+  // Если нужны props в будущем
+}
+
+// ===== КОНСТАНТЫ =====
+
+const APP_CONFIG = {
+  TELEGRAM_INIT_DELAY: 500,
+  PAGE_LOAD_TIMEOUT: 10000
+} as const;
+
+const META_CONFIG = {
+  TITLE: 'Дурак Онлайн - Telegram Mini App',
+  DESCRIPTION: 'Играйте в дурака с друзьями в Telegram',
+  THEME_COLOR: '#1a1a2e',
+  VIEWPORT: 'width=device-width, initial-scale=1.0, user-scalable=no'
+} as const;
+
+const CSS_CLASSES = {
+  APP_CONTAINER: 'app-container',
+  MAIN_CONTENT: 'main-content',
+  PAGE_LOADER: 'page-loader',
+  ERROR_PAGE: 'error-page'
+} as const;
+
+// ===== КОМПОНЕНТЫ =====
+
+/**
+ * Компонент загрузки страницы
+ */
+const PageLoader: React.FC = () => (
+  <Container className={`${CSS_CLASSES.PAGE_LOADER} d-flex justify-content-center align-items-center min-vh-100`}>
+    <div className="text-center">
+      <Spinner animation="border" className="mb-3" />
+      <p>Загрузка...</p>
+    </div>
+  </Container>
+);
+
+/**
+ * Компонент страницы ошибки
+ */
+const ErrorPage: React.FC = () => (
+  <Container className={`${CSS_CLASSES.ERROR_PAGE} text-center mt-5`}>
+    <h2>Страница не найдена</h2>
+    <p>Запрашиваемая страница не существует</p>
+    <button 
+      className="btn btn-primary"
+      onClick={() => window.location.href = '/'}
+      aria-label="Перейти на главную страницу"
+    >
+      На главную
+    </button>
+  </Container>
+);
+
+/**
+ * Компонент защищенного маршрута
+ */
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, isConnected, telegramUser } = useGame();
+  
+  // Проверка аутентификации
+  if (!isAuthenticated || !telegramUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  // Показ состояния подключения
+  if (!isConnected) {
+    return (
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <div className="text-center">
+          <Spinner animation="border" className="mb-3" />
+          <p>Подключение к серверу...</p>
+          <ConnectionStatus />
+        </div>
+      </Container>
+    );
+  }
+  
+  return <>{children}</>;
+};
+
+/**
+ * Основные маршруты приложения
+ */
+const AppRoutes: React.FC = () => {
+  const { isAuthenticated } = useGame();
+
   return (
-    <ErrorBoundary>
-      <GameProvider>
-        <GameSettingsProvider>
-          <Container fluid className="app-container p-0">
-            {/* Индикатор соединения */}
-            <ConnectionStatus />
-            
-            {/* Основной контент */}
-            <Routes>
-              {/* Главная страница */}
-              <Route path="/" element={<MainMenu />} />
-              
-              {/* Создание игры */}
-              <Route path="/settings" element={<GameSettingsPage />} />
-              
-              {/* Список комнат */}
-              <Route path="/rooms" element={<RoomListPage />} />
-              
-              {/* Комната ожидания */}
-              <Route path="/room/:id" element={<GameRoomPage />} />
-              
-              {/* Игровой процесс */}
-              <Route path="/game" element={<GamePlayPage />} />
-              
-              {/* Приглашение друзей */}
-              <Route path="/friends" element={<FriendsPage />} />
-              
-              {/* Редирект на главную для неизвестных маршрутов */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-            
-            {/* Нижняя навигация */}
-            <BottomNavbar />
-          </Container>
-        </GameSettingsProvider>
-      </GameProvider>
-    </ErrorBoundary>
+    <Suspense fallback={<PageLoader />}>
+      <Routes>
+        {/* Публичные маршруты */}
+        <Route 
+          path="/login" 
+          element={
+            isAuthenticated ? <Navigate to="/" replace /> : <LoginPage />
+          } 
+        />
+        
+        {/* Защищенные маршруты */}
+        <Route 
+          path="/" 
+          element={
+            <ProtectedRoute>
+              <MainMenu />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/settings" 
+          element={
+            <ProtectedRoute>
+              <GameSettingsPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/rooms" 
+          element={
+            <ProtectedRoute>
+              <RoomListPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/room/:roomId" 
+          element={
+            <ProtectedRoute>
+              <GameRoomPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/game" 
+          element={
+            <ProtectedRoute>
+              <GamePlayPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        <Route 
+          path="/friends" 
+          element={
+            <ProtectedRoute>
+              <FriendsPage />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Страница ошибки для неизвестных маршрутов */}
+        <Route path="*" element={<ErrorPage />} />
+      </Routes>
+    </Suspense>
   );
 };
 
+// ===== ОСНОВНОЙ КОМПОНЕНТ =====
+
+/**
+ * Корневой компонент приложения
+ */
+export const App: React.FC<AppProps> = () => {
+  // Состояния
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
+
+  // ===== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP =====
+
+  useEffect(() => {
+    const initializeTelegramWebApp = async () => {
+      try {
+        if (window.Telegram?.WebApp) {
+          const tg = window.Telegram.WebApp;
+          tg.ready();
+          tg.expand();
+          tg.enableClosingConfirmation();
+          tg.disableVerticalSwipes();
+          
+          // Настройка темы
+          if (tg.colorScheme === 'dark') {
+            document.body.classList.add('dark-theme');
+          }
+          
+          await new Promise(resolve => setTimeout(resolve, APP_CONFIG.TELEGRAM_INIT_DELAY));
+        }
+      } catch (error) {
+        console.error('Telegram WebApp initialization error:', error);
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+
+    initializeTelegramWebApp();
+  }, []);
+
+  // ===== ОТСЛЕЖИВАНИЕ ОНЛАЙН СТАТУСА =====
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  // ===== EARLY RETURN ДЛЯ ИНИЦИАЛИЗАЦИИ =====
+
+  if (!isInitialized) {
+    return <PageLoader />;
+  }
+
+  // ===== РЕНДЕР =====
+
+  return (
+    <HelmetProvider>
+      <ErrorBoundary>
+        <Helmet>
+          <title>{META_CONFIG.TITLE}</title>
+          <meta name="description" content={META_CONFIG.DESCRIPTION} />
+          <meta name="viewport" content={META_CONFIG.VIEWPORT} />
+          <meta name="theme-color" content={META_CONFIG.THEME_COLOR} />
+          <meta name="mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-capable" content="yes" />
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        </Helmet>
+
+        <GameSettingsProvider>
+          <GameProvider>
+            <Router>
+              <div className={CSS_CLASSES.APP_CONTAINER}>
+                {/* Уведомление об отсутствии интернета */}
+                {!isOnline && (
+                  <Alert variant="warning" className="mb-0 text-center">
+                    Нет подключения к интернету
+                  </Alert>
+                )}
+
+                {/* Индикатор соединения */}
+                <ConnectionStatus />
+                
+                {/* Основной контент */}
+                <main className={CSS_CLASSES.MAIN_CONTENT}>
+                  <AppRoutes />
+                </main>
+                
+                {/* Нижняя навигация */}
+                <BottomNavbar />
+              </div>
+            </Router>
+          </GameProvider>
+        </GameSettingsProvider>
+      </ErrorBoundary>
+    </HelmetProvider>
+  );
+};
+
+// Установка displayName для лучшей отладки
+App.displayName = 'App';
+
+// ===== ЭКСПОРТ =====
 export default App;
+export type { AppProps };
+export { APP_CONFIG, META_CONFIG, CSS_CLASSES };

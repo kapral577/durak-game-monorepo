@@ -1,303 +1,438 @@
-// src/pages/RoomListPage.tsx - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
+// src/pages/RoomListPage.tsx - СПИСОК ИГРОВЫХ КОМНАТ
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { Container, Row, Col, Card, Button, Badge, Form, InputGroup, Alert, Spinner } from 'react-bootstrap';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useGame } from '../context/GameProvider';
-import { Room } from '../shared/types';
+import { Container, Row, Col, Card, Form, Button, Alert, Badge, Spinner } from 'react-bootstrap';
+import { useGame } from '../contexts/GameProvider';
+import { Room } from '../../../packages/shared/src/types';
+
+// ===== ИНТЕРФЕЙСЫ =====
+
+/**
+ * Props для RoomListPage
+ */
+export interface RoomListPageProps {
+  // Если нужны props в будущем
+}
 
 // ===== КОНСТАНТЫ =====
+
 const UI_TEXT = {
-  PAGE_TITLE: 'Список комнат',
-  BACK_BUTTON: '← Назад',
-  CREATE_BUTTON: '+ Создать',
-  SEARCH_PLACEHOLDER: 'Поиск комнат...',
-  LOADING_TEXT: 'Загрузка списка комнат...',
-  NO_ROOMS_FOUND: 'Комнаты не найдены',
-  NO_ROOMS_AVAILABLE: 'Нет доступных комнат',
-  SEARCH_HINT: 'Попробуйте изменить поисковый запрос',
-  CREATE_HINT: 'Создайте новую комнату или подождите, пока другие игроки создадут комнаты',
-  CREATE_FIRST_ROOM: 'Создать первую комнату',
-  JOIN_BUTTON: 'Присоединиться',
-  JOINING_TEXT: 'Подключение...',
-  IN_GAME_TEXT: 'В игре',
-  ROOM_FULL_TEXT: 'Полная',
-  PLAYERS_LABEL: 'Игроки:',
+  PAGE_TITLE: 'Список игровых комнат',
+  SEARCH_PLACEHOLDER: 'Поиск по названию комнаты...',
   STATISTICS_TOTAL: 'Всего комнат:',
   STATISTICS_WAITING: 'Ожидают игроков:',
   STATISTICS_PLAYING: 'В игре:',
+  JOIN_BUTTON: 'Присоединиться',
+  CREATE_ROOM_BUTTON: 'Создать комнату',
+  BACK_BUTTON: '← Назад',
+  NO_ROOMS: 'Комнаты не найдены',
+  LOADING_TEXT: 'Загрузка комнат...',
+  ERROR_LOADING: 'Ошибка загрузки комнат',
+  ROOM_FULL: 'Комната заполнена',
+  ROOM_NOT_FOUND: 'Комната не найдена',
+  JOINING_TEXT: 'Присоединение...'
 } as const;
 
 const STATUS_BADGES = {
-  waiting: { text: 'Ожидание', variant: 'primary' },
-  playing: { text: 'В игре', variant: 'success' },
-  finished: { text: 'Завершена', variant: 'secondary' },
+  waiting: { variant: 'success', text: 'Ожидает игроков' },
+  playing: { variant: 'warning', text: 'В игре' },
+  finished: { variant: 'secondary', text: 'Завершена' }
 } as const;
 
 const GAME_MODE_TEXTS = {
   classic: 'Классический',
-  transferable: 'Переводной',
-  smart: 'Умный',
+  transferable: 'Переводной'
 } as const;
 
 const THROWING_MODE_TEXTS = {
-  none: 'Без подкидывания',
-  neighbors: 'Соседи',
-  all: 'Все',
+  standard: 'Стандартный',
+  smart: 'Умный'
 } as const;
 
-const RoomListPage: React.FC = () => {
-  const navigate = useNavigate();
-  const { rooms, joinRoom, isConnected, error, sendMessage } = useGame();
-  
-  const [searchTerm, setSearchTerm] = useState('');
+const CSS_CLASSES = {
+  ROOM_LIST_PAGE: 'room-list-page',
+  SEARCH_SECTION: 'search-section',
+  STATS_SECTION: 'stats-section',
+  ROOMS_SECTION: 'rooms-section',
+  ROOM_CARD: 'room-card',
+  ROOM_HEADER: 'room-header',
+  ROOM_BODY: 'room-body',
+  ROOM_FOOTER: 'room-footer',
+  PLAYER_LIST: 'player-list',
+  EMPTY_STATE: 'empty-state'
+} as const;
+
+// ===== УТИЛИТАРНЫЕ ФУНКЦИИ =====
+
+/**
+ * Валидация комнаты
+ */
+const validateRoom = (room: any): room is Room => {
+  return room &&
+    typeof room.id === 'string' &&
+    typeof room.name === 'string' &&
+    Array.isArray(room.players) &&
+    typeof room.maxPlayers === 'number' &&
+    room.status &&
+    room.rules;
+};
+
+/**
+ * Проверка возможности присоединения к комнате
+ */
+const canJoinRoom = (room: Room): boolean => {
+  return room.status === 'waiting' && room.players.length < room.maxPlayers;
+};
+
+/**
+ * Получение badge статуса комнаты
+ */
+const getStatusBadge = (room: Room) => {
+  const config = STATUS_BADGES[room.status as keyof typeof STATUS_BADGES] || STATUS_BADGES.finished;
+  return config;
+};
+
+/**
+ * Debounce функция для поиска
+ */
+const useDebounce = (value: string, delay: number) => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
+
+// ===== КОМПОНЕНТЫ =====
+
+/**
+ * Компонент карточки комнаты
+ */
+const RoomCard: React.FC<{
+  room: Room;
+  isJoining: boolean;
+  onJoin: (roomId: string) => void;
+}> = React.memo(({ room, isJoining, onJoin }) => {
+  const statusBadge = getStatusBadge(room);
+  const canJoin = canJoinRoom(room);
+
+  return (
+    <Card 
+      className={`${CSS_CLASSES.ROOM_CARD} mb-3`}
+      role="listitem"
+      aria-label={`Комната ${room.name}, ${room.players.length} из ${room.maxPlayers} игроков`}
+    >
+      <Card.Header className={`${CSS_CLASSES.ROOM_HEADER} d-flex justify-content-between align-items-center`}>
+        <h5 className="mb-0">{room.name}</h5>
+        <Badge 
+          bg={statusBadge.variant}
+          aria-label={statusBadge.text}
+        >
+          {statusBadge.text}
+        </Badge>
+      </Card.Header>
+      
+      <Card.Body className={CSS_CLASSES.ROOM_BODY}>
+        <Row>
+          <Col md={6}>
+            <small className="text-muted">Игроки ({room.players.length}/{room.maxPlayers}):</small>
+            <div className={CSS_CLASSES.PLAYER_LIST}>
+              {room.players.map((player, index) => (
+                <span key={player.id || index} className="me-2">
+                  {player.name}
+                  {player.isReady && <span className="text-success ms-1">✓</span>}
+                  {!player.isConnected && <span className="text-warning ms-1">⚠️</span>}
+                </span>
+              ))}
+            </div>
+          </Col>
+          
+          <Col md={6}>
+            <small className="text-muted">Настройки:</small>
+            <div>
+              <div>{GAME_MODE_TEXTS[room.rules.gameMode as keyof typeof GAME_MODE_TEXTS]} дурак</div>
+              <div>{THROWING_MODE_TEXTS[room.rules.throwingMode as keyof typeof THROWING_MODE_TEXTS]} подкидывание</div>
+              <div>{room.rules.cardCount} карт</div>
+            </div>
+          </Col>
+        </Row>
+      </Card.Body>
+      
+      <Card.Footer className={`${CSS_CLASSES.ROOM_FOOTER} d-flex justify-content-between align-items-center`}>
+        <small className="text-muted">
+          Создана: {new Date(room.createdAt).toLocaleString()}
+        </small>
+        
+        <Button
+          variant={canJoin ? "primary" : "secondary"}
+          disabled={!canJoin || isJoining}
+          onClick={() => onJoin(room.id)}
+          aria-label={`Присоединиться к комнате ${room.name}`}
+        >
+          {isJoining ? (
+            <>
+              <Spinner size="sm" className="me-2" />
+              {UI_TEXT.JOINING_TEXT}
+            </>
+          ) : (
+            UI_TEXT.JOIN_BUTTON
+          )}
+        </Button>
+      </Card.Footer>
+    </Card>
+  );
+});
+
+RoomCard.displayName = 'RoomCard';
+
+/**
+ * Компонент статистики комнат
+ */
+const RoomStats: React.FC<{
+  total: number;
+  waiting: number;
+  playing: number;
+}> = React.memo(({ total, waiting, playing }) => (
+  <Alert variant="info" className={`${CSS_CLASSES.STATS_SECTION} mb-3`}>
+    {UI_TEXT.STATISTICS_TOTAL} {total} | 
+    {UI_TEXT.STATISTICS_WAITING} {waiting} | 
+    {UI_TEXT.STATISTICS_PLAYING} {playing}
+  </Alert>
+));
+
+RoomStats.displayName = 'RoomStats';
+
+/**
+ * Компонент пустого состояния
+ */
+const EmptyState: React.FC = React.memo(() => (
+  <div className={`${CSS_CLASSES.EMPTY_STATE} text-center py-5`}>
+    <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>🏪</div>
+    <h4>{UI_TEXT.NO_ROOMS}</h4>
+    <p className="text-muted">Создайте первую комнату или попробуйте изменить поисковый запрос</p>
+  </div>
+));
+
+EmptyState.displayName = 'EmptyState';
+
+// ===== ОСНОВНОЙ КОМПОНЕНТ =====
+
+/**
+ * Страница списка комнат
+ */
+export const RoomListPage: React.FC<RoomListPageProps> = () => {
+  // Состояния
+  const [searchTerm, setSearchTerm] = useState<string>('');
   const [isJoining, setIsJoining] = useState<string | null>(null);
 
-  // Обновление списка комнат при подключении
-  useEffect(() => {
-    if (isConnected) {
-      sendMessage({ type: 'get_rooms' });
-    }
-  }, [isConnected, sendMessage]);
+  // Хуки
+  const navigate = useNavigate();
+  const { 
+    rooms, 
+    joinRoom, 
+    refreshRooms,
+    isConnected, 
+    error,
+    clearError 
+  } = useGame();
 
-  // Мемоизированная фильтрация комнат
-  const filteredRooms = useMemo(() => {
-    if (!rooms || !Array.isArray(rooms)) return [];
-    
-    return rooms.filter(room =>
-      room?.name?.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  }, [rooms, searchTerm]);
+  // Debounced поиск
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-  // Мемоизированная статистика
-  const roomStats = useMemo(() => {
-    if (!rooms || !Array.isArray(rooms)) return { total: 0, waiting: 0, playing: 0 };
-    
-    return {
-      total: rooms.length,
-      waiting: rooms.filter(r => r?.status === 'waiting').length,
-      playing: rooms.filter(r => r?.status === 'playing').length,
-    };
-  }, [rooms]);
+  // ===== ОБРАБОТЧИКИ =====
 
-  // Обработчики событий
-  const handleJoinRoom = useCallback(async (roomId: string) => {
-    if (!roomId || isJoining) return;
-    
-    setIsJoining(roomId);
-    
-    try {
-      joinRoom(roomId);
-      // Навигация через контекст вместо setTimeout
-      navigate(`/room/${roomId}`);
-    } catch (err) {
-      console.error('Error joining room:', err);
-    } finally {
-      setIsJoining(null);
-    }
-  }, [joinRoom, navigate, isJoining]);
-
-  const handleCreateRoom = useCallback(() => {
-    navigate('/settings');
-  }, [navigate]);
-
+  /**
+   * Обработчик возврата назад
+   */
   const handleBack = useCallback(() => {
     navigate('/');
   }, [navigate]);
 
-  // Утилиты для отображения
-  const getStatusBadge = useCallback((room: Room) => {
-    const status = STATUS_BADGES[room.status as keyof typeof STATUS_BADGES] || 
-                  { text: 'Неизвестно', variant: 'secondary' };
-    
-    return (
-      <Badge bg={status.variant as any}>
-        {status.text}
-      </Badge>
-    );
-  }, []);
+  /**
+   * Обработчик создания комнаты
+   */
+  const handleCreateRoom = useCallback(() => {
+    navigate('/settings');
+  }, [navigate]);
 
-  const getGameModeText = useCallback((gameMode: string) => {
-    return GAME_MODE_TEXTS[gameMode as keyof typeof GAME_MODE_TEXTS] || gameMode;
-  }, []);
+  /**
+   * Обработчик присоединения к комнате
+   */
+  const handleJoinRoom = useCallback(async (roomId: string) => {
+    if (!roomId || isJoining) return;
 
-  const getThrowingModeText = useCallback((throwingMode: string) => {
-    return THROWING_MODE_TEXTS[throwingMode as keyof typeof THROWING_MODE_TEXTS] || throwingMode;
-  }, []);
+    if (!isConnected) {
+      console.warn('Cannot join room: not connected to server');
+      return;
+    }
 
-  const canJoinRoom = useCallback((room: Room) => {
-    return room?.status === 'waiting' && 
-           room?.players?.length < (room?.maxPlayers || 0);
-  }, []);
+    setIsJoining(roomId);
+    clearError();
+
+    try {
+      await joinRoom(roomId);
+      navigate(`/room/${roomId}`);
+    } catch (err) {
+      console.error('Error joining room:', err);
+      // Ошибка будет показана через контекст
+    } finally {
+      setIsJoining(null);
+    }
+  }, [joinRoom, navigate, isJoining, isConnected, clearError]);
+
+  // ===== МЕМОИЗАЦИЯ =====
+
+  /**
+   * Фильтрация комнат по поисковому запросу
+   */
+  const filteredRooms = useMemo(() => {
+    if (!rooms || !Array.isArray(rooms)) return [];
+
+    return rooms
+      .filter(validateRoom)
+      .filter(room => 
+        room.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+      );
+  }, [rooms, debouncedSearchTerm]);
+
+  /**
+   * Статистика комнат
+   */
+  const roomStats = useMemo(() => {
+    const total = filteredRooms.length;
+    const waiting = filteredRooms.filter(r => r.status === 'waiting').length;
+    const playing = filteredRooms.filter(r => r.status === 'playing').length;
+
+    return { total, waiting, playing };
+  }, [filteredRooms]);
+
+  // ===== АВТООБНОВЛЕНИЕ =====
+
+  useEffect(() => {
+    if (isConnected) {
+      refreshRooms();
+    }
+  }, [isConnected, refreshRooms]);
+
+  // ===== KEYBOARD SHORTCUTS =====
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'n':
+            event.preventDefault();
+            handleCreateRoom();
+            break;
+          case 'f':
+            event.preventDefault();
+            document.querySelector('input[type="text"]')?.focus();
+            break;
+          case 'Escape':
+            event.preventDefault();
+            handleBack();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleCreateRoom, handleBack]);
+
+  // ===== РЕНДЕР =====
 
   return (
-    <Container className="py-4">
-      {/* Заголовок */}
-      <Row className="align-items-center mb-4">
-        <Col xs="auto">
-          <Button variant="link" onClick={handleBack} className="p-0">
-            {UI_TEXT.BACK_BUTTON}
-          </Button>
-        </Col>
+    <Container 
+      className={CSS_CLASSES.ROOM_LIST_PAGE}
+      role="main"
+      aria-label="Список игровых комнат"
+    >
+      {/* Заголовок и навигация */}
+      <Row className="mb-4">
         <Col>
-          <h2 className="text-center mb-0">{UI_TEXT.PAGE_TITLE}</h2>
-        </Col>
-        <Col xs="auto">
-          <Button variant="primary" onClick={handleCreateRoom}>
-            {UI_TEXT.CREATE_BUTTON}
-          </Button>
+          <div className="d-flex justify-content-between align-items-center">
+            <Button
+              variant="outline-secondary"
+              onClick={handleBack}
+              aria-label="Вернуться на главную страницу"
+            >
+              {UI_TEXT.BACK_BUTTON}
+            </Button>
+            
+            <h2 className="mb-0">{UI_TEXT.PAGE_TITLE}</h2>
+            
+            <Button
+              variant="success"
+              onClick={handleCreateRoom}
+              aria-label="Создать новую игровую комнату"
+            >
+              {UI_TEXT.CREATE_ROOM_BUTTON}
+            </Button>
+          </div>
         </Col>
       </Row>
 
-      {/* Ошибки */}
+      {/* Поиск */}
+      <Row className="mb-3">
+        <Col>
+          <Form.Control
+            type="text"
+            placeholder={UI_TEXT.SEARCH_PLACEHOLDER}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className={CSS_CLASSES.SEARCH_SECTION}
+            aria-label="Поиск комнат по названию"
+          />
+        </Col>
+      </Row>
+
+      {/* Статистика */}
+      <RoomStats 
+        total={roomStats.total}
+        waiting={roomStats.waiting}
+        playing={roomStats.playing}
+      />
+
+      {/* Ошибка */}
       {error && (
-        <Alert variant="danger" className="mb-3">
+        <Alert variant="danger" role="alert" aria-live="assertive">
           {error}
         </Alert>
       )}
 
-      {/* Поиск */}
-      <Row className="mb-4">
-        <Col>
-          <InputGroup>
-            <Form.Control
-              type="text"
-              placeholder={UI_TEXT.SEARCH_PLACEHOLDER}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </InputGroup>
-        </Col>
-      </Row>
-
-      {/* Индикатор загрузки */}
-      {!isConnected && (
-        <div className="text-center py-5">
-          <Spinner animation="border" className="me-2" />
-          {UI_TEXT.LOADING_TEXT}
-        </div>
-      )}
-
       {/* Список комнат */}
-      {isConnected && (
-        <>
-          {filteredRooms.length === 0 ? (
-            <Card className="text-center py-5">
-              <Card.Body>
-                <h5>{searchTerm ? UI_TEXT.NO_ROOMS_FOUND : UI_TEXT.NO_ROOMS_AVAILABLE}</h5>
-                <p className="text-muted">
-                  {searchTerm ? UI_TEXT.SEARCH_HINT : UI_TEXT.CREATE_HINT}
-                </p>
-                {!searchTerm && (
-                  <Button variant="primary" onClick={handleCreateRoom}>
-                    {UI_TEXT.CREATE_FIRST_ROOM}
-                  </Button>
-                )}
-              </Card.Body>
-            </Card>
-          ) : (
-            <Row className="g-3">
-              {filteredRooms.map((room) => (
-                <Col md={6} lg={4} key={room.id}>
-                  <Card className="h-100">
-                    <Card.Body>
-                      <div className="d-flex justify-content-between align-items-start mb-2">
-                        <Card.Title className="mb-0">{room.name}</Card.Title>
-                        {getStatusBadge(room)}
-                      </div>
-                      
-                      <div className="mb-2">
-                        <small className="text-muted">
-                          👥 {UI_TEXT.STATISTICS_TOTAL.replace(':', '')} {room.players?.length || 0}/{room.maxPlayers || 0}
-                        </small>
-                      </div>
-                      
-                      <div className="mb-2">
-                        <small className="text-muted">
-                          🎮 {getGameModeText(room.rules?.gameMode || '')}
-                        </small>
-                      </div>
-                      
-                      <div className="mb-3">
-                        <small className="text-muted">
-                          🃏 {room.rules?.cardCount || 0} карт, {getThrowingModeText(room.rules?.throwingMode || '')}
-                        </small>
-                      </div>
-                      
-                      {room.createdAt && (
-                        <div className="mb-3">
-                          <small className="text-muted">
-                            🕐 Создана {new Date(room.createdAt).toLocaleTimeString()}
-                          </small>
-                        </div>
-                      )}
-
-                      <Button
-                        variant={canJoinRoom(room) ? 'success' : 'secondary'}
-                        className="w-100 mb-2"
-                        onClick={() => handleJoinRoom(room.id)}
-                        disabled={!canJoinRoom(room) || isJoining === room.id}
-                      >
-                        {isJoining === room.id ? (
-                          <>
-                            <Spinner animation="border" size="sm" className="me-2" />
-                            {UI_TEXT.JOINING_TEXT}
-                          </>
-                        ) : canJoinRoom(room) ? (
-                          UI_TEXT.JOIN_BUTTON
-                        ) : room.status === 'playing' ? (
-                          UI_TEXT.IN_GAME_TEXT
-                        ) : (
-                          UI_TEXT.ROOM_FULL_TEXT
-                        )}
-                      </Button>
-
-                      {/* Список игроков */}
-                      {room.players && room.players.length > 0 && (
-                        <div>
-                          <small className="text-muted">{UI_TEXT.PLAYERS_LABEL}</small>
-                          <div className="mt-1">
-                            {room.players.map((player, index) => (
-                              <Badge 
-                                key={`${player.id}-${index}`} 
-                                bg="light" 
-                                text="dark" 
-                                className="me-1 mb-1"
-                              >
-                                {player.name}
-                                {player.isReady && ' ✓'}
-                              </Badge>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </Card.Body>
-                  </Card>
-                </Col>
-              ))}
-            </Row>
-          )}
-        </>
-      )}
-
-      {/* Статистика */}
-      {isConnected && roomStats.total > 0 && (
-        <Row className="mt-4">
-          <Col>
-            <Card>
-              <Card.Body className="text-center">
-                <small className="text-muted">
-                  {UI_TEXT.STATISTICS_TOTAL} {roomStats.total} | 
-                  {UI_TEXT.STATISTICS_WAITING} {roomStats.waiting} | 
-                  {UI_TEXT.STATISTICS_PLAYING} {roomStats.playing}
-                </small>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      )}
+      <div className={CSS_CLASSES.ROOMS_SECTION} role="list">
+        {filteredRooms.length === 0 ? (
+          <EmptyState />
+        ) : (
+          filteredRooms.map(room => (
+            <RoomCard
+              key={room.id}
+              room={room}
+              isJoining={isJoining === room.id}
+              onJoin={handleJoinRoom}
+            />
+          ))
+        )}
+      </div>
     </Container>
   );
 };
 
+// Установка displayName для лучшей отладки
+RoomListPage.displayName = 'RoomListPage';
+
+// ===== ЭКСПОРТ =====
 export default RoomListPage;
+export type { RoomListPageProps };
+export { UI_TEXT, STATUS_BADGES, CSS_CLASSES, validateRoom, canJoinRoom, getStatusBadge };

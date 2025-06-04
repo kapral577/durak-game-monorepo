@@ -1,241 +1,463 @@
-// src/pages/FriendsPage.tsx - ПОЛНОСТЬЮ РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
+// src/pages/FriendsPage.tsx - СТРАНИЦА ПРИГЛАШЕНИЯ ДРУЗЕЙ
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { Container, Row, Col, Card, Button, Form, InputGroup, Badge, Alert } from 'react-bootstrap';
-import { useGame } from '../context/GameProvider';
+import React, { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Alert, Form } from 'react-bootstrap';
+import { useGame } from '../contexts/GameProvider';
+
+// ===== ИНТЕРФЕЙСЫ =====
+
+/**
+ * Props для FriendsPage
+ */
+export interface FriendsPageProps {
+  // Если нужны props в будущем
+}
+
+/**
+ * Интерфейс пользователя Telegram
+ */
+interface TelegramUser {
+  id: number;
+  name: string;
+  isConnected: boolean;
+  username?: string;
+  photo_url?: string;
+}
 
 // ===== КОНСТАНТЫ =====
+
 const UI_TEXT = {
-  PAGE_TITLE: '👥 Друзья',
-  INVITE_TITLE: 'Пригласить друзей',
-  INVITE_DESCRIPTION: 'Поделитесь ссылкой с друзьями, чтобы они присоединились к игре',
-  PRIVATE_ROOM_TITLE: 'Приватная игра',
-  PRIVATE_ROOM_DESCRIPTION: 'Создайте приватную комнату только для ваших друзей',
-  COPY_BUTTON: 'Копировать',
-  INVITE_BUTTON: '📤 Пригласить через Telegram',
-  CREATE_ROOM_BUTTON: '🔒 Создать приватную комнату',
-  PROFILE_TITLE: 'Ваш профиль',
-  LINK_COPIED: 'Ссылка скопирована!',
-  COPY_ERROR: 'Не удалось скопировать ссылку',
-  SHARE_TEXT: '🃏 Присоединяйся к игре в Дурак!',
+  PAGE_TITLE: 'Пригласить друзей',
+  BACK_BUTTON: '← Назад',
+  INVITE_TITLE: 'Пригласить друзей в игру',
+  INVITE_DESCRIPTION: 'Поделитесь ссылкой с друзьями, чтобы они могли присоединиться к игре',
+  COPY_BUTTON: 'Копировать ссылку',
+  INVITE_BUTTON: 'Пригласить через Telegram',
+  PRIVATE_ROOM_TITLE: 'Создать приватную комнату',
+  PRIVATE_ROOM_DESCRIPTION: 'Создайте приватную комнату для игры с друзьями',
+  CREATE_PRIVATE_ROOM: 'Создать приватную комнату',
+  SHARE_TEXT: 'Присоединяйся к игре в Дурак!',
+  LINK_COPIED: 'Ссылка скопирована в буфер обмена!',
+  LINK_GENERATION_ERROR: 'Ошибка генерации ссылки',
+  BOT_CONFIG_ERROR: 'Ошибка конфигурации бота',
+  USER_DATA_ERROR: 'Ошибка получения данных пользователя',
+  CREATING_ROOM: 'Создание комнаты...'
 } as const;
 
-const FriendsPage: React.FC = () => {
-  const { telegramUser, sendMessage, isConnected } = useGame();
-  
-  const [inviteLink, setInviteLink] = useState('');
-  const [notification, setNotification] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+const CSS_CLASSES = {
+  FRIENDS_PAGE: 'friends-page',
+  INVITE_SECTION: 'invite-section',
+  PRIVATE_ROOM_SECTION: 'private-room-section',
+  PROFILE_SECTION: 'profile-section'
+} as const;
 
-  // Генерация invite ссылки
-  useEffect(() => {
-    const generateInviteLink = () => {
+const ROOM_DEFAULTS = {
+  gameMode: 'classic' as const,
+  throwingMode: 'standard' as const,
+  cardCount: 36 as const,
+  maxPlayers: 4 as const
+};
+
+// ===== УТИЛИТАРНЫЕ ФУНКЦИИ =====
+
+/**
+ * Валидация bot username
+ */
+const validateBotUsername = (username: string): boolean => {
+  return /^[a-zA-Z][a-zA-Z0-9_]{4,31}bot$/i.test(username);
+};
+
+/**
+ * Генерация безопасной invite ссылки
+ */
+const generateInviteLink = (telegramUser: TelegramUser | null): string | null => {
+  try {
+    const botUsername = import.meta.env.VITE_BOT_USERNAME;
+    
+    if (!botUsername) {
+      console.error('VITE_BOT_USERNAME not configured');
+      return null;
+    }
+    
+    if (!validateBotUsername(botUsername)) {
+      console.error('Invalid bot username format');
+      return null;
+    }
+    
+    if (!telegramUser?.id) {
+      console.error('User ID not available');
+      return null;
+    }
+    
+    const startParam = `invite_${telegramUser.id}`;
+    return `https://t.me/${botUsername}?start=${startParam}`;
+  } catch (error) {
+    console.error('Error generating invite link:', error);
+    return null;
+  }
+};
+
+/**
+ * Копирование в буфер обмена с fallback
+ */
+const copyToClipboard = async (text: string): Promise<boolean> => {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    } else {
+      // Fallback для старых браузеров
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      textArea.style.position = 'absolute';
+      textArea.style.left = '-999999px';
+      
+      document.body.prepend(textArea);
+      textArea.select();
+      
       try {
-        // Получаем bot username из переменных окружения
-        const botUsername = import.meta.env.VITE_BOT_USERNAME;
-        
-        if (!botUsername) {
-          console.error('VITE_BOT_USERNAME not configured');
-          return;
-        }
-
-        const startParam = `invite_${telegramUser?.id || 'unknown'}`;
-        const link = `https://t.me/${botUsername}?start=${startParam}`;
-        
-        setInviteLink(link);
-      } catch (error) {
-        console.error('Error generating invite link:', error);
-      }
-    };
-
-    if (telegramUser) {
-      generateInviteLink();
-    }
-  }, [telegramUser]);
-
-  // Копирование ссылки в буфер обмена
-  const handleCopyLink = useCallback(async () => {
-    if (!inviteLink) return;
-
-    try {
-      // Проверяем поддержку clipboard API
-      if (navigator.clipboard && window.isSecureContext) {
-        await navigator.clipboard.writeText(inviteLink);
-        setNotification(UI_TEXT.LINK_COPIED);
-      } else {
-        // Fallback для старых браузеров
-        const textArea = document.createElement('textarea');
-        textArea.value = inviteLink;
-        document.body.appendChild(textArea);
-        textArea.select();
         document.execCommand('copy');
-        document.body.removeChild(textArea);
-        setNotification(UI_TEXT.LINK_COPIED);
+        return true;
+      } catch (error) {
+        console.error('Fallback copy failed:', error);
+        return false;
+      } finally {
+        textArea.remove();
       }
-    } catch (error) {
-      console.error('Failed to copy link:', error);
-      setNotification(UI_TEXT.COPY_ERROR);
+    }
+  } catch (error) {
+    console.error('Copy to clipboard failed:', error);
+    return false;
+  }
+};
+
+// ===== КОМПОНЕНТЫ =====
+
+/**
+ * Секция профиля пользователя
+ */
+const ProfileSection: React.FC<{
+  telegramUser: TelegramUser | null;
+}> = React.memo(({ telegramUser }) => {
+  if (!telegramUser) return null;
+
+  return (
+    <Card className={`${CSS_CLASSES.PROFILE_SECTION} mb-4`}>
+      <Card.Body className="text-center">
+        <div className="d-flex align-items-center justify-content-center mb-3">
+          {telegramUser.photo_url ? (
+            <img
+              src={telegramUser.photo_url}
+              alt={`Аватар ${telegramUser.name}`}
+              className="rounded-circle me-3"
+              style={{ width: '50px', height: '50px' }}
+            />
+          ) : (
+            <div 
+              className="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3"
+              style={{ width: '50px', height: '50px' }}
+            >
+              {telegramUser.name.charAt(0).toUpperCase()}
+            </div>
+          )}
+          <div>
+            <h5 className="mb-0">{telegramUser.name}</h5>
+            {telegramUser.username && (
+              <small className="text-muted">@{telegramUser.username}</small>
+            )}
+          </div>
+        </div>
+      </Card.Body>
+    </Card>
+  );
+});
+
+ProfileSection.displayName = 'ProfileSection';
+
+/**
+ * Секция приглашения
+ */
+const InviteSection: React.FC<{
+  inviteLink: string | null;
+  onCopy: () => void;
+  onInvite: () => void;
+}> = React.memo(({ inviteLink, onCopy, onInvite }) => (
+  <Card className={`${CSS_CLASSES.INVITE_SECTION} mb-4`}>
+    <Card.Body>
+      <h5>{UI_TEXT.INVITE_TITLE}</h5>
+      <p className="text-muted">{UI_TEXT.INVITE_DESCRIPTION}</p>
+      
+      {inviteLink && (
+        <Form.Group className="mb-3">
+          <Form.Control
+            type="text"
+            value={inviteLink}
+            readOnly
+            onClick={(e) => (e.target as HTMLInputElement).select()}
+            aria-label="Ссылка для приглашения друзей"
+          />
+        </Form.Group>
+      )}
+      
+      <div className="d-grid gap-2 d-md-flex">
+        <Button
+          variant="outline-primary"
+          onClick={onCopy}
+          disabled={!inviteLink}
+          aria-label="Копировать ссылку приглашения"
+          className="me-md-2"
+        >
+          {UI_TEXT.COPY_BUTTON}
+        </Button>
+        
+        <Button
+          variant="primary"
+          onClick={onInvite}
+          disabled={!inviteLink}
+          aria-label="Пригласить друзей через Telegram"
+        >
+          {UI_TEXT.INVITE_BUTTON}
+        </Button>
+      </div>
+    </Card.Body>
+  </Card>
+));
+
+InviteSection.displayName = 'InviteSection';
+
+/**
+ * Секция приватной комнаты
+ */
+const PrivateRoomSection: React.FC<{
+  isLoading: boolean;
+  onCreate: () => void;
+}> = React.memo(({ isLoading, onCreate }) => (
+  <Card className={CSS_CLASSES.PRIVATE_ROOM_SECTION}>
+    <Card.Body>
+      <h5>{UI_TEXT.PRIVATE_ROOM_TITLE}</h5>
+      <p className="text-muted">{UI_TEXT.PRIVATE_ROOM_DESCRIPTION}</p>
+      
+      <Button
+        variant="success"
+        onClick={onCreate}
+        disabled={isLoading}
+        aria-label="Создать приватную комнату для друзей"
+        className="w-100"
+      >
+        {isLoading ? UI_TEXT.CREATING_ROOM : UI_TEXT.CREATE_PRIVATE_ROOM}
+      </Button>
+    </Card.Body>
+  </Card>
+));
+
+PrivateRoomSection.displayName = 'PrivateRoomSection';
+
+// ===== ОСНОВНОЙ КОМПОНЕНТ =====
+
+/**
+ * Страница приглашения друзей
+ */
+export const FriendsPage: React.FC<FriendsPageProps> = () => {
+  // Состояния
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [notification, setNotification] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+
+  // Хуки
+  const navigate = useNavigate();
+  const { telegramUser, createRoom } = useGame();
+
+  // ===== УТИЛИТАРНАЯ ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ =====
+
+  const showNotification = useCallback((message: string, duration = 3000) => {
+    setNotification(message);
+    setTimeout(() => setNotification(null), duration);
+  }, []);
+
+  // ===== ГЕНЕРАЦИЯ ССЫЛКИ ПРИ МОНТИРОВАНИИ =====
+
+  useEffect(() => {
+    const link = generateInviteLink(telegramUser);
+    if (link) {
+      setInviteLink(link);
+    } else {
+      showNotification(UI_TEXT.LINK_GENERATION_ERROR);
+    }
+  }, [telegramUser, showNotification]);
+
+  // ===== ОБРАБОТЧИКИ СОБЫТИЙ =====
+
+  /**
+   * Обработчик возврата назад
+   */
+  const handleBack = useCallback(() => {
+    navigate('/');
+  }, [navigate]);
+
+  /**
+   * Обработчик копирования ссылки
+   */
+  const handleCopyLink = useCallback(async () => {
+    if (!inviteLink) {
+      showNotification(UI_TEXT.LINK_GENERATION_ERROR);
+      return;
     }
 
-    // Автоматически скрыть уведомление
-    setTimeout(() => setNotification(null), 3000);
-  }, [inviteLink]);
+    const success = await copyToClipboard(inviteLink);
+    if (success) {
+      showNotification(UI_TEXT.LINK_COPIED);
+    } else {
+      showNotification('Не удалось скопировать ссылку');
+    }
+  }, [inviteLink, showNotification]);
 
-  // Приглашение через Telegram
+  /**
+   * Обработчик приглашения через Telegram
+   */
   const handleInviteFriends = useCallback(() => {
-    if (!inviteLink || !telegramUser) return;
+    if (!inviteLink || !telegramUser) {
+      showNotification('Данные для приглашения недоступны');
+      return;
+    }
 
     try {
-      if (window.Telegram?.WebApp) {
+      // Проверка доступности Telegram WebApp
+      if (window.Telegram?.WebApp?.isVersionAtLeast?.('6.0')) {
         const shareText = `${UI_TEXT.SHARE_TEXT}\n\n👤 ${telegramUser.name} приглашает тебя сыграть`;
         const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(shareText)}`;
         
-        window.open(shareUrl, '_blank');
+        window.Telegram.WebApp.openTelegramLink(shareUrl);
       } else {
-        // Fallback - копируем ссылку
+        // Fallback для старых версий или веб-браузера
         handleCopyLink();
+        showNotification('Ссылка скопирована. Поделитесь ей с друзьями!');
       }
     } catch (error) {
       console.error('Error sharing invite:', error);
-      setNotification('Ошибка при отправке приглашения');
-      setTimeout(() => setNotification(null), 3000);
+      showNotification('Ошибка при отправке приглашения');
     }
-  }, [inviteLink, telegramUser, handleCopyLink]);
+  }, [inviteLink, telegramUser, handleCopyLink, showNotification]);
 
-  // Создание приватной комнаты
+  /**
+   * Обработчик создания приватной комнаты
+   */
   const handleCreatePrivateRoom = useCallback(async () => {
-    if (!isConnected || !telegramUser) return;
+    if (!telegramUser) {
+      showNotification(UI_TEXT.USER_DATA_ERROR);
+      return;
+    }
 
     setIsLoading(true);
-    
     try {
-      sendMessage({
-        type: 'create_room',
-        name: `Комната ${telegramUser.name}`,
-        isPrivate: true,
-        inviteOnly: true,
-        maxPlayers: 4,
-        rules: {
-          gameMode: 'classic',
-          throwingMode: 'standard',
-          cardCount: 36,
-        }
-      });
+      const roomName = `Комната ${telegramUser.name}`;
+      await createRoom(roomName, ROOM_DEFAULTS, true);
+      
+      // Навигация произойдет автоматически через GameProvider
     } catch (error) {
       console.error('Error creating private room:', error);
-      setNotification('Ошибка создания комнаты');
-      setTimeout(() => setNotification(null), 3000);
+      showNotification('Ошибка создания комнаты');
     } finally {
       setIsLoading(false);
     }
-  }, [isConnected, telegramUser, sendMessage]);
+  }, [telegramUser, createRoom, showNotification]);
+
+  // ===== KEYBOARD SHORTCUTS =====
+
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'c':
+            event.preventDefault();
+            handleCopyLink();
+            break;
+          case 'i':
+            event.preventDefault();
+            handleInviteFriends();
+            break;
+          case 'Escape':
+            event.preventDefault();
+            handleBack();
+            break;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleCopyLink, handleInviteFriends, handleBack]);
+
+  // ===== РЕНДЕР =====
 
   return (
-    <Container className="py-4">
-      <h2 className="text-center mb-4">{UI_TEXT.PAGE_TITLE}</h2>
+    <Container 
+      className={CSS_CLASSES.FRIENDS_PAGE}
+      role="main"
+      aria-label="Страница приглашения друзей"
+    >
+      <Row className="justify-content-center">
+        <Col lg={8}>
+          {/* Заголовок и навигация */}
+          <div className="d-flex justify-content-between align-items-center mb-4">
+            <Button
+              variant="outline-secondary"
+              onClick={handleBack}
+              aria-label="Вернуться на главную страницу"
+            >
+              {UI_TEXT.BACK_BUTTON}
+            </Button>
+            <h2 className="mb-0">{UI_TEXT.PAGE_TITLE}</h2>
+            <div style={{ width: '80px' }}></div> {/* Spacer */}
+          </div>
 
-      {/* Уведомления */}
-      {notification && (
-        <Alert 
-          variant={notification.includes('Ошибка') ? 'danger' : 'success'} 
-          className="mb-3"
-          dismissible
-          onClose={() => setNotification(null)}
-        >
-          {notification}
-        </Alert>
-      )}
+          {/* Уведомления */}
+          {notification && (
+            <Alert 
+              variant="success" 
+              dismissible 
+              onClose={() => setNotification(null)}
+              role="alert"
+              aria-live="polite"
+            >
+              {notification}
+            </Alert>
+          )}
 
-      <Row className="g-4">
-        {/* Пригласить друзей */}
-        <Col md={6}>
-          <Card className="h-100">
-            <Card.Body>
-              <Card.Title>{UI_TEXT.INVITE_TITLE}</Card.Title>
-              <Card.Text className="text-muted">
-                {UI_TEXT.INVITE_DESCRIPTION}
-              </Card.Text>
-              
-              <InputGroup className="mb-3">
-                <Form.Control
-                  type="text"
-                  value={inviteLink}
-                  readOnly
-                  placeholder="Генерация ссылки..."
-                />
-                <Button 
-                  variant="outline-secondary" 
-                  onClick={handleCopyLink}
-                  disabled={!inviteLink}
-                >
-                  {UI_TEXT.COPY_BUTTON}
-                </Button>
-              </InputGroup>
-              
-              <Button 
-                variant="primary" 
-                className="w-100"
-                onClick={handleInviteFriends}
-                disabled={!inviteLink || !isConnected}
-              >
-                {UI_TEXT.INVITE_BUTTON}
-              </Button>
-            </Card.Body>
-          </Card>
+          {/* Профиль пользователя */}
+          <ProfileSection telegramUser={telegramUser} />
+
+          {/* Секция приглашения */}
+          <InviteSection
+            inviteLink={inviteLink}
+            onCopy={handleCopyLink}
+            onInvite={handleInviteFriends}
+          />
+
+          {/* Секция приватной комнаты */}
+          <PrivateRoomSection
+            isLoading={isLoading}
+            onCreate={handleCreatePrivateRoom}
+          />
+
+          {/* Подсказки для клавиш */}
+          {process.env.NODE_ENV === 'development' && (
+            <Alert variant="info" className="mt-4">
+              <small>
+                <strong>Клавиши:</strong> Ctrl+C - Копировать, Ctrl+I - Пригласить, Escape - Назад
+              </small>
+            </Alert>
+          )}
         </Col>
-
-        {/* Приватная комната */}
-        <Col md={6}>
-          <Card className="h-100">
-            <Card.Body>
-              <Card.Title>{UI_TEXT.PRIVATE_ROOM_TITLE}</Card.Title>
-              <Card.Text className="text-muted">
-                {UI_TEXT.PRIVATE_ROOM_DESCRIPTION}
-              </Card.Text>
-              
-              <Button 
-                variant="success" 
-                className="w-100"
-                onClick={handleCreatePrivateRoom}
-                disabled={!isConnected || isLoading}
-              >
-                {isLoading ? 'Создание...' : UI_TEXT.CREATE_ROOM_BUTTON}
-              </Button>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* Информация о пользователе */}
-        {telegramUser && (
-          <Col md={12}>
-            <Card>
-              <Card.Body>
-                <Card.Title>{UI_TEXT.PROFILE_TITLE}</Card.Title>
-                <div className="d-flex align-items-center">
-                  <div className="me-3">
-                    <div 
-                      className="rounded-circle bg-primary d-flex align-items-center justify-content-center"
-                      style={{ width: '60px', height: '60px' }}
-                    >
-                      <span className="text-white fw-bold fs-4">
-                        {telegramUser.name.charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  </div>
-                  <div>
-                    <h5 className="mb-1">{telegramUser.name}</h5>
-                    <Badge bg={telegramUser.isConnected ? 'success' : 'secondary'}>
-                      {telegramUser.isConnected ? 'Онлайн' : 'Офлайн'}
-                    </Badge>
-                  </div>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        )}
       </Row>
     </Container>
   );
 };
 
+// Установка displayName для лучшей отладки
+FriendsPage.displayName = 'FriendsPage';
+
+// ===== ЭКСПОРТ =====
 export default FriendsPage;
+export type { FriendsPageProps, TelegramUser };
+export { UI_TEXT, CSS_CLASSES, validateBotUsername, generateInviteLink, copyToClipboard };

@@ -1,160 +1,352 @@
-// src/pages/LoginPage.tsx - ИСПРАВЛЕНО
+// src/pages/LoginPage.tsx - СТРАНИЦА ВХОДА В ИГРУ
 
-import { useState } from 'react';
-import { Button } from 'react-bootstrap';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Container, Card, Button, Spinner, Alert } from 'react-bootstrap';
+import { TelegramAuth } from '../utils/TelegramAuth';
 
-// ✅ ДОБАВЛЕНО: TypeScript типы для Telegram WebApp
-declare global {
-  interface Window {
-    Telegram?: {
-      WebApp: {
-        initData: string;
-        initDataUnsafe: {
-          user?: {
-            id: number;
-            username?: string;
-            first_name?: string;
-            last_name?: string;
-          };
-        };
-        ready: () => void;
-        expand: () => void;
-      };
-    };
-  }
+// ===== ИНТЕРФЕЙСЫ =====
+
+/**
+ * Props для LoginPage
+ */
+export interface LoginPageProps {
+  // Если нужны props в будущем
 }
 
-const LoginPage = () => {
-  const [isConnecting, setIsConnecting] = useState(false);
+/**
+ * Ответ сервера аутентификации
+ */
+interface AuthResponse {
+  token: string;
+  sessionId: string;
+  user?: any;
+}
+
+// ===== КОНСТАНТЫ =====
+
+const CONFIG = {
+  CONNECTION_TIMEOUT: 10000,
+  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://localhost:3001',
+  API_BASE_URL: import.meta.env.VITE_API_URL || '/api',
+  TEST_MODE_PREFIX: 'test-',
+  STORAGE_KEYS: {
+    GAME_TOKEN: 'gameToken',
+    SESSION_ID: 'sessionId'
+  }
+} as const;
+
+const ERROR_MESSAGES = {
+  TELEGRAM_NOT_AVAILABLE: 'Приложение должно быть запущено в Telegram.',
+  SERVER_AUTH_FAILED: 'Ошибка аутентификации сервера.',
+  CONNECTION_TIMEOUT: 'Превышено время ожидания подключения.',
+  WEBSOCKET_FAILED: 'Не удалось подключиться к игровому серверу.',
+  GENERIC: 'Не удалось подключиться к серверу.',
+  INVALID_RESPONSE: 'Неверный формат ответа сервера',
+  NETWORK_ERROR: 'Ошибка сети'
+} as const;
+
+const UI_TEXT = {
+  PAGE_TITLE: 'Вход в игру',
+  LOGIN_BUTTON: 'Войти через Telegram',
+  CONNECTING_TEXT: 'Подключение...',
+  FALLBACK_MESSAGE: 'Для игры требуется Telegram WebApp',
+  RETRY_BUTTON: 'Попробовать снова'
+} as const;
+
+// ===== УТИЛИТАРНЫЕ ФУНКЦИИ =====
+
+/**
+ * Получение WebSocket URL с токеном
+ */
+const getWebSocketUrl = (token: string): string => {
+  const baseUrl = CONFIG.WEBSOCKET_URL;
+  
+  if (!baseUrl) {
+    throw new Error('WebSocket URL not configured');
+  }
+  
+  try {
+    const url = new URL(baseUrl);
+    url.searchParams.set('token', token);
+    return url.toString();
+  } catch (error) {
+    throw new Error('Invalid WebSocket URL configuration');
+  }
+};
+
+/**
+ * Получение API URL
+ */
+const getApiUrl = (endpoint: string): string => {
+  const baseUrl = CONFIG.API_BASE_URL;
+  return `${baseUrl}${endpoint}`;
+};
+
+/**
+ * Валидация ответа аутентификации
+ */
+const validateAuthResponse = (data: any): data is AuthResponse => {
+  return data && 
+    typeof data.token === 'string' && 
+    typeof data.sessionId === 'string' &&
+    data.token.length > 0 &&
+    data.sessionId.length > 0;
+};
+
+/**
+ * Аутентификация с повторными попытками
+ */
+const authenticateWithRetry = async (
+  initData: string, 
+  user: any, 
+  retryCount = 0
+): Promise<AuthResponse> => {
+  const MAX_RETRIES = 3;
+  
+  try {
+    const response = await fetch(getApiUrl('/auth/login'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        initData, 
+        userId: user.id, 
+        username: user.username || user.first_name 
+      })
+    });
+    
+    if (!response.ok) {
+      throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
+    }
+    
+    const authData = await response.json();
+
+    if (!validateAuthResponse(authData)) {
+      throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
+    }
+
+    return authData;
+  } catch (error) {
+    if (retryCount < MAX_RETRIES) {
+      await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+      return authenticateWithRetry(initData, user, retryCount + 1);
+    }
+    throw error;
+  }
+};
+
+// ===== ОСНОВНОЙ КОМПОНЕНТ =====
+
+/**
+ * Страница входа в игру
+ */
+export const LoginPage: React.FC<LoginPageProps> = () => {
+  // Состояния
+  const [isConnecting, setIsConnecting] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Хуки
   const navigate = useNavigate();
 
-  const handleLogin = async () => {
+  // ===== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP =====
+
+  useEffect(() => {
+    // Инициализация Telegram WebApp
+    if (window.Telegram?.WebApp) {
+      const tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      tg.enableClosingConfirmation();
+      tg.disableVerticalSwipes();
+      
+      // Настройка темы
+      if (tg.colorScheme === 'dark') {
+        document.body.classList.add('dark-theme');
+      }
+    }
+  }, []);
+
+  // ===== ОБРАБОТЧИКИ СОБЫТИЙ =====
+
+  /**
+   * Основная функция входа
+   */
+  const handleLogin = useCallback(async () => {
     setIsConnecting(true);
+    setError(null);
+    
+    let gameSocket: WebSocket | null = null;
+    let connectionTimeout: NodeJS.Timeout | null = null;
     
     try {
-      // ✅ ИСПРАВЛЕНО: Проверка существования Telegram WebApp
-      if (!window.Telegram?.WebApp) {
-        throw new Error('Telegram WebApp not available');
+      // Проверка доступности Telegram WebApp
+      if (!TelegramAuth.isTelegramWebAppAvailable() && process.env.NODE_ENV === 'production') {
+        throw new Error(ERROR_MESSAGES.TELEGRAM_NOT_AVAILABLE);
       }
 
-      // 1. Получаем данные от Telegram
-      const tg = window.Telegram.WebApp;
-      const initData = tg.initData;
-      const user = tg.initDataUnsafe.user;
+      // Получение пользователя
+      const user = TelegramAuth.getTelegramUser();
+      if (!user) {
+        throw new Error(ERROR_MESSAGES.SERVER_AUTH_FAILED);
+      }
+
+      // Получение initData из Telegram WebApp
+      const initData = TelegramAuth.isTelegramWebAppAvailable() 
+        ? window.Telegram?.WebApp?.initData || ''
+        : '';
+
+      // Аутентификация на сервере
+      const { token, sessionId } = await authenticateWithRetry(initData, user);
+
+      // Сохранение токенов
+      localStorage.setItem(CONFIG.STORAGE_KEYS.GAME_TOKEN, token);
+      localStorage.setItem(CONFIG.STORAGE_KEYS.SESSION_ID, sessionId);
+
+      // Подключение к WebSocket серверу
+      gameSocket = new WebSocket(getWebSocketUrl(token));
       
-      if (!initData) {
-        // ✅ ДОБАВЛЕНО: Fallback для тестирования вне Telegram
-        console.warn('Telegram data not available, using test mode');
-        
-        // Временные данные для тестирования
-        const testToken = 'test-token-' + Date.now();
-        const testSessionId = 'test-session-' + Date.now();
-        
-        localStorage.setItem('gameToken', testToken);
-        localStorage.setItem('sessionId', testSessionId);
-        navigate('/main-menu');
-        return;
-      }
-
-      // 2. Аутентификация на сервере
-      const authResponse = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          initData,
-          userId: user?.id,
-          username: user?.username
-        })
-      });
-
-      if (!authResponse.ok) {
-        throw new Error('Server authentication failed');
-      }
-
-      const { token, sessionId } = await authResponse.json();
-
-      // 3. Подключение к игровому серверу (WebSocket)
-      const gameSocket = new WebSocket(`wss://your-game-server.com?token=${token}`);
-      
-      // ✅ ДОБАВЛЕНО: Таймаут для подключения
-      const connectionTimeout = setTimeout(() => {
-        gameSocket.close();
-        throw new Error('Connection timeout');
-      }, 10000); // 10 секунд
+      connectionTimeout = setTimeout(() => {
+        gameSocket?.close();
+        throw new Error(ERROR_MESSAGES.CONNECTION_TIMEOUT);
+      }, CONFIG.CONNECTION_TIMEOUT);
 
       gameSocket.onopen = () => {
-        clearTimeout(connectionTimeout);
-        console.log('Connected to game server');
-        localStorage.setItem('gameToken', token);
-        localStorage.setItem('sessionId', sessionId);
-        navigate('/main-menu');
-      };
-
-      gameSocket.onerror = (error) => {
-        clearTimeout(connectionTimeout);
-        console.error('WebSocket error:', error);
-        throw new Error('Game server connection failed');
-      };
-
-      gameSocket.onclose = () => {
-        clearTimeout(connectionTimeout);
-      };
-
-    } catch (error) {
-      console.error('Login failed:', error);
-      
-      // ✅ УЛУЧШЕНО: Более информативные сообщения об ошибках
-      let errorMessage = 'Не удалось подключиться к серверу.';
-      
-      if (error instanceof Error) {
-        if (error.message.includes('Telegram')) {
-          errorMessage = 'Приложение должно быть запущено в Telegram.';
-        } else if (error.message.includes('Server')) {
-          errorMessage = 'Ошибка аутентификации сервера.';
-        } else if (error.message.includes('timeout')) {
-          errorMessage = 'Превышено время ожидания подключения.';
+        if (connectionTimeout) {
+          clearTimeout(connectionTimeout);
         }
+        // Успешное подключение - переход на главную
+        navigate('/');
+      };
+
+      gameSocket.onerror = () => {
+        throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
+      };
+
+      gameSocket.onclose = (event) => {
+        if (event.code !== 1000) { // Не нормальное закрытие
+          throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
+        }
+      };
+
+    } catch (err) {
+      // Cleanup при ошибке
+      if (connectionTimeout) {
+        clearTimeout(connectionTimeout);
+      }
+      if (gameSocket) {
+        gameSocket.close();
       }
       
-      alert(errorMessage + ' Попробуйте снова.');
+      const errorMessage = err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC;
+      console.error('Login error:', err);
+      setError(errorMessage);
     } finally {
       setIsConnecting(false);
     }
-  };
+  }, [navigate]);
+
+  /**
+   * Обработчик повторной попытки
+   */
+  const handleRetry = useCallback(() => {
+    setError(null);
+    handleLogin();
+  }, [handleLogin]);
+
+  // ===== РЕНДЕР =====
 
   return (
-    <div className="login-container">
-      {/* Декоративные элементы как в SVG */}
-      <div className="decorative-blur top-center"></div>
-      <div className="decorative-blur bottom-right"></div>
-      <div className="decorative-blur left-side"></div>
-      
-      <Button 
-        variant="primary" 
-        size="lg"
-        onClick={handleLogin}
-        disabled={isConnecting}
-        className="shadow-lg"
-      >
-        {isConnecting ? 'Подключение...' : 'Login'}
-      </Button>
-      
-      {isConnecting && (
-        <small className="text-muted mt-3 d-block text-center">
-          Подключение к игровому серверу...
-        </small>
-      )}
-      
-      {/* ✅ ДОБАВЛЕНО: Подсказка для разработки */}
-      {process.env.NODE_ENV === 'development' && (
-        <small className="text-muted mt-4 d-block text-center">
-          Режим разработки: Login работает без Telegram WebApp
-        </small>
-      )}
-    </div>
+    <Container 
+      className="d-flex justify-content-center align-items-center min-vh-100"
+      role="main"
+      aria-label="Страница входа в игру"
+    >
+      <Card style={{ width: '400px' }}>
+        <Card.Body className="text-center">
+          <h2 className="mb-4" id="login-title">
+            {UI_TEXT.PAGE_TITLE}
+          </h2>
+
+          {/* Отображение ошибки */}
+          {error && (
+            <Alert 
+              variant="danger" 
+              className="mb-3"
+              role="alert"
+              aria-live="assertive"
+            >
+              {error}
+            </Alert>
+          )}
+
+          {/* Кнопка входа */}
+          <Button 
+            variant="primary" 
+            size="lg" 
+            onClick={handleLogin}
+            disabled={isConnecting}
+            className="w-100 mb-3"
+            aria-describedby="login-title"
+            aria-label={isConnecting ? "Подключение к серверу" : "Войти через Telegram"}
+          >
+            {isConnecting ? (
+              <>
+                <Spinner 
+                  size="sm" 
+                  className="me-2"
+                  role="status"
+                  aria-hidden="true"
+                />
+                {UI_TEXT.CONNECTING_TEXT}
+              </>
+            ) : (
+              UI_TEXT.LOGIN_BUTTON
+            )}
+          </Button>
+
+          {/* Кнопка повтора при ошибке */}
+          {error && !isConnecting && (
+            <Button 
+              variant="outline-secondary" 
+              onClick={handleRetry}
+              className="w-100"
+              aria-label="Попробовать войти снова"
+            >
+              {UI_TEXT.RETRY_BUTTON}
+            </Button>
+          )}
+
+          {/* Fallback сообщение для не-Telegram окружения */}
+          {!TelegramAuth.isTelegramWebAppAvailable() && process.env.NODE_ENV === 'production' && (
+            <Alert variant="warning" className="mt-3">
+              {UI_TEXT.FALLBACK_MESSAGE}
+            </Alert>
+          )}
+
+          {/* Debug информация для разработки */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="mt-3 pt-3 border-top">
+              <small className="text-muted">
+                <strong>Debug Info:</strong>
+                <br />
+                Telegram Available: {TelegramAuth.isTelegramWebAppAvailable() ? 'Yes' : 'No'}
+                <br />
+                Environment: {process.env.NODE_ENV}
+                <br />
+                WebSocket URL: {CONFIG.WEBSOCKET_URL}
+              </small>
+            </div>
+          )}
+        </Card.Body>
+      </Card>
+    </Container>
   );
 };
 
-// ✅ ИСПРАВЛЕНО: Добавлен экспорт по умолчанию!
+// Установка displayName для лучшей отладки
+LoginPage.displayName = 'LoginPage';
+
+// ===== ЭКСПОРТ =====
 export default LoginPage;
+export type { LoginPageProps, AuthResponse };
+export { CONFIG, ERROR_MESSAGES, UI_TEXT };

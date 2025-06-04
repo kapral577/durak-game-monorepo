@@ -1,429 +1,514 @@
-// src/pages/GameRoomPage.tsx - РЕФАКТОРИРОВАННАЯ ВЕРСИЯ
+// src/pages/GameRoomPage.tsx - СТРАНИЦА ИГРОВОЙ КОМНАТЫ
 
-import React, { useEffect, useState, useMemo, useCallback } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { Container, Row, Col, Card, Button, Alert, Spinner, Badge, ProgressBar } from 'react-bootstrap';
-import { useGame } from '../context/GameProvider';
+import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { Container, Row, Col, Card, Button, Alert, Badge, ProgressBar, Spinner } from 'react-bootstrap';
+import { useGame } from '../contexts/GameProvider';
+import PlayerSlot from '../components/PlayerSlot';
+
+// ===== ИНТЕРФЕЙСЫ =====
+
+/**
+ * Props для GameRoomPage
+ */
+export interface GameRoomPageProps {
+  // Если нужны props в будущем
+}
+
+/**
+ * Параметры маршрута
+ */
+interface RouteParams {
+  roomId: string;
+}
 
 // ===== КОНСТАНТЫ =====
+
 const UI_TEXT = {
-  PAGE_TITLE: '🏠 Комната',
-  LOADING_ROOM: 'Подключение к комнате...',
-  LOADING_DATA: 'Загружаем данные комнаты',
-  ROOM_NOT_FOUND: 'Комната не найдена',
-  ROOM_NOT_EXISTS: 'Комната с ID {roomId} не существует или вы не подключены к ней.',
-  BACK_TO_ROOMS: 'Вернуться к списку комнат',
-  GAME_RULES: '⚙️ Правила игры',
-  PLAYERS_TITLE: '👥 Игроки',
-  READY_PROGRESS: 'Прогресс готовности',
-  READY_BUTTON: 'Готов!',
-  NOT_READY_BUTTON: 'Нажмите когда будете готовы',
-  CANCEL_READY: 'Готов! (нажмите чтобы отменить)',
-  LEAVE_ROOM: 'Покинуть комнату',
-  WAITING_PLAYER: 'Ожидание игрока...',
-  SLOT_FREE: 'Слот свободен',
-  FREE_STATUS: 'Свободно',
-  YOU_LABEL: '(Вы)',
-  HOST_LABEL: 'Хост',
-  READY_STATUS: 'Готов ✓',
-  WAITING_STATUS: 'Ждет...',
-  DISCONNECTED_STATUS: 'Отключен',
-  GAME_STARTING: '🎮 Игра начинается через {countdown} сек!',
-  AUTO_START_HINT: 'Игра запускается автоматически когда все игроки нажмут "Готов"',
-  NEED_MORE_PLAYERS: '💡 Нужно больше игроков: Для начала игры нужно минимум 2 игрока.',
-  WAITING_READY: '⏳ Ожидание готовности: Не все игроки готовы.',
-  ALL_READY: '🎮 Готово! Все игроки готовы. Игра запустится автоматически!',
-  MIN_PLAYERS_HINT: '💡 Совет: Для начала игры нужно минимум 2 игрока.',
+  PAGE_TITLE: 'Игровая комната',
+  LOADING_DATA: 'Загрузка данных комнаты...',
+  ROOM_NOT_EXISTS: 'Комната {roomId} не найдена',
+  READY_BUTTON: 'Готов',
+  NOT_READY_BUTTON: 'Не готов',
+  CANCEL_READY: 'Отменить готовность',
+  START_GAME_BUTTON: 'Начать игру',
+  LEAVE_ROOM_BUTTON: 'Покинуть комнату',
+  WAITING_PLAYERS: 'Ожидание игроков...',
+  AUTO_START_COUNTDOWN: 'Автостарт через {seconds} сек',
+  GAME_RULES_TITLE: 'Правила игры',
+  PLAYERS_TITLE: 'Игроки',
+  READY_PROGRESS: 'Готовность игроков',
+  EMPTY_SLOT: 'Свободное место'
 } as const;
 
 const GAME_MODE_TEXTS = {
-  classic: 'Классический',
-  transferable: 'Переводной',
+  classic: 'Классический дурак',
+  transferable: 'Переводной дурак'
 } as const;
 
 const THROWING_MODE_TEXTS = {
-  standard: 'Стандартное',
-  smart: 'Умное',
+  standard: 'Стандартное подкидывание',
+  smart: 'Умное подкидывание'
 } as const;
 
 const STATUS_VARIANTS = {
-  waiting: 'warning',
-  playing: 'success',
-  finished: 'secondary',
+  waiting: 'success',
+  playing: 'warning',
+  finished: 'secondary'
 } as const;
 
-const GameRoomPage: React.FC = () => {
-  const { roomId } = useParams<{ roomId: string }>();
-  const navigate = useNavigate();
+const CSS_CLASSES = {
+  GAME_ROOM_PAGE: 'game-room-page',
+  ROOM_HEADER: 'room-header',
+  PLAYERS_SECTION: 'players-section',
+  RULES_SECTION: 'rules-section',
+  CONTROLS_SECTION: 'controls-section',
+  AUTO_START_SECTION: 'auto-start-section',
+  PROGRESS_SECTION: 'progress-section'
+} as const;
+
+// ===== УТИЛИТАРНЫЕ ФУНКЦИИ =====
+
+/**
+ * Получение статуса игрока
+ */
+const getPlayerStatus = (player: any) => {
+  if (!player.isConnected) return 'disconnected';
+  if (player.isReady) return 'ready';
+  return 'waiting';
+};
+
+/**
+ * Получение текста режима игры
+ */
+const getGameModeText = (gameMode: string): string => {
+  return GAME_MODE_TEXTS[gameMode as keyof typeof GAME_MODE_TEXTS] || gameMode;
+};
+
+/**
+ * Получение текста режима подкидывания
+ */
+const getThrowingModeText = (throwingMode: string): string => {
+  return THROWING_MODE_TEXTS[throwingMode as keyof typeof THROWING_MODE_TEXTS] || throwingMode;
+};
+
+// ===== КОМПОНЕНТЫ =====
+
+/**
+ * Заголовок комнаты
+ */
+const RoomHeader: React.FC<{
+  roomName: string;
+  roomStatus: string;
+  autoStartInfo: any;
+}> = React.memo(({ roomName, roomStatus, autoStartInfo }) => (
+  <Row className={`${CSS_CLASSES.ROOM_HEADER} mb-4`}>
+    <Col>
+      <div className="d-flex justify-content-between align-items-center">
+        <h2>{UI_TEXT.PAGE_TITLE}: {roomName}</h2>
+        <div>
+          <Badge 
+            bg={STATUS_VARIANTS[roomStatus as keyof typeof STATUS_VARIANTS] || 'secondary'}
+            className="me-2"
+          >
+            {roomStatus === 'waiting' ? 'Ожидание' : roomStatus === 'playing' ? 'В игре' : 'Завершена'}
+          </Badge>
+          
+          {autoStartInfo?.isAutoStarting && (
+            <Badge bg="warning" className="animate-pulse">
+              {UI_TEXT.AUTO_START_COUNTDOWN.replace('{seconds}', autoStartInfo.countdown.toString())}
+            </Badge>
+          )}
+        </div>
+      </div>
+    </Col>
+  </Row>
+));
+
+RoomHeader.displayName = 'RoomHeader';
+
+/**
+ * Прогресс готовности
+ */
+const ReadyProgress: React.FC<{
+  readyCount: number;
+  totalCount: number;
+}> = React.memo(({ readyCount, totalCount }) => {
+  const percentage = totalCount > 0 ? (readyCount / totalCount) * 100 : 0;
   
-  const {
-    currentRoom,
-    currentPlayer,
-    isConnected,
-    gameState,
-    setReady,
+  return (
+    <div className={`${CSS_CLASSES.PROGRESS_SECTION} mb-3`}>
+      <div className="d-flex justify-content-between align-items-center mb-2">
+        <small className="text-muted">{UI_TEXT.READY_PROGRESS}</small>
+        <small className="text-muted">{readyCount}/{totalCount}</small>
+      </div>
+      <ProgressBar 
+        now={percentage} 
+        variant={percentage === 100 ? 'success' : 'primary'}
+        aria-label={`${readyCount} из ${totalCount} игроков готовы`}
+      />
+    </div>
+  );
+});
+
+ReadyProgress.displayName = 'ReadyProgress';
+
+/**
+ * Список игроков
+ */
+const PlayersList: React.FC<{
+  players: any[];
+  maxPlayers: number;
+  currentPlayer: any;
+}> = React.memo(({ players, maxPlayers, currentPlayer }) => {
+  // Создаем массив слотов с пустыми местами
+  const playerSlots = useMemo(() => {
+    const slots = [...players];
+    while (slots.length < maxPlayers) {
+      slots.push(null);
+    }
+    return slots;
+  }, [players, maxPlayers]);
+
+  return (
+    <Card className={`${CSS_CLASSES.PLAYERS_SECTION} mb-4`}>
+      <Card.Header>
+        <h5 className="mb-0">{UI_TEXT.PLAYERS_TITLE} ({players.length}/{maxPlayers})</h5>
+      </Card.Header>
+      <Card.Body>
+        <Row>
+          {playerSlots.map((player, index) => (
+            <Col key={player?.id || `empty-${index}`} xs={6} md={3} className="mb-3">
+              <PlayerSlot
+                player={player}
+                isYou={player?.id === currentPlayer?.id}
+                ready={player?.isReady || false}
+                isConnected={player?.isConnected ?? true}
+                size="medium"
+              />
+            </Col>
+          ))}
+        </Row>
+        
+        <ReadyProgress 
+          readyCount={players.filter(p => p.isReady).length}
+          totalCount={players.length}
+        />
+      </Card.Body>
+    </Card>
+  );
+});
+
+PlayersList.displayName = 'PlayersList';
+
+/**
+ * Правила игры
+ */
+const GameRules: React.FC<{
+  rules: any;
+}> = React.memo(({ rules }) => (
+  <Card className={`${CSS_CLASSES.RULES_SECTION} mb-4`}>
+    <Card.Header>
+      <h5 className="mb-0">{UI_TEXT.GAME_RULES_TITLE}</h5>
+    </Card.Header>
+    <Card.Body>
+      <Row>
+        <Col md={6}>
+          <div className="mb-2">
+            <strong>Режим игры:</strong> {getGameModeText(rules.gameMode)}
+          </div>
+          <div className="mb-2">
+            <strong>Подкидывание:</strong> {getThrowingModeText(rules.throwingMode)}
+          </div>
+        </Col>
+        <Col md={6}>
+          <div className="mb-2">
+            <strong>Количество карт:</strong> {rules.cardCount}
+          </div>
+          <div className="mb-2">
+            <strong>Максимум игроков:</strong> {rules.maxPlayers}
+          </div>
+        </Col>
+      </Row>
+    </Card.Body>
+  </Card>
+));
+
+GameRules.displayName = 'GameRules';
+
+/**
+ * Элементы управления
+ */
+const RoomControls: React.FC<{
+  isPlayerReady: boolean;
+  canStartGame: boolean;
+  isHost: boolean;
+  onReadyToggle: () => void;
+  onStartGame: () => void;
+  onLeaveRoom: () => void;
+  isLoading: boolean;
+}> = React.memo(({ 
+  isPlayerReady, 
+  canStartGame, 
+  isHost, 
+  onReadyToggle, 
+  onStartGame, 
+  onLeaveRoom,
+  isLoading 
+}) => (
+  <Card className={CSS_CLASSES.CONTROLS_SECTION}>
+    <Card.Body>
+      <div className="d-flex flex-wrap gap-2 justify-content-center">
+        <Button
+          variant={isPlayerReady ? "success" : "primary"}
+          onClick={onReadyToggle}
+          disabled={isLoading}
+          aria-pressed={isPlayerReady}
+          aria-label={isPlayerReady ? "Отменить готовность" : "Отметить готовность"}
+        >
+          {isLoading ? (
+            <Spinner size="sm" className="me-2" />
+          ) : null}
+          {isPlayerReady ? UI_TEXT.CANCEL_READY : UI_TEXT.READY_BUTTON}
+        </Button>
+
+        {isHost && (
+          <Button
+            variant="success"
+            onClick={onStartGame}
+            disabled={!canStartGame || isLoading}
+            aria-label="Начать игру для всех игроков"
+          >
+            {UI_TEXT.START_GAME_BUTTON}
+          </Button>
+        )}
+
+        <Button
+          variant="outline-danger"
+          onClick={onLeaveRoom}
+          disabled={isLoading}
+          aria-label="Покинуть игровую комнату"
+        >
+          {UI_TEXT.LEAVE_ROOM_BUTTON}
+        </Button>
+      </div>
+    </Card.Body>
+  </Card>
+));
+
+RoomControls.displayName = 'RoomControls';
+
+// ===== ОСНОВНОЙ КОМПОНЕНТ =====
+
+/**
+ * Страница игровой комнаты
+ */
+export const GameRoomPage: React.FC<GameRoomPageProps> = () => {
+  // Состояния
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+
+  // Хуки
+  const navigate = useNavigate();
+  const { roomId } = useParams<RouteParams>();
+  const { 
+    currentRoom, 
+    currentPlayer, 
+    autoStartInfo,
+    setReady, 
+    startGame, 
     leaveRoom,
     error,
-    autoStartInfo,
-    notification,
-    clearNotification,
+    clearError
   } = useGame();
 
-  const [isLoading, setIsLoading] = useState(true);
+  // ===== МЕМОИЗАЦИЯ =====
 
-  // Мемоизированные вычисления
-  const roomStats = useMemo(() => {
-    if (!currentRoom) return { connectedPlayers: [], readyPlayers: [], isPlayerReady: false };
-    
-    const connectedPlayers = currentRoom.players.filter(p => p.isConnected !== false);
-    const readyPlayers = connectedPlayers.filter(p => p.isReady);
-    const isPlayerReady = currentPlayer?.isReady || false;
-    
-    return { connectedPlayers, readyPlayers, isPlayerReady };
+  /**
+   * Проверка готовности текущего игрока
+   */
+  const isPlayerReady = useMemo(() => {
+    if (!currentRoom || !currentPlayer) return false;
+    const player = currentRoom.players.find(p => p.id === currentPlayer.id);
+    return player?.isReady || false;
   }, [currentRoom, currentPlayer]);
 
-  // Навигация при старте игры
-  useEffect(() => {
-    if (gameState && currentRoom?.id === roomId) {
-      navigate(`/game`);
-    }
-  }, [gameState, currentRoom, roomId, navigate]);
+  /**
+   * Проверка возможности старта игры
+   */
+  const canStartGame = useMemo(() => {
+    if (!currentRoom || !autoStartInfo) return false;
+    return autoStartInfo.allReady && autoStartInfo.readyCount >= 2;
+  }, [currentRoom, autoStartInfo]);
 
-  // Проверка соответствия комнаты
-  useEffect(() => {
-    if (!isConnected) return;
-    
-    if (!currentRoom || currentRoom.id !== roomId) {
-      const timer = setTimeout(() => setIsLoading(false), 2000);
-      return () => clearTimeout(timer);
-    } else {
+  /**
+   * Проверка является ли игрок хостом
+   */
+  const isHost = useMemo(() => {
+    if (!currentRoom || !currentPlayer) return false;
+    return currentRoom.hostId === currentPlayer.id;
+  }, [currentRoom, currentPlayer]);
+
+  // ===== ОБРАБОТЧИКИ =====
+
+  /**
+   * Переключение готовности
+   */
+  const handleReadyToggle = useCallback(async () => {
+    setIsLoading(true);
+    clearError();
+    try {
+      await setReady();
+    } catch (error) {
+      console.error('Error toggling ready status:', error);
+    } finally {
       setIsLoading(false);
     }
-  }, [isConnected, currentRoom, roomId]);
+  }, [setReady, clearError]);
 
-  // Автоматическая очистка уведомлений
+  /**
+   * Начало игры
+   */
+  const handleStartGame = useCallback(async () => {
+    setIsLoading(true);
+    clearError();
+    try {
+      await startGame();
+    } catch (error) {
+      console.error('Error starting game:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [startGame, clearError]);
+
+  /**
+   * Выход из комнаты
+   */
+  const handleLeaveRoom = useCallback(async () => {
+    setIsLoading(true);
+    clearError();
+    try {
+      await leaveRoom();
+      navigate('/rooms');
+    } catch (error) {
+      console.error('Error leaving room:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [leaveRoom, navigate, clearError]);
+
+  // ===== АВТОМАТИЧЕСКАЯ НАВИГАЦИЯ ПРИ СТАРТЕ ИГРЫ =====
+
   useEffect(() => {
-    if (notification) {
-      const timer = setTimeout(() => clearNotification(), 5000);
-      return () => clearTimeout(timer);
+    if (currentRoom?.status === 'playing') {
+      navigate('/game');
     }
-  }, [notification, clearNotification]);
+  }, [currentRoom?.status, navigate]);
 
-  // Обработчики событий
-  const handleReadyToggle = useCallback(() => {
-    setReady();
-  }, [setReady]);
+  // ===== ИНИЦИАЛИЗАЦИЯ =====
 
-  const handleLeaveRoom = useCallback(() => {
-    leaveRoom();
-    navigate('/rooms');
-  }, [leaveRoom, navigate]);
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
 
-  const handleBackToRooms = useCallback(() => {
-    navigate('/rooms');
-  }, [navigate]);
-
-  // Утилиты
-  const getPlayerStatus = useCallback((player: any) => {
-    if (!player.isConnected && player.isConnected !== undefined) {
-      return <Badge bg="danger">{UI_TEXT.DISCONNECTED_STATUS}</Badge>;
-    }
-    if (player.isReady) {
-      return <Badge bg="success">{UI_TEXT.READY_STATUS}</Badge>;
-    }
-    return <Badge bg="secondary">{UI_TEXT.WAITING_STATUS}</Badge>;
+    return () => clearTimeout(timer);
   }, []);
 
-  const getGameModeText = useCallback((gameMode: string) => {
-    return GAME_MODE_TEXTS[gameMode as keyof typeof GAME_MODE_TEXTS] || gameMode;
-  }, []);
+  // ===== KEYBOARD SHORTCUTS =====
 
-  const getThrowingModeText = useCallback((throwingMode: string) => {
-    return THROWING_MODE_TEXTS[throwingMode as keyof typeof THROWING_MODE_TEXTS] || throwingMode;
-  }, []);
+  useEffect(() => {
+    const handleKeyPress = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'r':
+            event.preventDefault();
+            handleReadyToggle();
+            break;
+          case 'Escape':
+            event.preventDefault();
+            handleLeaveRoom();
+            break;
+        }
+      }
+    };
 
-  // Loading состояние
-  if (!isConnected || isLoading) {
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [handleReadyToggle, handleLeaveRoom]);
+
+  // ===== EARLY RETURNS =====
+
+  if (isLoading) {
     return (
-      <Container className="py-4 text-center">
-        <Spinner animation="border" className="me-2" />
-        <div>
-          <h4>{UI_TEXT.LOADING_ROOM}</h4>
-          <p className="text-muted">{UI_TEXT.LOADING_DATA}</p>
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <div className="text-center">
+          <Spinner animation="border" className="mb-3" />
+          <div>{UI_TEXT.LOADING_DATA}</div>
         </div>
       </Container>
     );
   }
 
-  // Комната не найдена
-  if (!currentRoom) {
+  if (!currentRoom || !roomId) {
     return (
-      <Container className="py-4">
-        <Alert variant="danger">
-          <Alert.Heading>{UI_TEXT.ROOM_NOT_FOUND}</Alert.Heading>
-          <p>{UI_TEXT.ROOM_NOT_EXISTS.replace('{roomId}', roomId || '')}</p>
-          <Button variant="primary" onClick={handleBackToRooms}>
-            {UI_TEXT.BACK_TO_ROOMS}
-          </Button>
+      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+        <Alert variant="warning">
+          <div>{UI_TEXT.ROOM_NOT_EXISTS.replace('{roomId}', roomId || '')}</div>
         </Alert>
       </Container>
     );
   }
 
-  const { connectedPlayers, readyPlayers, isPlayerReady } = roomStats;
+  // ===== РЕНДЕР =====
 
   return (
-    <Container className="py-4">
-      {/* Заголовок комнаты */}
-      <Row className="mb-4">
-        <Col>
-          <Card>
-            <Card.Body className="text-center">
-              <h2>{UI_TEXT.PAGE_TITLE} {currentRoom.name}</h2>
-              <div className="d-flex justify-content-center align-items-center gap-3">
-                <small className="text-muted">ID: {currentRoom.id}</small>
-                <Badge bg={STATUS_VARIANTS[currentRoom.status as keyof typeof STATUS_VARIANTS] as any}>
-                  {currentRoom.status === 'waiting' ? 'Ожидание' : 'В игре'}
-                </Badge>
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+    <Container 
+      className={CSS_CLASSES.GAME_ROOM_PAGE}
+      role="main"
+      aria-label="Страница игровой комнаты"
+    >
+      {/* Заголовок */}
+      <RoomHeader
+        roomName={currentRoom.name}
+        roomStatus={currentRoom.status}
+        autoStartInfo={autoStartInfo}
+      />
 
-      {/* Автостарт статус */}
-      {autoStartInfo?.isAutoStarting && (
-        <Alert variant="info" className="mb-3">
-          <div className="text-center fw-bold">
-            {UI_TEXT.GAME_STARTING.replace('{countdown}', autoStartInfo.countdown.toString())}
-          </div>
-        </Alert>
-      )}
-
-      {/* Уведомления */}
-      {notification && !autoStartInfo?.isAutoStarting && (
-        <Alert variant="info" className="mb-3">
-          {notification}
-        </Alert>
-      )}
-
-      {/* Ошибки */}
+      {/* Ошибка */}
       {error && (
-        <Alert variant="danger" className="mb-3">
-          <Alert.Heading>Ошибка</Alert.Heading>
+        <Alert variant="danger" role="alert" aria-live="assertive">
           {error}
         </Alert>
       )}
 
-      <Row className="g-4">
-        {/* Правила игры */}
-        <Col md={6}>
-          <Card>
-            <Card.Body>
-              <Card.Title>{UI_TEXT.GAME_RULES}</Card.Title>
-              <Row className="g-2">
-                <Col xs={6}>
-                  <div className="text-center">
-                    <div className="fw-bold">{getGameModeText(currentRoom.rules.gameMode)}</div>
-                    <small className="text-muted">Режим</small>
-                  </div>
-                </Col>
-                <Col xs={6}>
-                  <div className="text-center">
-                    <div className="fw-bold">{currentRoom.rules.cardCount}</div>
-                    <small className="text-muted">Карт</small>
-                  </div>
-                </Col>
-                <Col xs={6}>
-                  <div className="text-center">
-                    <div className="fw-bold">{getThrowingModeText(currentRoom.rules.throwingMode)}</div>
-                    <small className="text-muted">Подкидывание</small>
-                  </div>
-                </Col>
-                <Col xs={6}>
-                  <div className="text-center">
-                    <div className="fw-bold">{currentRoom.maxPlayers}</div>
-                    <small className="text-muted">Макс. игроков</small>
-                  </div>
-                </Col>
-              </Row>
-            </Card.Body>
-          </Card>
-        </Col>
-
-        {/* Прогресс готовности */}
-        <Col md={6}>
-          <Card>
-            <Card.Body>
-              <div className="d-flex justify-content-between align-items-center mb-2">
-                <span>{UI_TEXT.PLAYERS_TITLE} ({connectedPlayers.length}/{currentRoom.maxPlayers})</span>
-                {autoStartInfo ? (
-                  <Badge bg="primary">
-                    Готовы: {autoStartInfo.readyCount}/{autoStartInfo.totalCount}
-                  </Badge>
-                ) : (
-                  <Badge bg={readyPlayers.length >= 2 ? 'success' : 'warning'}>
-                    Готовы: {readyPlayers.length}/{connectedPlayers.length}
-                  </Badge>
-                )}
-              </div>
-              
-              <div className="mb-2">
-                <small className="text-muted">{UI_TEXT.READY_PROGRESS}</small>
-                <ProgressBar 
-                  now={autoStartInfo ? 
-                    (autoStartInfo.readyCount / autoStartInfo.totalCount) * 100 :
-                    (readyPlayers.length / Math.max(connectedPlayers.length, 1)) * 100
-                  }
-                  variant={readyPlayers.length >= 2 ? 'success' : 'warning'}
-                  label={autoStartInfo ?
-                    `${autoStartInfo.readyCount}/${autoStartInfo.totalCount}` :
-                    `${readyPlayers.length}/${connectedPlayers.length}`
-                  }
-                />
-              </div>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
-
       {/* Список игроков */}
-      <Row className="mt-4">
-        <Col>
-          <Card>
-            <Card.Body>
-              <Row className="g-3">
-                {currentRoom.players.map((player, index) => (
-                  <Col md={6} lg={4} key={player.id}>
-                    <Card className="h-100">
-                      <Card.Body className="d-flex align-items-center">
-                        {/* Аватар */}
-                        <div className="me-3">
-                          <div 
-                            className="rounded-circle bg-primary d-flex align-items-center justify-content-center"
-                            style={{ width: '50px', height: '50px' }}
-                          >
-                            <span className="text-white fw-bold">
-                              {player.name.charAt(0).toUpperCase()}
-                            </span>
-                          </div>
-                        </div>
-                        
-                        {/* Информация */}
-                        <div className="flex-grow-1">
-                          <div className="fw-bold">
-                            {player.name}
-                            {player.id === currentPlayer?.id && (
-                              <small className="text-primary ms-1">{UI_TEXT.YOU_LABEL}</small>
-                            )}
-                            {index === 0 && (
-                              <small className="text-warning ms-1">{UI_TEXT.HOST_LABEL}</small>
-                            )}
-                          </div>
-                          {player.username && (
-                            <small className="text-muted">@{player.username}</small>
-                          )}
-                          <div className="mt-1">
-                            {getPlayerStatus(player)}
-                          </div>
-                        </div>
-                      </Card.Body>
-                    </Card>
-                  </Col>
-                ))}
+      <PlayersList
+        players={currentRoom.players}
+        maxPlayers={currentRoom.maxPlayers}
+        currentPlayer={currentPlayer}
+      />
 
-                {/* Пустые слоты */}
-                {connectedPlayers.length < currentRoom.maxPlayers && (
-                  <>
-                    {Array.from({ length: currentRoom.maxPlayers - connectedPlayers.length }).map((_, index) => (
-                      <Col md={6} lg={4} key={`empty-${index}`}>
-                        <Card className="h-100">
-                          <Card.Body className="d-flex align-items-center text-muted">
-                            <div className="me-3">
-                              <div 
-                                className="rounded-circle bg-light d-flex align-items-center justify-content-center"
-                                style={{ width: '50px', height: '50px' }}
-                              >
-                                <span>?</span>
-                              </div>
-                            </div>
-                            <div>
-                              <div>{UI_TEXT.WAITING_PLAYER}</div>
-                              <small>{UI_TEXT.SLOT_FREE}</small>
-                              <div className="mt-1">
-                                <Badge bg="light" text="dark">{UI_TEXT.FREE_STATUS}</Badge>
-                              </div>
-                            </div>
-                          </Card.Body>
-                        </Card>
-                      </Col>
-                    ))}
-                  </>
-                )}
-              </Row>
-            </Card.Body>
-          </Card>
-        </Col>
-      </Row>
+      {/* Правила игры */}
+      <GameRules rules={currentRoom.rules} />
 
-      {/* Действия */}
-      <Row className="mt-4">
-        <Col>
-          <div className="d-grid gap-2">
-            {/* Кнопка готовности */}
-            <Button
-              variant={isPlayerReady ? 'warning' : 'success'}
-              size="lg"
-              onClick={handleReadyToggle}
-            >
-              {isPlayerReady ? UI_TEXT.CANCEL_READY : UI_TEXT.NOT_READY_BUTTON}
-            </Button>
-            
-            {/* Кнопка выхода */}
-            <Button variant="outline-danger" onClick={handleLeaveRoom}>
-              {UI_TEXT.LEAVE_ROOM}
-            </Button>
-          </div>
-        </Col>
-      </Row>
-
-      {/* Подсказки */}
-      <Row className="mt-3">
-        <Col>
-          {autoStartInfo?.needMorePlayers && (
-            <Alert variant="info">
-              <div className="fw-bold">{UI_TEXT.NEED_MORE_PLAYERS}</div>
-              <small>Пригласите друзей или дождитесь других игроков.</small>
-            </Alert>
-          )}
-
-          {autoStartInfo && !autoStartInfo.needMorePlayers && !autoStartInfo.allReady && (
-            <Alert variant="warning">
-              <div className="fw-bold">{UI_TEXT.WAITING_READY}</div>
-              <small>Готовых: {autoStartInfo.readyCount} из {autoStartInfo.totalCount}</small>
-            </Alert>
-          )}
-
-          {autoStartInfo?.allReady && !autoStartInfo.isAutoStarting && (
-            <Alert variant="success">
-              <div className="fw-bold">{UI_TEXT.ALL_READY}</div>
-            </Alert>
-          )}
-
-          {!autoStartInfo && connectedPlayers.length < 2 && (
-            <Alert variant="info">
-              <small>{UI_TEXT.MIN_PLAYERS_HINT}</small>
-            </Alert>
-          )}
-
-          {/* Информация об автостарте */}
-          <div className="text-center">
-            <small className="text-muted">{UI_TEXT.AUTO_START_HINT}</small>
-          </div>
-        </Col>
-      </Row>
+      {/* Элементы управления */}
+      <RoomControls
+        isPlayerReady={isPlayerReady}
+        canStartGame={canStartGame}
+        isHost={isHost}
+        onReadyToggle={handleReadyToggle}
+        onStartGame={handleStartGame}
+        onLeaveRoom={handleLeaveRoom}
+        isLoading={isLoading}
+      />
     </Container>
   );
 };
 
+// Установка displayName для лучшей отладки
+GameRoomPage.displayName = 'GameRoomPage';
+
+// ===== ЭКСПОРТ =====
 export default GameRoomPage;
+export type { GameRoomPageProps, RouteParams };
+export { UI_TEXT, CSS_CLASSES, getPlayerStatus, getGameModeText, getThrowingModeText };

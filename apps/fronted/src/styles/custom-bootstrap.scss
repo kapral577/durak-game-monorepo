@@ -1,318 +1,488 @@
-// src/styles/custom-bootstrap.scss
+// src/styles/custom-bootstrap.scss - КАСТОМНЫЕ СТИЛИ BOOTSTRAP
 
-// ===== ЦВЕТА ИЗ SVG ДИЗАЙНА =====
-$primary: #808080; // Основной серый из SVG
-$secondary: #454545; // Темно-серый из SVG
-$success: #17C964; // Оставляем зеленый для игровых действий
-$danger: #F31260; // Оставляем красный для опасных действий
-$warning: #F5A524; // Оставляем желтый для предупреждений
-$info: #808080; // Информационный = основной серый
+// ===== ПЕРЕМЕННЫЕ ИЗ SVG ДИЗАЙНА =====
 
-// ===== ФОН ИЗ SVG =====
-$body-bg: #2a2a2a; // Темный базовый фон
-$body-color: rgba(255, 255, 255, 0.9); // Белый текст с прозрачностью как в SVG
+// Цвета из SVG
+$primary: #4A90E2;
+$secondary: #7B68EE;
+$success: #5CB85C;
+$info: #5BC0DE;
+$warning: #F0AD4E;
+$danger: #D9534F;
+$light: #F8F9FA;
+$dark: #343A40;
 
-// ===== ТИПОГРАФИКА ИЗ SVG =====
-$font-family-base: 'Inter', system-ui, -apple-system, sans-serif;
-$font-size-base: 0.875rem; // 14px основной размер из SVG
-$font-weight-base: 400;
-$btn-font-weight: 500; // Medium weight как в SVG
+// Фон и текст
+$body-bg: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+$body-color: #ffffff;
+$text-muted: rgba(255, 255, 255, 0.7);
 
-// ===== СКРУГЛЕНИЯ ИЗ SVG =====
-$border-radius: 0.75rem; // 12px как в SVG
-$border-radius-sm: 0.5rem; // 8px для мелких элементов
-$border-radius-lg: 1rem; // 16px для крупных элементов
-$btn-border-radius: 0.75rem; // 12px для кнопок как в SVG
-$card-border-radius: 0.75rem; // 12px для карточек
+// Границы и скругления
+$border-radius: 12px;
+$border-color: rgba(255, 255, 255, 0.2);
 
-// ===== ГРАНИЦЫ ИЗ SVG =====
-$border-width: 1px;
-$border-color: rgba(255, 255, 255, 0.2); // Полупрозрачные границы как в SVG
+// Переменные для glass эффектов
+$glass-opacity-base: 0.1;
+$glass-opacity-hover: 0.15;
+$glass-opacity-active: 0.2;
+$glass-opacity-button: 0.3;
 
-// ===== ТЕНИ ИЗ SVG =====
-$box-shadow: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.1);
-$box-shadow-sm: 0 0.125rem 0.5rem rgba(0, 0, 0, 0.05);
-$box-shadow-lg: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+$blur-base: 10px;
+$blur-decorative: 15px;
+$blur-strong: 25px;
 
-// ===== ПЕРЕХОДЫ ИЗ SVG =====
-$transition-base: all 0.3s ease;
+$lift-distance: -0.125rem;
+$lift-small: -0.0625rem;
 
-// ===== ОТСТУПЫ ИЗ SVG =====
-$spacer: 1rem;
-$btn-padding-y: 1rem; // 16px как в SVG
-$btn-padding-x: 2rem; // 32px как в SVG
+$animation-duration: 0.3s;
+$animation-easing: ease;
 
-// Импорт Bootstrap после переменных
-@import 'bootstrap/scss/bootstrap';
+// ===== ИМПОРТ BOOTSTRAP =====
+@import "~bootstrap/scss/bootstrap";
 
-// ===== МИКСИНЫ ДЛЯ GLASS ЭФФЕКТОВ =====
-@mixin glass-effect($opacity: 0.1) {
+// ===== МИКСИНЫ =====
+
+@mixin glass-effect($opacity: $glass-opacity-base) {
   background: rgba(255, 255, 255, $opacity);
-  backdrop-filter: blur(10px);
+  backdrop-filter: blur($blur-base);
   border: 1px solid rgba(255, 255, 255, $opacity + 0.1);
 }
 
 @mixin hover-lift {
-  transition: all 0.3s ease;
+  transition: all $animation-duration $animation-easing;
   &:hover {
-    transform: translateY(-0.125rem);
+    transform: translateY($lift-distance);
   }
 }
 
-// ===== ГРАДИЕНТНЫЙ ФОН ИЗ SVG =====
-body {
-  background: linear-gradient(135deg, #808080 0%, #454545 100%);
-  min-height: 100vh;
-  position: relative;
-
-  // Декоративные элементы как в SVG:
-  &::before {
-    content: '';
-    position: fixed;
-    top: -150px;
-    right: -100px;
-    width: 300px;
-    height: 300px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 50%;
-    filter: blur(20px);
-    z-index: -1;
-  }
-
-  &::after {
-    content: '';
-    position: fixed;
-    bottom: -200px;
-    left: -100px;
-    width: 200px;
-    height: 400px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 12px;
-    transform: rotate(15deg);
-    filter: blur(15px);
-    z-index: -1;
-  }
-}
-
-// ===== КНОПКИ В СТИЛЕ SVG =====
-.btn {
-  @include glass-effect(0.2);
-  color: rgba(255, 255, 255, 0.9);
+@mixin button-glass($opacity: $glass-opacity-button) {
+  @include glass-effect($opacity);
+  border-radius: $border-radius;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
   font-weight: 500;
-  font-size: 0.875rem;
-  padding: 1rem 2rem; // 16px 32px как в SVG
-  border-radius: 0.75rem; // 12px как в SVG
-  box-shadow: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.1);
-  text-transform: none;
-  @include hover-lift;
-
-  &:hover {
-    @include glass-effect(0.3);
-    border-color: rgba(255, 255, 255, 0.4);
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+  transition: all $animation-duration $animation-easing;
+  
+  &:hover:not(:disabled) {
+    @include glass-effect($glass-opacity-hover);
+    transform: translateY($lift-small);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   }
-
-  &:active {
+  
+  &:active:not(:disabled) {
     transform: translateY(0);
   }
-
-  &:focus {
-    box-shadow: 0 0 0 0.1875rem rgba(255, 255, 255, 0.2);
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
   }
 }
 
-// ===== КАРТОЧКИ В СТИЛЕ SVG =====
+// ===== АДАПТИВНЫЕ МИКСИНЫ =====
+
+@mixin mobile-only {
+  @media (max-width: 767.98px) {
+    @content;
+  }
+}
+
+@mixin tablet-up {
+  @media (min-width: 768px) {
+    @content;
+  }
+}
+
+@mixin desktop-up {
+  @media (min-width: 992px) {
+    @content;
+  }
+}
+
+// ===== CSS CUSTOM PROPERTIES ДЛЯ ДИНАМИЧЕСКОЙ СМЕНЫ ТЕМЫ =====
+
+:root {
+  --primary-color: #{$primary};
+  --secondary-color: #{$secondary};
+  --bg-color: #{$body-bg};
+  --text-color: #{$body-color};
+  --glass-base: #{$glass-opacity-base};
+  --border-color: #{$border-color};
+}
+
+[data-theme="light"] {
+  --bg-color: #f8f9fa;
+  --text-color: #212529;
+  --glass-base: 0.05;
+  --border-color: rgba(0, 0, 0, 0.1);
+}
+
+// ===== БАЗОВЫЕ СТИЛИ =====
+
+body {
+  background: $body-bg;
+  color: $body-color;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+// ===== ИСПРАВЛЕНИЕ ПРОБЛЕМЫ С КНОПКАМИ =====
+
+// Базовые стили для всех кнопок
+.btn {
+  @include button-glass();
+  
+  // Исправление разброса кнопок - единообразные отступы
+  margin-bottom: 0.5rem;
+  
+  @include mobile-only {
+    width: 100%;
+    margin-bottom: 0.75rem;
+  }
+  
+  // Варианты кнопок
+  &.btn-primary {
+    background: rgba($primary, 0.8);
+    border-color: $primary;
+    
+    &:hover:not(:disabled) {
+      background: rgba($primary, 0.9);
+    }
+  }
+  
+  &.btn-success {
+    background: rgba($success, 0.8);
+    border-color: $success;
+    
+    &:hover:not(:disabled) {
+      background: rgba($success, 0.9);
+    }
+  }
+  
+  &.btn-warning {
+    background: rgba($warning, 0.8);
+    border-color: $warning;
+    
+    &:hover:not(:disabled) {
+      background: rgba($warning, 0.9);
+    }
+  }
+  
+  &.btn-danger {
+    background: rgba($danger, 0.8);
+    border-color: $danger;
+    
+    &:hover:not(:disabled) {
+      background: rgba($danger, 0.9);
+    }
+  }
+  
+  &.btn-outline-primary,
+  &.btn-outline-secondary,
+  &.btn-outline-success,
+  &.btn-outline-warning,
+  &.btn-outline-danger {
+    background: rgba(255, 255, 255, 0.1);
+    
+    &:hover:not(:disabled) {
+      background: rgba(255, 255, 255, 0.2);
+    }
+  }
+}
+
+// Группы кнопок - исправление выравнивания
+.btn-group,
+.btn-toolbar {
+  .btn {
+    margin-bottom: 0;
+  }
+}
+
+// Контейнеры для кнопок
+.d-grid {
+  .btn {
+    margin-bottom: 0.5rem;
+    
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+// Flex контейнеры с кнопками
+.d-flex,
+.d-inline-flex {
+  &.gap-2 .btn,
+  &.gap-3 .btn {
+    margin-bottom: 0;
+  }
+}
+
+// ===== КАРТОЧКИ =====
+
 .card {
-  @include glass-effect(0.1);
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 0.75rem;
-  box-shadow: 0 0.25rem 0.9375rem rgba(0, 0, 0, 0.1);
-  @include hover-lift;
-
-  &:hover {
-    @include glass-effect(0.15);
-    box-shadow: 0 0.5rem 1.5rem rgba(0, 0, 0, 0.15);
+  @include glass-effect();
+  border-radius: $border-radius;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  
+  .card-header {
+    background: rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  
+  .card-footer {
+    background: rgba(255, 255, 255, 0.05);
+    border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
 }
 
-// ===== ПОЛЯ ВВОДА В СТИЛЕ SVG =====
-.form-control {
-  @include glass-effect(0.1);
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 0.75rem;
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
+// ===== ФОРМЫ =====
 
+.form-control,
+.form-select {
+  @include glass-effect(0.1);
+  border-radius: $border-radius;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: white;
+  
   &::placeholder {
     color: rgba(255, 255, 255, 0.6);
   }
-
+  
   &:focus {
     @include glass-effect(0.15);
     border-color: rgba(255, 255, 255, 0.5);
-    box-shadow: 0 0 0 0.1875rem rgba(255, 255, 255, 0.2);
-    outline: none;
+    box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
   }
 }
 
-// ===== АЛЕРТЫ В СТИЛЕ SVG =====
-.alert {
-  @include glass-effect(0.1);
-  color: rgba(255, 255, 255, 0.9);
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
-  font-size: 0.875rem;
-}
+// ===== НАВИГАЦИЯ =====
 
-.alert-success {
-  background: rgba(23, 201, 100, 0.2);
-  border-color: rgba(23, 201, 100, 0.3);
-  color: #17C964;
-}
-
-.alert-danger {
-  background: rgba(243, 18, 96, 0.2);
-  border-color: rgba(243, 18, 96, 0.3);
-  color: #F31260;
-}
-
-.alert-warning {
-  background: rgba(245, 165, 36, 0.2);
-  border-color: rgba(245, 165, 36, 0.3);
-  color: #F5A524;
-}
-
-// ===== НАВИГАЦИЯ В СТИЛЕ SVG =====
 .navbar {
-  @include glass-effect(0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-
-  .nav-link {
-    color: rgba(255, 255, 255, 0.7);
-
-    &:hover {
-      color: rgba(255, 255, 255, 0.9);
-    }
-
-    &.active {
-      color: rgba(255, 255, 255, 1);
-    }
-  }
-}
-
-// ===== МОДАЛЬНЫЕ ОКНА В СТИЛЕ SVG =====
-.modal-content {
-  @include glass-effect(0.1);
-  backdrop-filter: blur(15px);
-  border-radius: 1rem;
-  color: rgba(255, 255, 255, 0.9);
-}
-
-.modal-backdrop {
-  background-color: rgba(0, 0, 0, 0.7);
-}
-
-// ===== СПЕЦИАЛЬНЫЕ КЛАССЫ ДЛЯ ЭКРАНОВ =====
-// Login экран
-.login-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 2rem;
-  position: relative;
-
-  .btn {
-    min-width: 200px;
-    font-size: 1rem;
-    padding: 1.25rem 2.5rem;
-  }
-}
-
-// Main Menu экран
-.main-menu-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 100vh;
-  padding: 2rem;
-  gap: 1.5rem;
-  position: relative;
-
-  .btn {
-    min-width: 250px;
-    font-size: 1rem;
-    padding: 1.25rem 2rem;
-  }
-}
-
-// Декоративные blur элементы как в SVG:
-.decorative-blur {
-  position: fixed;
-  z-index: -1;
-  pointer-events: none;
-
-  &.top-center {
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 150px;
-    height: 150px;
-    background: rgba(255, 255, 255, 0.15);
-    border-radius: 50%;
-    filter: blur(25px);
-  }
-
-  &.bottom-right {
-    bottom: 10%;
-    right: 10%;
-    width: 100px;
-    height: 200px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    filter: blur(12px);
-  }
-
-  &.left-side {
-    top: 50%;
-    left: 5%;
-    transform: translateY(-50%);
-    width: 80px;
-    height: 160px;
-    background: rgba(255, 255, 255, 0.06);
-    border-radius: 8px;
-    filter: blur(15px);
-  }
-}
-
-// Игровые карточки в стиле SVG:
-.game-room-card {
-  @include glass-effect(0.1);
-  border-radius: 0.75rem;
-  padding: 1rem 1.25rem;
-  color: rgba(255, 255, 255, 0.9);
-  margin-bottom: 0.5rem;
-  @include hover-lift;
-
-  &:hover {
-    @include glass-effect(0.15);
-  }
-}
-
-// Кнопки действий в игре:
-.game-action-btn {
-  width: 43px;
-  height: 43px;
-  border-radius: 50%;
   @include glass-effect(0.2);
-  color: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(8px);
-  transition: all 0.3s ease;
+  backdrop-filter: blur($blur-strong);
+}
 
+.nav-link {
+  color: rgba(255, 255, 255, 0.8) !important;
+  transition: all $animation-duration $animation-easing;
+  
   &:hover {
-    @include glass-effect(0.3);
-    transform: translateY(-0.0625rem);
+    color: white !important;
+    transform: translateY($lift-small);
+  }
+  
+  &.active {
+    color: white !important;
+    font-weight: 600;
+  }
+}
+
+// ===== НИЖНЯЯ НАВИГАЦИЯ =====
+
+.bottom-navbar {
+  @include glass-effect(0.3);
+  backdrop-filter: blur($blur-strong);
+  border-top: 1px solid rgba(255, 255, 255, 0.2);
+  
+  .bottom-nav-link {
+    color: rgba(255, 255, 255, 0.7);
+    transition: all $animation-duration $animation-easing;
+    padding: 0.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    
+    &:hover {
+      color: white;
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateY(-2px);
+    }
+    
+    &--active {
+      color: white;
+      background: rgba(255, 255, 255, 0.15);
+      font-weight: 600;
+    }
+    
+    &--disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      
+      &:hover {
+        transform: none;
+        background: none;
+      }
+    }
+  }
+}
+
+// ===== УТИЛИТАРНЫЕ КЛАССЫ =====
+
+.glass {
+  @include glass-effect();
+  
+  &--light { @include glass-effect(0.05); }
+  &--medium { @include glass-effect(0.15); }
+  &--strong { @include glass-effect(0.25); }
+}
+
+.hover-lift {
+  @include hover-lift;
+}
+
+.text-glass {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.text-glass-muted {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+// ===== АНИМАЦИИ ДЛЯ ДЕКОРАТИВНЫХ ЭЛЕМЕНТОВ =====
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.1; }
+  50% { opacity: 0.2; }
+}
+
+.decorative-blur {
+  animation: float 6s ease-in-out infinite;
+  
+  &.top-center {
+    animation-delay: 0s;
+  }
+  
+  &.bottom-right {
+    animation: pulse-glow 4s ease-in-out infinite;
+    animation-delay: 1s;
+  }
+  
+  &.left-side {
+    animation-delay: 2s;
+  }
+}
+
+// ===== ACCESSIBILITY =====
+
+.btn, .form-control, .nav-link {
+  &:focus-visible {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+    box-shadow: 0 0 0 0.1875rem rgba(255, 255, 255, 0.2);
+  }
+}
+
+.btn:focus:not(:focus-visible) {
+  outline: none;
+  box-shadow: none;
+}
+
+// ===== PRINT СТИЛИ =====
+
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  
+  .decorative-blur,
+  .glass-effect {
+    display: none !important;
+  }
+  
+  .btn {
+    background: white !important;
+    border: 1px solid black !important;
+    color: black !important;
+  }
+}
+
+// ===== ИГРОВЫЕ КОМПОНЕНТЫ =====
+
+.game-card {
+  @include glass-effect(0.2);
+  border-radius: 8px;
+  transition: all $animation-duration $animation-easing;
+  
+  &--selected {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
+  }
+  
+  &--trump {
+    border-color: rgba(240, 173, 78, 0.8);
+    background: rgba(255, 243, 205, 0.1);
+  }
+  
+  &--clickable {
+    cursor: pointer;
+    
+    &:hover {
+      transform: translateY(-3px);
+    }
+  }
+}
+
+.player-slot {
+  @include glass-effect(0.15);
+  border-radius: $border-radius;
+  padding: 1rem;
+  text-align: center;
+  transition: all $animation-duration $animation-easing;
+  
+  &--ready {
+    border-color: rgba(92, 184, 92, 0.8);
+    background: rgba(92, 184, 92, 0.1);
+  }
+  
+  &--you {
+    border-color: rgba(74, 144, 226, 0.8);
+    background: rgba(74, 144, 226, 0.1);
+  }
+  
+  &--disconnected {
+    opacity: 0.6;
+    border-color: rgba(240, 173, 78, 0.8);
+  }
+}
+
+// ===== АДАПТИВНОСТЬ =====
+
+@include mobile-only {
+  .container {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  
+  .card {
+    margin-bottom: 1rem;
+  }
+  
+  .btn {
+    padding: 0.75rem 1rem;
+    font-size: 1rem;
+  }
+}
+
+@include tablet-up {
+  .btn {
+    padding: 0.5rem 1.5rem;
+  }
+}
+
+@include desktop-up {
+  .container {
+    max-width: 1200px;
   }
 }
