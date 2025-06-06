@@ -4,12 +4,27 @@ import React, { useEffect, useState, Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Container, Spinner, Alert } from 'react-bootstrap';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
-import { GameSettingsProvider } from './context/GameSettingsProvider.tsx';
-import { GameProvider } from './context/GameProvider.tsx';
-import { useGame } from './context/GameProvider.tsx';
+import { GameSettingsProvider } from './context/GameSettingsProvider';
+import { GameProvider } from './context/GameProvider';
+import { useGame } from './context/GameProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConnectionStatus from './components/ConnectionStatus';
 import BottomNavbar from './components/BottomNavbar';
+import type { GameMode, ThrowingMode, CardCount, PlayerCount } from '@shared/types';
+// ===== ТИПЫ TELEGRAM =====
+declare global {
+  interface Window {
+    Telegram?: {
+      WebApp?: {
+        ready(): void;
+        expand(): void;
+        enableClosingConfirmation(): void;
+        disableVerticalSwipes(): void;
+        colorScheme?: 'light' | 'dark';
+      };
+    };
+  }
+}
 
 // ===== LAZY LOADING СТРАНИЦ =====
 

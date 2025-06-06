@@ -1,0 +1,26 @@
+{
+  "name": "durak-game-server",
+  "version": "1.0.0",
+  "description": "Durak card game server for Telegram Mini App",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "dev": "ts-node src/server.ts",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "ws": "^8.14.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/ws": "^8.5.0",
+    "@types/uuid": "^9.0.0",
+    "typescript": "^5.0.0",
+    "ts-node": "^10.9.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

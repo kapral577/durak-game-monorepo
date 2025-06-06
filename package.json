@@ -10,5 +10,8 @@
     "build": "cd apps/frontend && npm run build",
     "dev": "cd apps/frontend && npm run dev",
     "install:frontend": "cd apps/frontend && npm install"
+  },
+  "devDependencies": {
+    "typescript": "^5.8.3"
   }
 }
