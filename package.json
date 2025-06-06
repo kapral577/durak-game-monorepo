@@ -7,8 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "cd apps/fronted && npm install && npm run build",
-    "dev": "cd apps/fronted && npm run dev",
+    "build": "cd apps/frontend && npm install && npm run build",
+    "dev": "cd apps/frontend && npm run dev",
     "install:frontend": "cd apps/fronted && npm install"
   },
   "devDependencies": {
