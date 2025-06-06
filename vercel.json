@@ -1,5 +1,0 @@
-{
-  "$schema": "https://openapi.vercel.sh/vercel.json",
-  "buildCommand": "cd apps/fronted && npm run build",
-  "outputDirectory": "apps/fronted/dist"
-}
