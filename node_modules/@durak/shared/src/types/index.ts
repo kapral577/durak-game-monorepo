@@ -223,6 +223,20 @@ export const GAME_CONFIG = {
   MAX_CARDS_IN_ATTACK: 6
 } as const;
 
+// ===== UI КОНСТАНТЫ =====
+export const UI_CONFIG = {
+  CARD_WIDTH: 120,
+  CARD_HEIGHT: 180,
+  CARD_BORDER_RADIUS: 8,
+  CARD_SHADOW: '0 2px 4px rgba(0,0,0,0.1)',
+  ANIMATION_DURATION: 300,
+  BOARD_PADDING: 20,
+  HAND_SPACING: 10
+} as const;
+
+// ===== UI ТИПЫ =====
+export type CardSize = 'small' | 'medium' | 'large';
+export type SuitColor = 'red' | 'black';
 // ===== УТИЛИТАРНЫЕ ТИПЫ =====
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 export type LoadingState = boolean;
