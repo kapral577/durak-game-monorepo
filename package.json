@@ -9,7 +9,7 @@
   "scripts": {
     "build": "cd apps/frontend && npm install && npm run build",
     "dev": "cd apps/frontend && npm run dev",
-    "install:frontend": "cd apps/fronted && npm install"
+    "install:frontend": "cd apps/frontend && npm install"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
