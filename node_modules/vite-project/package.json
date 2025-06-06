@@ -10,10 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@popperjs/core": "^2.11.8",
     "bootstrap": "^5.3.6",
     "react": "^19.0.0",
     "react-bootstrap": "^2.10.9",
     "react-dom": "^19.0.0",
+    "react-helmet-async": "^2.0.5",
     "react-router-dom": "^7.5.2",
     "sass": "^1.89.1",
     "uuid": "^11.1.0"
