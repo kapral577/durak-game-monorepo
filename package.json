@@ -1,5 +1,5 @@
 {
-  "name": "durak-game-monorepo",
+  "name": "durak-game-monorepo", 
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -7,9 +7,9 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "cd apps/frontend && npm install && npm run build",
-    "dev": "cd apps/frontend && npm run dev",
-    "install:frontend": "cd apps/frontend && npm install"
+    "build:frontend": "npm run build --workspace=apps/fronted",
+    "dev:frontend": "npm run dev --workspace=apps/fronted",
+    "install:frontend": "npm install --workspace=apps/fronted"
   },
   "devDependencies": {
     "typescript": "^5.8.3"
