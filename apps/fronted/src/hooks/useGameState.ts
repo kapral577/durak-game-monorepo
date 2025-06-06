@@ -6,7 +6,7 @@ import {
   GameAction, 
   WebSocketMessage,
   WebSocketResponse 
-} from '../../../packages/shared/src/types';
+} from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

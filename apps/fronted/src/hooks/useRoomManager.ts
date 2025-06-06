@@ -7,7 +7,7 @@ import {
   WebSocketResponse,
   AutoStartInfo,
   GameRules 
-} from '../../../packages/shared/src/types';
+} from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

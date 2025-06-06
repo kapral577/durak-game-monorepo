@@ -1,6 +1,6 @@
 // src/utils/TelegramAuth.ts - УТИЛИТЫ ДЛЯ РАБОТЫ С TELEGRAM WEBAPP
 
-import { Player, TelegramUser, TelegramInitData } from '../../../packages/shared/src/types';
+import { Player, TelegramUser, TelegramInitData } from '@shared/types';
 
 // ===== ТИПИЗАЦИЯ TELEGRAM WEBAPP API =====
 

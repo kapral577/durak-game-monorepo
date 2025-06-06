@@ -2,8 +2,8 @@
 
 import React, { useCallback, useMemo } from 'react';
 import { Alert, Button, Spinner } from 'react-bootstrap';
-import { ConnectionStatus as ConnectionStatusType } from '../../../packages/shared/src/types';
-import { useGame } from '../contexts/GameProvider';
+import { ConnectionStatus as ConnectionStatusType } from '@shared/types';
+import { useGame } from '../context/GameProvider';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

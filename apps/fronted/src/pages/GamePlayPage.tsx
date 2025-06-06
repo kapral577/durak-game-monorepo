@@ -3,13 +3,13 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Alert } from 'react-bootstrap';
-import { useGame } from '../contexts/GameProvider';
-import { Card as CardType, GameAction } from '../../../packages/shared/src/types';
-import GameBoard from '../components/GameBoard';
-import PlayerHand from '../components/PlayerHand';
-import GameControls from '../components/GameControls';
-import GameInfo from '../components/GameInfo';
-import TrumpCard from '../components/TrumpCard';
+import { useGame } from '../context/GameProvider';
+import { Card as CardType, GameAction } from '@shared/types';
+import GameBoard from '../components/game/GameBoard';
+import PlayerHand from '../components/game/PlayerHand';
+import GameControls from '../components/game/GameControls';
+import GameInfo from '../components/game/GameInfo';
+import TrumpCard from '../components/game/TrumpCard';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Form } from 'react-bootstrap';
-import { useGame } from '../contexts/GameProvider';
+import { useGame } from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

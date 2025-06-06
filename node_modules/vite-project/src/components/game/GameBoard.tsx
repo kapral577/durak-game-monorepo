@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { Container, Row, Col, Card } from 'react-bootstrap';
-import { TableCard, Card as CardType } from '../../../packages/shared/src/types';
+import { TableCard, Card as CardType } from '@shared/types';
 import GameCard from './GameCard';
 
 // ===== ИНТЕРФЕЙСЫ =====

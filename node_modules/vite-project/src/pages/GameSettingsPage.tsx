@@ -3,9 +3,9 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
-import { useGame } from '../contexts/GameProvider';
-import { useGameSettings } from '../contexts/GameSettingsProvider';
-import { GameMode, ThrowingMode, CardCount, PlayerCount } from '../../../packages/shared/src/types';
+import { useGame } from '../context/GameProvider';
+import { useGameSettings } from '../context/GameSettingsProvider';
+import { GameMode, ThrowingMode, CardCount, PlayerCount } from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

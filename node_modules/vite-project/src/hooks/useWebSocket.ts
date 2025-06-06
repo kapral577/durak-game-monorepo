@@ -6,7 +6,7 @@ import {
   TelegramUser, 
   ConnectionStatus,
   WEBSOCKET_CONFIG 
-} from '../../../packages/shared/src/types';
+} from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Card } from 'react-bootstrap';
-import { Card as CardType, SuitSymbol } from '../../../packages/shared/src/types';
+import { Card as CardType, SuitSymbol } from '@shared/types';
 import GameCard from './GameCard';
 
 // ===== ИНТЕРФЕЙСЫ =====

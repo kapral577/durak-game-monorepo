@@ -1,8 +1,8 @@
 // src/components/GameCard.tsx - ИГРОВАЯ КАРТА
 
 import React, { useMemo, useCallback } from 'react';
-import { Card as CardType } from '../../../packages/shared/src/types';
-import { CardSize, SuitColor, UI_CONFIG } from '../types/context';
+import { Card as CardType } from '@shared/types';
+import { CardSize, SuitColor, UI_CONFIG } from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

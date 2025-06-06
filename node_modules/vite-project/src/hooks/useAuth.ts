@@ -1,7 +1,7 @@
 // src/hooks/useAuth.ts - ХУК ДЛЯ АУТЕНТИФИКАЦИИ
 
 import { useState, useCallback, useEffect } from 'react';
-import { TelegramUser, Player } from '../../../packages/shared/src/types';
+import { TelegramUser, Player } from '@shared/types';
 import { TelegramAuth } from '../utils/TelegramAuth';
 
 // ===== ИНТЕРФЕЙСЫ =====

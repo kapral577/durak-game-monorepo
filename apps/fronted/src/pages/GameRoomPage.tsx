@@ -3,7 +3,7 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Badge, ProgressBar, Spinner } from 'react-bootstrap';
-import { useGame } from '../contexts/GameProvider';
+import { useGame } from '../context/GameProvider';
 import PlayerSlot from '../components/PlayerSlot';
 
 // ===== ИНТЕРФЕЙСЫ =====

@@ -3,7 +3,7 @@
 import React, { useMemo, useCallback } from 'react';
 import { Navbar, Nav, Badge } from 'react-bootstrap';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useGame } from '../contexts/GameProvider';
+import { useGame } from '../context/GameProvider';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

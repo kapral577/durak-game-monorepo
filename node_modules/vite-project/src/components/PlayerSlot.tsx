@@ -1,7 +1,7 @@
 // src/components/PlayerSlot.tsx - СЛОТ ИГРОКА
 
 import React, { useMemo, useCallback } from 'react';
-import { Player } from '../../../packages/shared/src/types';
+import { Player } from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

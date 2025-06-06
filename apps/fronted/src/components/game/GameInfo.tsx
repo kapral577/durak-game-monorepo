@@ -2,7 +2,7 @@
 
 import React, { useMemo, useCallback } from 'react';
 import { Card, Row, Col, Badge, Alert } from 'react-bootstrap';
-import { GameState, Player } from '../../../packages/shared/src/types';
+import { GameState, Player } from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

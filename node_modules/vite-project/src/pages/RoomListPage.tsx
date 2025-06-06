@@ -3,8 +3,8 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, Badge, Spinner } from 'react-bootstrap';
-import { useGame } from '../contexts/GameProvider';
-import { Room } from '../../../packages/shared/src/types';
+import { useGame } from '../context/GameProvider';
+import { Room } from '@shared/types';
 
 // ===== ИНТЕРФЕЙСЫ =====
 

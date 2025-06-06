@@ -7,7 +7,7 @@ import {
   PlayerCount,
   VALIDATION_RULES,
   ValidationResult 
-} from '../../../packages/shared/src/types';
+} from '@shared/types';
 
 /**
  * Режимы игры в дурака

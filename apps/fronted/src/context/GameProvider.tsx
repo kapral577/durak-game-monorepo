@@ -9,7 +9,7 @@ import {
   TelegramUser,
   ConnectionStatus,
   GameError
-} from '../../../packages/shared/src/types';
+} from '@shared/types';
 import { useAuth } from '../hooks/useAuth';
 import { useWebSocket } from '../hooks/useWebSocket';
 import { useGameState } from '../hooks/useGameState';
@@ -70,10 +70,10 @@ export interface GameContextMethods {
   clearError: () => void;
   
   // Игровые действия
-  makeGameAction: (action: import('../../../packages/shared/src/types').GameAction) => Promise<void>;
+  makeGameAction: (action: import('@shared/types').GameAction) => Promise<void>;
   
   // Управление комнатами
-  createRoom: (name: string, rules: import('../../../packages/shared/src/types').GameRules, isPrivate?: boolean) => Promise<void>;
+  createRoom: (name: string, rules: import('@shared/types').GameRules, isPrivate?: boolean) => Promise<void>;
   joinRoom: (roomId: string) => Promise<void>;
   leaveRoom: () => Promise<void>;
   setReady: () => Promise<void>;
@@ -203,7 +203,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
    */
   const createRoom = async (
     name: string, 
-    rules: import('../../../packages/shared/src/types').GameRules, 
+    rules: import('@shared/types').GameRules, 
     isPrivate = false
   ): Promise<void> => {
     updateLoadingState('joiningRoom', true);
@@ -241,7 +241,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   /**
    * Игровое действие с обновлением состояния
    */
-  const makeGameAction = async (action: import('../../../packages/shared/src/types').GameAction): Promise<void> => {
+  const makeGameAction = async (action: import('@shared/types').GameAction): Promise<void> => {
     updateLoadingState('makingAction', true);
     try {
       await gameState.makeGameAction(action);
