@@ -7,6 +7,7 @@ import { WebSocket } from 'ws';
 import {
   Player,
   Room as RoomType,
+  PlayerCount,
   GameRules,
   TelegramUser,
   GameState,
@@ -29,7 +30,7 @@ class Room {
   public name: string;
   public players: Map<string, Player> = new Map();
   public sockets: Map<string, WebSocket> = new Map();
-  public maxPlayers: number;
+  public maxPlayers: PlayerCount;
   public rules: GameRules;
   public status: 'waiting' | 'playing' | 'finished' = 'waiting';
   public createdAt: string;
@@ -280,6 +281,8 @@ export class RoomManager {
       needMorePlayers: connectedPlayers.length < 2,
       isAutoStarting: false,
       countdown: 0,
+      minPlayers: room.rules.minPlayers,
+      maxPlayers: room.rules.maxPlayers,
     };
 
     room.broadcast({

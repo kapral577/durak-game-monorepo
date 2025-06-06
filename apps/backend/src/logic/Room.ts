@@ -2,7 +2,7 @@
 
 import { WebSocket } from 'ws';
 
-import { GameState, Player, GameRules, Room as RoomType } from '@shared/types';
+import { GameState, Player, GameRules, PlayerCount, Room as RoomType } from '@shared/types';
 
 export class Room {
 
@@ -12,7 +12,7 @@ public name: string;
 
 public rules: GameRules; // ✅ ИСПРАВЛЕНО - используем GameRules из shared
 
-public maxPlayers: number;
+public maxPlayers: PlayerCount;
 
 public status: 'waiting' | 'playing' | 'finished';
 

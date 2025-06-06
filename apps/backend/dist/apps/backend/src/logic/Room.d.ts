@@ -1,10 +1,10 @@
 import { WebSocket } from 'ws';
-import { GameState, Player, GameRules, Room as RoomType } from '@shared/types';
+import { GameState, Player, GameRules, PlayerCount, Room as RoomType } from '@shared/types';
 export declare class Room {
     id: string;
     name: string;
     rules: GameRules;
-    maxPlayers: number;
+    maxPlayers: PlayerCount;
     status: 'waiting' | 'playing' | 'finished';
     createdAt: string;
     hostId: string;

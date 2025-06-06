@@ -216,6 +216,8 @@ class RoomManager {
             needMorePlayers: connectedPlayers.length < 2,
             isAutoStarting: false,
             countdown: 0,
+            minPlayers: room.rules.minPlayers,
+            maxPlayers: room.rules.maxPlayers,
         };
         room.broadcast({
             type: 'player_ready_changed',

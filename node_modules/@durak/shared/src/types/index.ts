@@ -1,4 +1,5 @@
 // packages/shared/src/types/index.ts - ЕДИНЫЙ ИСТОЧНИК ИСТИНЫ ДЛЯ ВСЕГО ПРОЕКТА
+import { WebSocket } from 'ws';
 
 // ===== БАЗОВЫЕ ТИПЫ =====
 export type SuitSymbol = '♠' | '♥' | '♦' | '♣';
@@ -66,6 +67,7 @@ export interface GameRules {
   throwingMode: ThrowingMode;
   cardCount: CardCount;
   maxPlayers: PlayerCount; // ✅ УТОЧНЕНО допустимые значения
+  minPlayers: PlayerCount
 }
 
 export interface Room {
