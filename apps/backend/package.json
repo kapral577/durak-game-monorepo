@@ -10,15 +10,17 @@
     "clean": "rm -rf dist"
   },
   "dependencies": {
-    "ws": "^8.14.0",
-    "uuid": "^9.0.0"
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^9.0.0",
+    "ws": "^8.14.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^20.0.0",
-    "@types/ws": "^8.5.0",
     "@types/uuid": "^9.0.0",
-    "typescript": "^5.0.0",
-    "ts-node": "^10.9.0"
+    "@types/ws": "^8.5.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.0.0"
   },
   "engines": {
     "node": ">=18.0.0"
