@@ -13,18 +13,6 @@ declare global {
 }
 
 /**
- * Интерфейс пользователя Telegram
- */
-interface TelegramUser {
-  id: number;
-  first_name: string;
-  last_name?: string;
-  username?: string;
-  language_code?: string;
-  photo_url?: string;
-}
-
-/**
  * Интерфейс Telegram WebApp
  */
 interface TelegramWebApp {
@@ -63,6 +51,15 @@ interface ServerValidationResponse {
   error?: string;
 }
 
+/**
+ * Элемент кэша валидации
+ */
+interface CacheEntry {
+  result: boolean;
+  timestamp: number;
+  user?: TelegramUser;
+}
+
 // ===== КОНСТАНТЫ =====
 
 const AUTH_CONSTANTS = {
@@ -70,7 +67,8 @@ const AUTH_CONSTANTS = {
   CACHE_DURATION_MS: 5 * 60 * 1000, // 5 минут
   MAX_RETRIES: 3,
   RETRY_DELAY_BASE: 1000,
-  MOCK_USER_ID_PREFIX: 'test-'
+  MAX_CACHE_SIZE: 100,
+  MOCK_USER_ID: 999999999
 } as const;
 
 const API_ENDPOINTS = {
@@ -96,11 +94,7 @@ const ERROR_MESSAGES = {
  */
 export class TelegramAuth {
   // Кэш для результатов валидации
-  private static validationCache = new Map<string, { 
-    result: boolean; 
-    timestamp: number; 
-    user?: TelegramUser 
-  }>();
+  private static validationCache = new Map<string, CacheEntry>();
 
   /**
    * Проверка доступности Telegram WebApp
@@ -137,10 +131,22 @@ export class TelegramAuth {
     }
 
     if (process.env.NODE_ENV === 'development') {
-      console.log('✅ Got Telegram user:', user);
+      // Логируем только базовую информацию для безопасности
+      console.log('✅ Got Telegram user:', { 
+        id: user.id, 
+        first_name: user.first_name,
+        username: user.username 
+      });
     }
 
     return user;
+  }
+
+  /**
+   * Проверка, является ли пользователь mock пользователем
+   */
+  static isMockUser(userId: number): boolean {
+    return userId === AUTH_CONSTANTS.MOCK_USER_ID;
   }
 
   /**
@@ -162,7 +168,7 @@ export class TelegramAuth {
     }
 
     // Проверка auth_date только для реальных пользователей
-    if (!user.id.toString().startsWith(AUTH_CONSTANTS.MOCK_USER_ID_PREFIX)) {
+    if (!this.isMockUser(user.id)) {
       const authDate = window.Telegram?.WebApp?.initDataUnsafe?.auth_date;
       
       if (authDate) {
@@ -190,10 +196,43 @@ export class TelegramAuth {
   }
 
   /**
+   * Создание ключа для кэша
+   */
+  private static createCacheKey(initData: string): string {
+    try {
+      return btoa(initData).substring(0, 32);
+    } catch {
+      return initData.substring(0, 32);
+    }
+  }
+
+  /**
+   * Очистка старых записей кэша
+   */
+  private static clearOldestCacheEntries(): void {
+    if (this.validationCache.size < AUTH_CONSTANTS.MAX_CACHE_SIZE) {
+      return;
+    }
+
+    const entries = Array.from(this.validationCache.entries())
+      .sort(([, a], [, b]) => a.timestamp - b.timestamp);
+    
+    const toRemove = Math.floor(AUTH_CONSTANTS.MAX_CACHE_SIZE * 0.3);
+    
+    for (let i = 0; i < toRemove; i++) {
+      this.validationCache.delete(entries[i][0]);
+    }
+
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`🗑️ Removed ${toRemove} old cache entries`);
+    }
+  }
+
+  /**
    * Серверная валидация с кэшированием
    */
-  static async validateOnServerCached(initData: string, botToken: string): Promise<boolean> {
-    const cacheKey = `${initData}_${botToken}`;
+  static async validateOnServerCached(initData: string): Promise<boolean> {
+    const cacheKey = this.createCacheKey(initData);
     const cached = this.validationCache.get(cacheKey);
     
     if (cached && (Date.now() - cached.timestamp) < AUTH_CONSTANTS.CACHE_DURATION_MS) {
@@ -203,7 +242,12 @@ export class TelegramAuth {
       return cached.result;
     }
     
-    const result = await this.validateOnServerWithRetry(initData, botToken);
+    // Очистка кэша при превышении лимита
+    if (this.validationCache.size >= AUTH_CONSTANTS.MAX_CACHE_SIZE) {
+      this.clearOldestCacheEntries();
+    }
+    
+    const result = await this.validateOnServerWithRetry(initData);
     this.validationCache.set(cacheKey, { 
       result, 
       timestamp: Date.now() 
@@ -217,11 +261,10 @@ export class TelegramAuth {
    */
   static async validateOnServerWithRetry(
     initData: string, 
-    botToken: string, 
     retryCount = 0
   ): Promise<boolean> {
     try {
-      return await this.validateOnServer(initData, botToken);
+      return await this.validateOnServer(initData);
     } catch (error) {
       if (retryCount < AUTH_CONSTANTS.MAX_RETRIES) {
         if (process.env.NODE_ENV === 'development') {
@@ -231,7 +274,7 @@ export class TelegramAuth {
         const delay = AUTH_CONSTANTS.RETRY_DELAY_BASE * Math.pow(2, retryCount);
         await new Promise(resolve => setTimeout(resolve, delay));
         
-        return this.validateOnServerWithRetry(initData, botToken, retryCount + 1);
+        return this.validateOnServerWithRetry(initData, retryCount + 1);
       }
       
       if (process.env.NODE_ENV === 'development') {
@@ -243,12 +286,12 @@ export class TelegramAuth {
   }
 
   /**
-   * Серверная валидация
+   * Серверная валидация (БЕЗ передачи bot token на клиент!)
    */
-  static async validateOnServer(initData: string, botToken: string): Promise<boolean> {
-    if (!initData || !botToken) {
+  static async validateOnServer(initData: string): Promise<boolean> {
+    if (!initData) {
       if (process.env.NODE_ENV === 'development') {
-        console.error('❌ Missing initData or botToken for validation');
+        console.error('❌ Missing initData for validation');
       }
       return false;
     }
@@ -264,7 +307,7 @@ export class TelegramAuth {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ initData, botToken }),
+        body: JSON.stringify({ initData }), // Только initData, bot token остается на сервере
       });
 
       if (!response.ok) {
@@ -330,7 +373,7 @@ export class TelegramAuth {
    */
   private static getMockUser(): TelegramUser {
     return {
-      id: parseInt(`${AUTH_CONSTANTS.MOCK_USER_ID_PREFIX}${Date.now()}`),
+      id: AUTH_CONSTANTS.MOCK_USER_ID,
       first_name: 'Test User',
       last_name: 'Developer',
       username: 'test_user',
@@ -348,9 +391,7 @@ export class TelegramAuth {
       errors.push('VITE_API_URL is not configured');
     }
     
-    if (!import.meta.env.VITE_BOT_TOKEN && process.env.NODE_ENV === 'production') {
-      errors.push('VITE_BOT_TOKEN is required in production');
-    }
+    // Bot token НЕ должен быть на клиенте, поэтому убираем эту проверку
     
     return {
       isValid: errors.length === 0,
@@ -418,7 +459,6 @@ export class TelegramAuth {
 
 // ===== ЭКСПОРТ ДОПОЛНИТЕЛЬНЫХ ТИПОВ =====
 export type { 
-  TelegramUser,
   TelegramWebApp,
   AuthValidationResult,
   ServerValidationResponse 
