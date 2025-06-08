@@ -1,4 +1,4 @@
-// durak-server/auth/TelegramAuth.ts - УЛУЧШЕННАЯ ВЕРСИЯ
+// durak-server/auth/TelegramAuth.ts - УЛУЧШЕННАЯ ВЕРСИЯ БЭКЕНД
 
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';

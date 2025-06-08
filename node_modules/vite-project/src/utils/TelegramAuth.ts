@@ -1,4 +1,4 @@
-// src/utils/TelegramAuth.ts - УТИЛИТЫ ДЛЯ РАБОТЫ С TELEGRAM WEBAPP
+// src/utils/TelegramAuth.ts - УТИЛИТЫ ДЛЯ РАБОТЫ С TELEGRAM WEBAPP ФРОНТЕНД
 
 import { Player, TelegramUser, TelegramInitData } from '@shared/types';
 
@@ -301,7 +301,9 @@ export class TelegramAuth {
       if (!apiUrl) {
         throw new Error(ERROR_MESSAGES.MISSING_CONFIG);
       }
-
+console.log('🔍 API URL:', apiUrl);
+  console.log('🔍 Full URL:', `${apiUrl}${API_ENDPOINTS.VALIDATE_TELEGRAM}`);
+  console.log('🔍 InitData length:', initData?.length);
       const response = await fetch(`${apiUrl}${API_ENDPOINTS.VALIDATE_TELEGRAM}`, {
         method: 'POST',
         headers: {

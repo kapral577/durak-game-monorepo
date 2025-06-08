@@ -45,10 +45,15 @@ class DurakGameServer {
     // HTTP СЕРВЕР С ПРАВИЛЬНЫМИ ЭНДПОИНТАМИ
     this.server = http.createServer((req, res) => {
       // CORS заголовки для всех запросов
-      res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
-      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-Init-Data');
-
+       res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-Init-Data');
+  
+console.log(`🔍 ${req.method} ${req.url}`);
+ 
+  if (req.url?.includes('/auth/validate-telegram')) {
+    console.log('✅ Validation endpoint detected');
+  }
       // Обработка preflight OPTIONS запросов
       if (req.method === 'OPTIONS') {
         res.writeHead(200);
