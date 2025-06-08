@@ -109,7 +109,7 @@ class DurakGameServer {
     console.log(`🤖 Bot Token: ${process.env.TELEGRAM_BOT_TOKEN ? '✅ Set' : '❌ Missing'}`);
   }
 
-  // ✅ НОВЫЙ ЭНДПОИНТ: /auth/validate-telegram
+  // ✅ ИСПРАВЛЕНО: /auth/validate-telegram
   private handleValidateTelegramAuth(req: any, res: any): void {
     console.log('🔐 POST /auth/validate-telegram');
     
@@ -183,7 +183,7 @@ class DurakGameServer {
     });
   }
 
-  // ✅ НОВЫЙ ЭНДПОИНТ: /auth/login  
+  // ✅ ИСПРАВЛЕНО: /auth/login теперь возвращает единообразный формат
   private handleLoginAuth(req: any, res: any): void {
     console.log('🔐 POST /auth/login');
     
@@ -200,8 +200,8 @@ class DurakGameServer {
           initDataLength: initData?.length || 0 
         });
 
-        // Если передан telegramUser напрямую (для совместимости)
-        if (telegramUser && !initData) {
+        // Development режим с прямым пользователем
+        if (process.env.NODE_ENV === 'development' && telegramUser && !initData) {
           console.log('🧪 Direct user login (development mode)');
           
           const authToken = TelegramAuth.generateAuthToken(telegramUser);
@@ -214,10 +214,13 @@ class DurakGameServer {
             isReady: false
           };
 
-          const response: LoginResponse = {
-            success: true,
-            token: authToken,
-            player: player
+          // ✅ ИСПОЛЬЗУЕМ ValidationResponse формат для единообразия
+          const response: ValidationResponse = {
+            valid: true,
+            user: {
+              ...player,
+              token: authToken // Добавляем токен в user объект
+            }
           };
 
           res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -227,8 +230,8 @@ class DurakGameServer {
 
         // Валидация через initData (основной способ)
         if (!initData) {
-          const response: LoginResponse = {
-            success: false,
+          const response: ValidationResponse = {
+            valid: false,
             error: 'Missing authentication data'
           };
           res.writeHead(400, { 'Content-Type': 'application/json' });
@@ -240,8 +243,8 @@ class DurakGameServer {
         const validatedUser = TelegramAuth.validateInitData(initData, clientIP);
 
         if (!validatedUser) {
-          const response: LoginResponse = {
-            success: false,
+          const response: ValidationResponse = {
+            valid: false,
             error: 'Invalid Telegram authentication'
           };
           res.writeHead(401, { 'Content-Type': 'application/json' });
@@ -260,10 +263,13 @@ class DurakGameServer {
           isReady: false
         };
 
-        const response: LoginResponse = {
-          success: true,
-          token: authToken,
-          player: player
+        // ✅ ИСПОЛЬЗУЕМ ValidationResponse формат для единообразия
+        const response: ValidationResponse = {
+          valid: true,
+          user: {
+            ...player,
+            token: authToken // Добавляем токен в user объект
+          }
         };
 
         res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -274,8 +280,8 @@ class DurakGameServer {
       } catch (error) {
         console.error('❌ Login error:', error);
         
-        const response: LoginResponse = {
-          success: false,
+        const response: ValidationResponse = {
+          valid: false,
           error: 'Internal server error'
         };
 
