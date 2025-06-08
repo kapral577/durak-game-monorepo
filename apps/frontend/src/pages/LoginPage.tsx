@@ -105,15 +105,11 @@ const authenticateWithRetry = async (
   const MAX_RETRIES = 3;
   
   try {
-    const response = await fetch(getApiUrl('/auth/login'), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        initData, 
-        userId: user.id, 
-        username: user.username || user.first_name 
-      })
-    });
+    const response = await fetch(getApiUrl('/auth/validate-telegram'), {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ initData })  // ← Только initData
+});
     
     if (!response.ok) {
       throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
