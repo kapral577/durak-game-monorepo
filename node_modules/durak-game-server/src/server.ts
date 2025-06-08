@@ -42,17 +42,19 @@ class DurakGameServer {
   constructor() {
     this.port = parseInt(process.env.PORT || '3001');
     
-    // HTTP СЕРВЕР С ПРАВИЛЬНЫМИ ЭНДПОИНТАМИ
     this.server = http.createServer((req, res) => {
-      // CORS заголовки для всех запросов
-       res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-Init-Data');
   
-console.log(`🔍 ${req.method} ${req.url}`);
- 
-  if (req.url?.includes('/auth/validate-telegram')) {
+  console.log(`🔍 ${req.method} ${req.url}`);
+  
+  // ОДНО условие вместо двух вложенных
+  if (req.url?.includes('validate-telegram') && req.method === 'POST') {
     console.log('✅ Validation endpoint detected');
+    console.log('🔥 FORCING VALIDATION HANDLER');
+    this.handleValidateTelegramAuth(req, res);
+    return;
   }
       // Обработка preflight OPTIONS запросов
       if (req.method === 'OPTIONS') {
