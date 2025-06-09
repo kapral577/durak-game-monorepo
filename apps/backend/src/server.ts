@@ -173,7 +173,19 @@ class DurakGameServer {
           try {
             // Валидация официальным пакетом
             validate(initData, botToken);
-            const telegramUser = parse(initData) as TelegramUser;
+            const initDataParsed = parse(initData);
+            const telegramUser = initDataParsed.user;
+
+            if (!telegramUser) {
+              const response: AuthErrorResponse = {
+                success: false,
+                error: 'User data not found in Telegram initData',
+                code: 400
+              };
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.end(JSON.stringify(response));
+              return;
+            }      
             
             // Создаем объект Player
             const player: Player = {
