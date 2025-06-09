@@ -491,11 +491,12 @@ class DurakGameServer {
 
     // Валидация через initData
     if (initData) {
-      const validatedUser = TelegramAuth.validateInitData(initData);
-      if (validatedUser) {
-        const authToken = TelegramAuth.generateAuthToken(validatedUser);
-        this.createAuthenticatedClient(socket, validatedUser, authToken);
-        return;
+      const initDataParsed = parse(initData);
+      const telegramUser = initDataParsed.user;
+
+      if (!telegramUser) {
+         throw new Error('User data not found in initData');
+      
       }
     }
 
