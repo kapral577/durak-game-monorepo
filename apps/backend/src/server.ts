@@ -49,6 +49,14 @@ class DurakGameServer {
   
   console.log(`🔍 ${req.method} ${req.url}`);
   
+  console.log('=== REQUEST DEBUG ===');
+  console.log('Method:', req.method);
+  console.log('URL:', req.url);
+  console.log('URL includes validate-telegram:', req.url?.includes('validate-telegram'));
+  console.log('Method is POST:', req.method === 'POST');
+  console.log('Both conditions:', req.url?.includes('validate-telegram') && req.method === 'POST');
+  console.log('========================');
+
   // ОДНО условие вместо двух вложенных
   if (req.url?.includes('validate-telegram') && req.method === 'POST') {
     console.log('✅ Validation endpoint detected');
