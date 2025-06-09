@@ -19,6 +19,7 @@ export interface LoginPageProps {
  */
 interface AuthResponse {
   token: string;
+  success: true;
   sessionId: string;
   user: {
     id: string;
@@ -132,20 +133,12 @@ const authenticateWithRetry = async (
     }
     
     const authData = await response.json();
-
     if (authData.success === false) {
       throw new Error(authData.error || ERROR_MESSAGES.SERVER_AUTH_FAILED);
     }
-    
     if (!validateAuthResponse(authData)) {
       throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
-    }
-
-
-    if (!validateAuthResponse(authData)) {
-      throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
-    }
-
+    }  
     return authData;
   } catch (error) {
     if (retryCount < MAX_RETRIES) {
