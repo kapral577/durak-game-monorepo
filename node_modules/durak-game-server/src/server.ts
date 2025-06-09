@@ -64,16 +64,15 @@ class DurakGameServer {
       }
 
       // ✅ ИСПРАВЛЕНО: /auth/validate-telegram
-      if (req.method === 'POST' && req.url === '/auth/validate-telegram') {
-        this.handleValidateTelegramAuth(req, res);
-        return;
-      }
+      if (req.method === 'POST' && req.url?.endsWith('/auth/validate-telegram')) {
+  this.handleValidateTelegramAuth(req, res);
+  return;
+}
 
-      // ✅ ДОБАВЛЕНО: /auth/login
-      if (req.method === 'POST' && req.url === '/auth/login') {
-        this.handleLoginAuth(req, res);
-        return;
-      }
+if (req.method === 'POST' && req.url?.endsWith('/auth/login')) {
+  this.handleLoginAuth(req, res);
+  return;
+}
 
       // Статус сервера
       res.writeHead(200, { 'Content-Type': 'application/json' });
