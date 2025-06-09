@@ -59,9 +59,11 @@ export class TelegramAuth {
           const urlParams = new URLSearchParams(initData);
           const userStr = urlParams.get('user');
           console.log('🔍 Manual parsing - userStr:', userStr ? 'found' : 'not found');
+          console.log('🔍 Raw userStr:', userStr);
+
           
           if (userStr) {
-            const manualUser = JSON.parse(userStr);
+            const manualUser = JSON.parse(decodeURIComponent(userStr));
             console.log('🔍 Manual user parsed:', { id: manualUser.id, name: manualUser.first_name });
             return {
               id: manualUser.id,
