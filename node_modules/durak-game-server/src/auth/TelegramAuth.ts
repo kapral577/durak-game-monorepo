@@ -3,7 +3,7 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 
-import { TelegramUser, TelegramInitData } from '@shared/types';
+import { TelegramUser, Player, AuthSuccessResponse, AuthErrorResponse } from '../types/AuthTypes';
 
 // ===== КОНСТАНТЫ =====
 
@@ -32,35 +32,18 @@ interface ValidationAttempt {
 }
 
 export class TelegramAuth {
-  private static BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || '';
-  private static JWT_SECRET = process.env.JWT_SECRET || process.env.TELEGRAM_BOT_TOKEN || 'fallback-secret';
-  
+  static generateAuthToken(user: TelegramUser): string {
+  }
+  static validateAuthToken(token: string): any {
+  }
+
   // Rate limiting для предотвращения атак
   private static validationAttempts = new Map<string, ValidationAttempt>();
 
-  /**
-   * Валидирует Telegram WebApp initData согласно официальной документации
-   */
-  static validateInitData(initData: string, clientIP?: string): TelegramUser | null {
-    // Rate limiting
-    if (clientIP && !this.checkRateLimit(clientIP)) {
-      console.warn(`Rate limit exceeded for IP: ${clientIP}`);
-      return null;
-    }
-
-    if (!this.BOT_TOKEN) {
-      if (process.env.NODE_ENV === 'development') {
-        console.warn('TELEGRAM_BOT_TOKEN not configured - using mock validation');
-        return this.getMockUser();
-      }
-      console.error('TELEGRAM_BOT_TOKEN is required in production');
-      return null;
-    }
-
-    // Базовая валидация входных данных
-    if (!initData || typeof initData !== 'string' || initData.length > AUTH_CONFIG.MAX_USER_DATA_LENGTH) {
-      return null;
-    }
+// Базовая валидация входных данных
+ if (!initData || typeof initData !== 'string' || initData.length > AUTH_CONFIG.MAX_USER_DATA_LENGTH) {
+    return null;
+ }
 
     try {
       const urlParams = new URLSearchParams(initData);

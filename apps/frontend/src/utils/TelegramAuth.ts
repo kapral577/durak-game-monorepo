@@ -43,12 +43,16 @@ interface AuthValidationResult {
 }
 
 /**
- * Ответ сервера валидации
+ * Ответ сервера валидации - ОБНОВЛЕННЫЙ под единые типы
  */
 interface ServerValidationResponse {
-  valid: boolean;
-  user?: Player;
+  success: boolean;    // ✅ ИЗМЕНЕНО: было valid
+  token: string;       // ✅ ДОБАВЛЕНО
+  sessionId: string;   // ✅ ДОБАВЛЕНО
+  user: Player;        // ✅ ИЗМЕНЕНО: теперь обязательное
+  expiresAt?: number;  // ✅ ДОБАВЛЕНО
   error?: string;
+  code?: number;
 }
 
 /**
@@ -286,7 +290,7 @@ export class TelegramAuth {
   }
 
   /**
-   * Серверная валидация (БЕЗ передачи bot token на клиент!)
+   * Серверная валидация - ОБНОВЛЕННАЯ под новый формат ответа
    */
   static async validateOnServer(initData: string): Promise<boolean> {
     if (!initData) {
@@ -301,15 +305,17 @@ export class TelegramAuth {
       if (!apiUrl) {
         throw new Error(ERROR_MESSAGES.MISSING_CONFIG);
       }
-console.log('🔍 API URL:', apiUrl);
-  console.log('🔍 Full URL:', `${apiUrl}${API_ENDPOINTS.VALIDATE_TELEGRAM}`);
-  console.log('🔍 InitData length:', initData?.length);
+
+      console.log('🔍 API URL:', apiUrl);
+      console.log('🔍 Full URL:', `${apiUrl}${API_ENDPOINTS.VALIDATE_TELEGRAM}`);
+      console.log('🔍 InitData length:', initData?.length);
+
       const response = await fetch(`${apiUrl}${API_ENDPOINTS.VALIDATE_TELEGRAM}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ initData }), // Только initData, bot token остается на сервере
+        body: JSON.stringify({ initData }),
       });
 
       if (!response.ok) {
@@ -318,15 +324,30 @@ console.log('🔍 API URL:', apiUrl);
 
       const result: ServerValidationResponse = await response.json();
       
-      if (typeof result.valid !== 'boolean') {
+      // ✅ ИСПРАВЛЕНО: проверяем success вместо valid
+      if (result.success === false) {
+        throw new Error(result.error || 'Server validation failed');
+      }
+
+      // ✅ ИСПРАВЛЕНО: новая проверка формата
+      if (typeof result.success !== 'boolean' || !result.success) {
         throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
       }
 
-      if (process.env.NODE_ENV === 'development') {
-        console.log('✅ Server validation result:', result.valid);
+      // ✅ ДОБАВЛЕНО: проверка обязательных полей
+      if (!result.token || !result.sessionId) {
+        throw new Error('Missing required auth data (token or sessionId)');
       }
 
-      return result.valid;
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Server validation successful:', { 
+          hasToken: !!result.token, 
+          hasSessionId: !!result.sessionId,
+          hasUser: !!result.user 
+        });
+      }
+
+      return result.success;
     } catch (error) {
       if (process.env.NODE_ENV === 'development') {
         console.error('❌ Server validation error:', error);
@@ -392,8 +413,6 @@ console.log('🔍 API URL:', apiUrl);
     if (!import.meta.env.VITE_API_URL) {
       errors.push('VITE_API_URL is not configured');
     }
-    
-    // Bot token НЕ должен быть на клиенте, поэтому убираем эту проверку
     
     return {
       isValid: errors.length === 0,
