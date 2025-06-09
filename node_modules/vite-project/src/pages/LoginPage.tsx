@@ -5,6 +5,9 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { TelegramAuth } from '../utils/TelegramAuth';
 
+// ✅ ИМПОРТ ЕДИНЫХ ТИПОВ вместо локальных интерфейсов
+import { AuthSuccessResponse, AuthErrorResponse, AuthResponse } from '../types/AuthTypes';
+
 // ===== ИНТЕРФЕЙСЫ =====
 
 /**
@@ -14,28 +17,7 @@ export interface LoginPageProps {
   // Если нужны props в будущем
 }
 
-/**
- * Ответ сервера аутентификации
- */
-interface AuthResponse {
-  token: string;
-  success: true;
-  sessionId: string;
-  user: {
-    id: string;
-    name: string;
-    telegramId: number;
-    username?: string;
-    avatar?: string;
-    isReady: boolean;
-   };
-  expiresAt?: number;
-}
-interface AuthErrorResponse {
-  success: false;
-  error: string;
-  code?: number;
-}
+// ❌ УДАЛЕНЫ локальные интерфейсы - используем единые типы
 
 // ===== КОНСТАНТЫ =====
 
@@ -98,9 +80,9 @@ const getApiUrl = (endpoint: string): string => {
 };
 
 /**
- * Валидация ответа аутентификации
+ * ✅ ОБНОВЛЕННАЯ валидация ответа для единых типов
  */
-const validateAuthResponse = (data: any): data is AuthResponse => {
+const validateAuthResponse = (data: any): data is AuthSuccessResponse => {
   return data && 
     data.success === true &&
     typeof data.token === 'string' && 
@@ -108,40 +90,60 @@ const validateAuthResponse = (data: any): data is AuthResponse => {
     data.token.length > 0 &&
     data.sessionId.length > 0 &&
     data.user &&
-    typeof data.user.id === 'string';
+    typeof data.user.id === 'string' &&
+    typeof data.user.name === 'string' &&
+    typeof data.user.telegramId === 'number';
 };
 
 /**
- * Аутентификация с повторными попытками
+ * ✅ ОБНОВЛЕННАЯ аутентификация с правильным endpoint
  */
 const authenticateWithRetry = async (
   initData: string, 
   user: any, 
   retryCount = 0
-): Promise<AuthResponse> => {
+): Promise<AuthSuccessResponse> => {
   const MAX_RETRIES = 3;
   
   try {
-    const response = await fetch(getApiUrl('/auth/validate-telegram'), {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ initData })  // ← Только initData
-});
+    console.log('🔐 Sending auth request with initData length:', initData.length);
+    
+    // ✅ ИЗМЕНЕН endpoint на новый
+    const response = await fetch(getApiUrl('/auth/telegram'), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ initData })
+    });
+    
+    console.log('📡 Response status:', response.status);
     
     if (!response.ok) {
       throw new Error(`Server responded with ${response.status}: ${response.statusText}`);
     }
     
-    const authData = await response.json();
+    const authData: AuthResponse = await response.json();
+    
+    console.log('📋 Response data structure:', {
+      hasSuccess: 'success' in authData,
+      successValue: authData.success,
+      hasToken: 'token' in authData,
+      hasError: 'error' in authData
+    });
+    
     if (authData.success === false) {
       throw new Error(authData.error || ERROR_MESSAGES.SERVER_AUTH_FAILED);
     }
+    
     if (!validateAuthResponse(authData)) {
+      console.error('❌ Invalid response format:', authData);
       throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
-    }  
-    return authData;
+    }
+    
+    return authData as AuthSuccessResponse;
   } catch (error) {
+    console.error('🚫 Auth attempt failed:', error);
     if (retryCount < MAX_RETRIES) {
+      console.log(`🔄 Retry attempt ${retryCount + 1}/${MAX_RETRIES}`);
       await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
       return authenticateWithRetry(initData, user, retryCount + 1);
     }
@@ -209,8 +211,12 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
         ? window.Telegram?.WebApp?.initData || ''
         : '';
 
-      // Аутентификация на сервере
-      const { token, sessionId } = await authenticateWithRetry(initData, user);
+      console.log('🎯 Starting authentication process...');
+
+      // ✅ ОБНОВЛЕННАЯ аутентификация на сервере
+      const { token, sessionId, user: playerData } = await authenticateWithRetry(initData, user);
+
+      console.log('✅ Authentication successful:', { sessionId, hasToken: !!token });
 
       // Сохранение токенов
       localStorage.setItem(CONFIG.STORAGE_KEYS.GAME_TOKEN, token);
@@ -228,6 +234,7 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
         if (connectionTimeout) {
           clearTimeout(connectionTimeout);
         }
+        console.log('🎮 WebSocket connected successfully');
         // Успешное подключение - переход на главную
         navigate('/');
       };
@@ -252,7 +259,7 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       }
       
       const errorMessage = err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC;
-      console.error('Login error:', err);
+      console.error('❌ Login error:', err);
       setError(errorMessage);
     } finally {
       setIsConnecting(false);
@@ -348,6 +355,8 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
                 Environment: {process.env.NODE_ENV}
                 <br />
                 WebSocket URL: {CONFIG.WEBSOCKET_URL}
+                <br />
+                API URL: {CONFIG.API_BASE_URL}
               </small>
             </div>
           )}
@@ -362,5 +371,5 @@ LoginPage.displayName = 'LoginPage';
 
 // ===== ЭКСПОРТ =====
 export default LoginPage;
-export type { LoginPageProps, AuthResponse };
+export type { LoginPageProps };
 export { CONFIG, ERROR_MESSAGES, UI_TEXT };

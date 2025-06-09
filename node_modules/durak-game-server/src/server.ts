@@ -1,9 +1,12 @@
+import dotenv from 'dotenv';
+dotenv.config();
 import { parse, validate } from '@telegram-apps/init-data-node';
 import { AuthSuccessResponse, AuthErrorResponse, TelegramUser, Player } from './types/AuthTypes';
 import { TelegramAuth } from './auth/TelegramAuth'
 import WebSocket from 'ws';
 import http from 'http';
 import { RoomManager } from './logic/RoomManager';
+import { authenticateTelegram } from './controllers/authController';
 
 interface AuthenticatedClient {
   socket: WebSocket;
