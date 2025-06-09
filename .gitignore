@@ -1,0 +1,26 @@
+# Environment variables (ГЛОБАЛЬНО)
+.env
+.env.local
+.env.*.local
+
+# Specific paths
+apps/backend/.env
+apps/frontend/.env
+*/.env
+**/.env
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build outputs
+dist/
+build/
+.next/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
