@@ -20,7 +20,20 @@ export interface LoginPageProps {
 interface AuthResponse {
   token: string;
   sessionId: string;
-  user?: any;
+  user: {
+    id: string;
+    name: string;
+    telegramId: number;
+    username?: string;
+    avatar?: string;
+    isReady: boolean;
+   };
+  expiresAt?: number;
+}
+interface AuthErrorResponse {
+  success: false;
+  error: string;
+  code?: number;
 }
 
 // ===== КОНСТАНТЫ =====
@@ -88,10 +101,13 @@ const getApiUrl = (endpoint: string): string => {
  */
 const validateAuthResponse = (data: any): data is AuthResponse => {
   return data && 
+    data.success === true &&
     typeof data.token === 'string' && 
     typeof data.sessionId === 'string' &&
     data.token.length > 0 &&
-    data.sessionId.length > 0;
+    data.sessionId.length > 0 &&
+    data.user &&
+    typeof data.user.id === 'string';
 };
 
 /**
@@ -116,6 +132,15 @@ const authenticateWithRetry = async (
     }
     
     const authData = await response.json();
+
+    if (authData.success === false) {
+      throw new Error(authData.error || ERROR_MESSAGES.SERVER_AUTH_FAILED);
+    }
+    
+    if (!validateAuthResponse(authData)) {
+      throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
+    }
+
 
     if (!validateAuthResponse(authData)) {
       throw new Error(ERROR_MESSAGES.INVALID_RESPONSE);
