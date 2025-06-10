@@ -50,7 +50,11 @@ class DurakGameServer {
 
       // Обработка preflight OPTIONS запросов
       if (req.method === 'OPTIONS') {
-        res.writeHead(200);
+        res.writeHead(200, {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+        });  
         res.end();
         return;
       }
@@ -137,9 +141,12 @@ class DurakGameServer {
               expiresAt: Date.now() + (24 * 60 * 60 * 1000)
             };
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            return;
+            res.writeHead(200, { 
+             'Content-Type': 'application/json',
+             'Access-Control-Allow-Origin': '*'
+           });
+          res.end(JSON.stringify(response));  
+          return;
           }
 
           // Production: валидация через initData с официальным пакетом
@@ -149,10 +156,13 @@ class DurakGameServer {
               error: 'Missing authentication data',
               code: 400
             };
-            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.writeHead(400, { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
             res.end(JSON.stringify(response));
             return;
-          }
+            } 
 
           const botToken = process.env.TELEGRAM_BOT_TOKEN;
           if (!botToken) {
@@ -161,7 +171,10 @@ class DurakGameServer {
               error: 'Server configuration error',
               code: 500
             };
-            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.writeHead(500, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
             res.end(JSON.stringify(response));
             return;
           }
@@ -177,7 +190,10 @@ class DurakGameServer {
                 error: 'User data not found in Telegram initData',
                 code: 400
               };
-              res.writeHead(400, { 'Content-Type': 'application/json' });
+              res.writeHead(400, { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+              });  
               res.end(JSON.stringify(response)); 
               return;
             }     
@@ -200,7 +216,10 @@ class DurakGameServer {
               expiresAt: Date.now() + (24 * 60 * 60 * 1000)
             };
 
-            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.writeHead(200, { 
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });  
             res.end(JSON.stringify(response));
 
             console.log(`✅ Login successful: ${validatedUser.first_name} (${validatedUser.id})`);
@@ -212,7 +231,10 @@ class DurakGameServer {
               error: 'Invalid Telegram authentication',
               code: 401
             };
-            res.writeHead(401, { 'Content-Type': 'application/json' });
+            res.writeHead(401, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
             res.end(JSON.stringify(response));
           }
 
@@ -223,7 +245,10 @@ class DurakGameServer {
             error: 'Invalid request format',
             code: 400
           };
-          res.writeHead(400, { 'Content-Type': 'application/json' });
+          res.writeHead(400, {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+          });
           res.end(JSON.stringify(response));
         }
       });
@@ -237,7 +262,10 @@ class DurakGameServer {
         code: 500
       };
 
-      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.writeHead(500, { 
+        'Content-Type': 'application/json',
+        'Access-Control-Allow-Origin': '*'
+      });
       res.end(JSON.stringify(response));
     }
   }
