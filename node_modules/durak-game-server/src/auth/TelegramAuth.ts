@@ -34,6 +34,9 @@ export class TelegramAuth {
    * УЛУЧШЕННЫЙ МЕТОД: Извлечение и валидация пользователя из initData
    */
   static extractAndValidateUser(initData: string): TelegramUser | null {
+    console.log('🚨 ENTERING extractAndValidateUser - START');
+    console.log('🚨 Method called with initData length:', initData?.length);
+    console.log('🚨 InitData first 100 chars:', initData?.substring(0, 100));
     console.log('🚀 NEW CODE: extractAndValidateUser called!');
     console.log('🔍 extractAndValidateUser called with data length:', initData.length);
     
