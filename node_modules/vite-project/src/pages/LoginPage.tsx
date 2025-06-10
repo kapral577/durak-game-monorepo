@@ -23,7 +23,7 @@ export interface LoginPageProps {
 
 const CONFIG = {
   CONNECTION_TIMEOUT: 10000,
-  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://localhost:3001',
+  WEBSOCKET_URL: import.meta.env.VITE_WS_URL || 'wss://durak-game-monorepo.onrender.com',
   API_BASE_URL: import.meta.env.VITE_API_URL || '/api',
   TEST_MODE_PREFIX: 'test-',
   STORAGE_KEYS: {
