@@ -1,44 +1,22 @@
-import { TelegramUser } from '@shared/types';
-interface AuthTokenPayload {
-    telegramId: number;
-    username?: string;
-    timestamp: number;
-    exp: number;
-}
+import { TelegramUser } from '../types/AuthTypes';
 export declare class TelegramAuth {
-    private static BOT_TOKEN;
+    private static readonly JWT_SECRET;
+    private static readonly BOT_TOKEN;
     /**
-     * Валидирует Telegram WebApp initData согласно официальной документации
+     * ИСПРАВЛЕННЫЙ МЕТОД: Официальная валидация Telegram initData
      */
-    static validateInitData(initData: string): TelegramUser | null;
+    static validateTelegramInitData(initData: string): boolean;
     /**
-     * Генерирует безопасный auth токен
+     * УЛУЧШЕННЫЙ МЕТОД: Извлечение и валидация пользователя из initData
      */
+    static extractAndValidateUser(initData: string): TelegramUser | null;
+    static authenticateFromInitData(initData: string): {
+        user: TelegramUser;
+        token: string;
+    } | null;
     static generateAuthToken(telegramUser: TelegramUser): string;
-    /**
-     * Валидирует auth токен
-     */
-    static validateAuthToken(token: string): AuthTokenPayload | null;
-    /**
-     * Извлекает Telegram ID из токена
-     */
+    static validateAuthToken(token: string): any;
     static getTelegramIdFromToken(token: string): number | null;
-    /**
-     * Проверяет актуальность auth_date
-     */
-    static isAuthDateValid(authDate: number): boolean;
-    /**
-     * Mock пользователь для разработки
-     */
-    private static getMockUser;
-    /**
-     * Валидирует структуру TelegramUser
-     */
-    private static isValidTelegramUser;
-    /**
-     * Создает подпись для токена
-     */
-    private static createTokenSignature;
+    static isValidToken(token: string): boolean;
 }
-export {};
 //# sourceMappingURL=TelegramAuth.d.ts.map

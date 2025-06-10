@@ -3,33 +3,38 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-// server.ts - УЛУЧШЕННАЯ ВЕРСИЯ ДЛЯ СТАБИЛЬНЫХ WEBSOCKET СОЕДИНЕНИЙ
+const dotenv_1 = __importDefault(require("dotenv"));
+dotenv_1.default.config();
+const init_data_node_1 = require("@telegram-apps/init-data-node");
+const TelegramAuth_1 = require("./auth/TelegramAuth");
 const ws_1 = __importDefault(require("ws"));
 const http_1 = __importDefault(require("http"));
 const RoomManager_1 = require("./logic/RoomManager");
 class DurakGameServer {
     constructor() {
         this.authenticatedClients = new Map();
-        this.heartbeatInterval = null; // ✅ ДОБАВЛЕНО
+        this.heartbeatInterval = null;
         this.port = parseInt(process.env.PORT || '3001');
-        // ✅ HTTP СЕРВЕР С ПОДДЕРЖКОЙ АУТЕНТИФИКАЦИИ
         this.server = http_1.default.createServer((req, res) => {
-            // ✅ CORS заголовки для всех запросов
             res.setHeader('Access-Control-Allow-Origin', '*');
-            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+            res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
             res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-Init-Data');
-            // ✅ Обработка preflight OPTIONS запросов
+            res.setHeader('Access-Control-Max-Age', '86400');
+            console.log(`🔍 ${req.method} ${req.url}`);
+            // Обработка preflight OPTIONS запросов
             if (req.method === 'OPTIONS') {
+                console.log('🔧 OPTIONS preflight request handled');
                 res.writeHead(200);
                 res.end();
                 return;
             }
-            // ✅ ОБРАБОТКА POST /auth/telegram
-            if (req.method === 'POST' && req.url === '/auth/telegram') {
-                this.handleTelegramAuthHTTP(req, res);
+            // Telegram авторизация
+            if (req.url?.includes('/auth/telegram') && req.method === 'POST') {
+                console.log('✅ Telegram auth endpoint detected');
+                this.handleTelegramAuth(req, res);
                 return;
             }
-            // Обычный статус сервера
+            // Статус сервера
             res.writeHead(200, { 'Content-Type': 'application/json' });
             res.end(JSON.stringify({
                 status: 'Durak Game Server is running',
@@ -38,7 +43,6 @@ class DurakGameServer {
                 serverUptime: process.uptime()
             }));
         });
-        // ✅ ПРИВЯЗЫВАЕМ WebSocket К HTTP СЕРВЕРУ
         this.wss = new ws_1.default.Server({
             server: this.server,
             verifyClient: (info) => {
@@ -63,91 +67,173 @@ class DurakGameServer {
         console.log(`📱 Frontend URL: ${process.env.FRONTEND_URL || 'Not set'}`);
         console.log(`🤖 Bot Token: ${process.env.TELEGRAM_BOT_TOKEN ? '✅ Set' : '❌ Missing'}`);
     }
-    // ✅ HTTP АУТЕНТИФИКАЦИЯ ДЛЯ TELEGRAM MINI APPS
-    handleTelegramAuthHTTP(req, res) {
-        console.log('🔐 HTTP Telegram authentication attempt');
-        let body = '';
-        req.on('data', (chunk) => {
-            body += chunk.toString();
-        });
-        req.on('end', () => {
-            try {
-                const { initData, user } = JSON.parse(body);
-                console.log('📄 Received auth data:', { userExists: !!user, initDataLength: initData?.length || 0 });
-                // В development режиме принимаем тестовых пользователей
-                if (process.env.NODE_ENV === 'development' && user?.id < 1000000) {
-                    console.log('🧪 Development mode: accepting test user via HTTP');
-                    const authToken = `http_token_${user.id}_${Date.now()}`;
-                    const player = {
-                        id: `tg_${user.id}`,
-                        name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
-                        telegramId: user.id,
-                        username: user.username,
-                        avatar: user.photo_url,
-                        isReady: false
-                    };
-                    res.writeHead(200, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({
-                        success: true,
-                        token: authToken,
-                        player: player
-                    }));
-                    console.log(`✅ HTTP Auth successful: ${user.first_name} (${user.id})`);
-                    return;
+    async handleTelegramAuth(req, res) {
+        try {
+            let body = '';
+            req.on('data', chunk => {
+                body += chunk.toString();
+            });
+            req.on('end', async () => {
+                try {
+                    const { initData } = JSON.parse(body);
+                    console.log('🔍 Raw request body:', body);
+                    console.log('🔍 Parsed JSON keys:', Object.keys(JSON.parse(body)));
+                    console.log('🔍 initData exists after parse:', !!initData);
+                    console.log('🔍 initData type:', typeof initData);
+                    console.log('🔍 initData length:', initData?.length);
+                    console.log('🔍 Body contains initData string:', body.includes('initData'));
+                    // Development mode проверка
+                    if (process.env.NODE_ENV === 'development' && body.includes('"id":')) {
+                        console.log('🧪 Development mode: accepting test login data');
+                        const testUser = JSON.parse(body);
+                        const player = {
+                            id: `tg_${testUser.id}`,
+                            name: testUser.first_name + (testUser.last_name ? ` ${testUser.last_name}` : ''),
+                            telegramId: testUser.id,
+                            username: testUser.username,
+                            avatar: testUser.photo_url,
+                            isReady: false
+                        };
+                        const authToken = TelegramAuth_1.TelegramAuth.generateAuthToken(testUser);
+                        const response = {
+                            success: true,
+                            token: authToken,
+                            sessionId: `session_${testUser.id}_${Date.now()}`,
+                            user: player,
+                            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+                        };
+                        res.writeHead(200, {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        res.end(JSON.stringify(response));
+                        return;
+                    }
+                    // Production: валидация через initData с официальным пакетом
+                    if (!initData) {
+                        const response = {
+                            success: false,
+                            error: 'Missing authentication data',
+                            code: 400
+                        };
+                        res.writeHead(400, {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        res.end(JSON.stringify(response));
+                        return;
+                    }
+                    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+                    if (!botToken) {
+                        const response = {
+                            success: false,
+                            error: 'Server configuration error',
+                            code: 500
+                        };
+                        res.writeHead(500, {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        res.end(JSON.stringify(response));
+                        return;
+                    }
+                    try {
+                        // Используем TelegramAuth для извлечения пользователя
+                        console.log('🚨 About to call TelegramAuth.extractAndValidateUser');
+                        const validatedUser = TelegramAuth_1.TelegramAuth.extractAndValidateUser(initData);
+                        console.log('🚨 TelegramAuth returned:', validatedUser ? 'USER FOUND' : 'NULL');
+                        if (!validatedUser) {
+                            const response = {
+                                success: false,
+                                error: 'User data not found in Telegram initData',
+                                code: 400
+                            };
+                            res.writeHead(400, {
+                                'Content-Type': 'application/json',
+                                'Access-Control-Allow-Origin': '*'
+                            });
+                            res.end(JSON.stringify(response));
+                            return;
+                        }
+                        const authToken = TelegramAuth_1.TelegramAuth.generateAuthToken(validatedUser);
+                        const player = {
+                            id: `tg_${validatedUser.id}`,
+                            name: validatedUser.first_name + (validatedUser.last_name ? ` ${validatedUser.last_name}` : ''),
+                            telegramId: validatedUser.id,
+                            username: validatedUser.username,
+                            avatar: validatedUser.photo_url,
+                            isReady: false
+                        };
+                        const response = {
+                            success: true,
+                            token: authToken,
+                            sessionId: `session_${validatedUser.id}_${Date.now()}`,
+                            user: player,
+                            expiresAt: Date.now() + (24 * 60 * 60 * 1000)
+                        };
+                        res.writeHead(200, {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        res.end(JSON.stringify(response));
+                        console.log(`✅ Login successful: ${validatedUser.first_name} (${validatedUser.id})`);
+                    }
+                    catch (validationError) {
+                        console.log('❌ Telegram validation failed:', validationError);
+                        const response = {
+                            success: false,
+                            error: 'Invalid Telegram authentication',
+                            code: 401
+                        };
+                        res.writeHead(401, {
+                            'Content-Type': 'application/json',
+                            'Access-Control-Allow-Origin': '*'
+                        });
+                        res.end(JSON.stringify(response));
+                    }
                 }
-                // В production здесь должна быть валидация initData
-                if (!user) {
-                    console.log('❌ No user data provided');
-                    res.writeHead(400, { 'Content-Type': 'application/json' });
-                    res.end(JSON.stringify({
+                catch (parseError) {
+                    console.error('❌ JSON parsing error:', parseError);
+                    const response = {
                         success: false,
-                        error: 'Invalid user data'
-                    }));
-                    return;
+                        error: 'Invalid request format',
+                        code: 400
+                    };
+                    res.writeHead(400, {
+                        'Content-Type': 'application/json',
+                        'Access-Control-Allow-Origin': '*'
+                    });
+                    res.end(JSON.stringify(response));
                 }
-                // Принимаем пользователя (в production добавить валидацию initData)
-                const authToken = `http_token_${user.id}_${Date.now()}`;
-                const player = {
-                    id: `tg_${user.id}`,
-                    name: user.first_name + (user.last_name ? ` ${user.last_name}` : ''),
-                    telegramId: user.id,
-                    username: user.username,
-                    avatar: user.photo_url,
-                    isReady: false
-                };
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({
-                    success: true,
-                    token: authToken,
-                    player: player
-                }));
-                console.log(`✅ HTTP Auth successful: ${user.first_name} (${user.id})`);
-            }
-            catch (error) {
-                console.error('❌ HTTP Auth error:', error);
-                res.writeHead(500, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({
-                    success: false,
-                    error: 'Internal server error'
-                }));
-            }
-        });
+            });
+        }
+        catch (error) {
+            console.error('❌ Login error:', error);
+            const response = {
+                success: false,
+                error: 'Internal server error',
+                code: 500
+            };
+            res.writeHead(500, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify(response));
+        }
     }
     setupServer() {
         this.wss.on('connection', this.handleConnection.bind(this));
-        // ✅ УЛУЧШЕННЫЙ HEARTBEAT - КАЖДЫЕ 60 СЕКУНД (не 30)
+        // Heartbeat каждые 60 секунд
         this.heartbeatInterval = setInterval(() => {
             console.log(`💓 Heartbeat check: ${this.authenticatedClients.size} clients`);
             this.authenticatedClients.forEach((client, socket) => {
                 if (socket.readyState === ws_1.default.OPEN) {
-                    // ✅ ПРОВЕРЯЕМ ПОСЛЕДНИЙ HEARTBEAT ОТ КЛИЕНТА
                     const timeSinceLastHeartbeat = Date.now() - client.lastHeartbeat.getTime();
                     if (timeSinceLastHeartbeat > 120000) { // 2 минуты без heartbeat
                         console.log(`⏰ Client ${client.telegramUser.first_name} heartbeat timeout, disconnecting`);
                         socket.close(4000, 'Heartbeat timeout');
                     }
                     else {
-                        // Отправляем ping
                         socket.ping();
                     }
                 }
@@ -156,8 +242,7 @@ class DurakGameServer {
                     this.handleDisconnection(socket);
                 }
             });
-        }, 60000); // ✅ 60 секунд вместо 30
-        // ✅ ЗАПУСКАЕМ HTTP СЕРВЕР
+        }, 60000);
         this.server.listen(this.port, () => {
             console.log(`✅ HTTP + WebSocket server listening on port ${this.port}`);
         });
@@ -170,7 +255,7 @@ class DurakGameServer {
         const authTimeout = setTimeout(() => {
             console.log('⏰ WebSocket authentication timeout');
             socket.close(4001, 'Authentication timeout');
-        }, 15000); // ✅ 15 секунд вместо 10
+        }, 15000);
         socket.on('message', (data) => {
             try {
                 const message = JSON.parse(data.toString());
@@ -187,7 +272,6 @@ class DurakGameServer {
                         }));
                         return;
                     }
-                    // ✅ ОБНОВЛЯЕМ HEARTBEAT ПРИ ЛЮБОМ СООБЩЕНИИ
                     client.lastHeartbeat = new Date();
                     this.handleAuthenticatedMessage(client, message);
                 }
@@ -209,7 +293,6 @@ class DurakGameServer {
             console.error('❌ WebSocket error:', error);
             this.handleDisconnection(socket);
         });
-        // ✅ ОБРАБОТКА PONG ОТ КЛИЕНТА
         socket.on('pong', () => {
             const client = this.authenticatedClients.get(socket);
             if (client) {
@@ -220,36 +303,42 @@ class DurakGameServer {
     }
     handleAuthentication(socket, message) {
         console.log('🔐 WebSocket authentication attempt');
-        // В development режиме принимаем тестовых пользователей
-        if (process.env.NODE_ENV === 'development' && message.telegramUser?.id < 1000000) {
+        const { initData, telegramUser } = message;
+        // Development режим с прямым пользователем
+        if (process.env.NODE_ENV === 'development' && telegramUser?.id < 1000000) {
             console.log('🧪 Development mode: accepting test user via WebSocket');
-            this.createAuthenticatedClient(socket, message.telegramUser, 'dev_token');
+            this.createAuthenticatedClient(socket, telegramUser, 'dev_token');
             return;
         }
-        // В production проверяем Telegram данные
-        const telegramUser = message.telegramUser;
-        if (!telegramUser) {
-            console.log('❌ Invalid Telegram authentication');
-            socket.send(JSON.stringify({
-                type: 'error',
-                message: 'Invalid Telegram authentication'
-            }));
-            socket.close(4002, 'Authentication failed');
+        // Валидация через initData
+        if (initData) {
+            const initDataParsed = (0, init_data_node_1.parse)(initData);
+            const telegramUser = initDataParsed.user;
+            if (!telegramUser) {
+                throw new Error('User data not found in initData');
+            }
+        }
+        // Fallback на telegramUser (для совместимости)
+        if (telegramUser) {
+            const authToken = TelegramAuth_1.TelegramAuth.generateAuthToken(telegramUser);
+            this.createAuthenticatedClient(socket, telegramUser, authToken);
             return;
         }
-        // В реальном проекте здесь должна быть валидация initData
-        const authToken = `ws_token_${telegramUser.id}_${Date.now()}`;
-        this.createAuthenticatedClient(socket, telegramUser, authToken);
+        console.log('❌ Invalid WebSocket authentication');
+        socket.send(JSON.stringify({
+            type: 'error',
+            message: 'Invalid authentication'
+        }));
+        socket.close(4002, 'Authentication failed');
     }
     createAuthenticatedClient(socket, telegramUser, authToken) {
         const playerId = `tg_${telegramUser.id}`;
-        // ✅ ДОБАВЛЕН lastHeartbeat
         const client = {
             socket,
             telegramUser,
             authToken,
             playerId,
-            lastHeartbeat: new Date() // ✅ ДОБАВЛЕНО
+            lastHeartbeat: new Date()
         };
         this.authenticatedClients.set(socket, client);
         socket.send(JSON.stringify({
@@ -265,13 +354,10 @@ class DurakGameServer {
             token: authToken
         }));
         console.log(`✅ WebSocket user authenticated: ${telegramUser.first_name} (${telegramUser.id})`);
-        // Отправляем список комнат после аутентификации
         this.roomManager.sendRoomsList(socket);
     }
-    // ✅ УЛУЧШЕННАЯ ОБРАБОТКА СООБЩЕНИЙ
     handleAuthenticatedMessage(client, message) {
         console.log(`📨 Message from ${client.telegramUser.first_name}: ${message.type}`);
-        // ✅ ОБРАБОТКА HEARTBEAT СООБЩЕНИЙ
         if (message.type === 'heartbeat') {
             client.lastHeartbeat = new Date();
             client.socket.send(JSON.stringify({
@@ -283,16 +369,14 @@ class DurakGameServer {
         const enrichedMessage = {
             ...message,
             playerId: client.playerId,
-            telegramUser: client.telegramUser // ✅ УЖЕ ЕСТЬ - передается в RoomManager
+            telegramUser: client.telegramUser
         };
         this.roomManager.handleMessage(client.socket, enrichedMessage);
     }
-    // ✅ УЛУЧШЕННАЯ ОБРАБОТКА ОТКЛЮЧЕНИЙ
     handleDisconnection(socket) {
         const client = this.authenticatedClients.get(socket);
         if (client) {
             console.log(`❌ User disconnected: ${client.telegramUser.first_name} (${client.playerId})`);
-            // ✅ УВЕДОМЛЯЕМ ROOMMANAGER О DISCONNECT (НЕ LEAVE)
             this.roomManager.handleDisconnection(socket);
             this.authenticatedClients.delete(socket);
             console.log(`📊 Remaining clients: ${this.authenticatedClients.size}`);
@@ -300,7 +384,6 @@ class DurakGameServer {
     }
     shutdown() {
         console.log('🛑 Shutting down server...');
-        // ✅ ОЧИСТКА HEARTBEAT INTERVAL
         if (this.heartbeatInterval) {
             clearInterval(this.heartbeatInterval);
         }
@@ -311,7 +394,6 @@ class DurakGameServer {
             });
         });
     }
-    // Метод для получения статистики сервера
     getServerStats() {
         return {
             connectedClients: this.authenticatedClients.size,
