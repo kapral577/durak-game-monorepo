@@ -10,9 +10,11 @@ import { TelegramAuth } from '../utils/TelegramAuth';
  * Ответ сервера аутентификации
  */
 interface AuthResponse {
+  success: boolean;
   token: string;
-  player: Player;
+  user: Player;
   sessionId?: string;
+  expiresAt?: number;
 }
 
 /**
@@ -70,9 +72,10 @@ const STORAGE_KEYS = {
  */
 const validateAuthResponse = (data: any): data is AuthResponse => {
   return data && 
+   data.success === true && 
     typeof data.token === 'string' && 
     data.token.length > 0 &&
-    data.player &&
+    data.user && 
     typeof data.player.id === 'string' &&
     typeof data.player.name === 'string';
 };
@@ -302,7 +305,7 @@ export const useAuth = (): UseAuthReturn => {
 
       // Сохранение данных
       setAuthToken(authData.token);
-      setCurrentPlayer(authData.player);
+      setCurrentPlayer(authData.user);
       
       if (authData.sessionId) {
         saveToStorage(STORAGE_KEYS.SESSION_ID, authData.sessionId);

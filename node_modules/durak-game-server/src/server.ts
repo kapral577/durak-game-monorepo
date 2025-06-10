@@ -54,20 +54,12 @@ class DurakGameServer {
         res.end();
         return;
       }
-
-      // Обработка валидации Telegram
-      if (req.url?.includes('validate-telegram') && req.method === 'POST') {
-        console.log('✅ Validation endpoint detected');
-        console.log('🔥 FORCING VALIDATION HANDLER');
-        this.handleValidateTelegramAuth(req, res);
-        return;
-      }
-
-      // Обработка авторизации
-      if (req.method === 'POST' && req.url?.endsWith('/auth/login')) {
-        this.handleLoginAuth(req, res);
-        return;
-      }
+        // Telegram авторизация
+  if (req.url?.includes('/auth/telegram') && req.method === 'POST') {
+    console.log('✅ Telegram auth endpoint detected');
+    this.handleTelegramAuth(req, res);
+    return;
+  }
 
       // Статус сервера
       res.writeHead(200, { 'Content-Type': 'application/json' });
@@ -110,148 +102,8 @@ class DurakGameServer {
     console.log(`🤖 Bot Token: ${process.env.TELEGRAM_BOT_TOKEN ? '✅ Set' : '❌ Missing'}`);
   }
 
-  private async handleValidateTelegramAuth(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
-    try {
-      let body = '';
-      req.on('data', chunk => {
-        body += chunk.toString();
-      });
 
-      req.on('end', async () => {
-        try {
-          const { initData } = JSON.parse(body);
-
-          // Development mode проверка
-          if (process.env.NODE_ENV === 'development' && body.includes('"id":')) {
-            console.log('🧪 Development mode: accepting test data');
-            const testUser = JSON.parse(body);
-            
-            const player: Player = {
-              id: `tg_${testUser.id}`,
-              name: testUser.first_name + (testUser.last_name ? ` ${testUser.last_name}` : ''),
-              telegramId: testUser.id,
-              username: testUser.username,
-              avatar: testUser.photo_url,
-              isReady: false
-            };
-
-            const authToken = TelegramAuth.generateAuthToken(testUser);
-            const response: AuthSuccessResponse = {
-              success: true,
-              token: authToken,
-              sessionId: `session_${testUser.id}_${Date.now()}`,
-              user: player,
-              expiresAt: Date.now() + (24 * 60 * 60 * 1000)
-            };
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            return;
-          }
-
-          // Production: валидация через initData
-          if (!initData) {
-            const response: AuthErrorResponse = {
-              success: false,
-              error: 'Missing authentication data',
-              code: 400
-            };
-            res.writeHead(400, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            return;
-          }
-
-          const botToken = process.env.TELEGRAM_BOT_TOKEN;
-          if (!botToken) {
-            const response: AuthErrorResponse = {
-              success: false,
-              error: 'Server configuration error',
-              code: 500
-            };
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            return;
-          }
-
-          try {
-            // Валидация официальным пакетом
-            validate(initData, botToken);
-            const initDataParsed = parse(initData);
-            const telegramUser = initDataParsed.user;
-
-            if (!telegramUser) {
-              const response: AuthErrorResponse = {
-                success: false,
-                error: 'User data not found in Telegram initData',
-                code: 400
-              };
-              res.writeHead(400, { 'Content-Type': 'application/json' });
-              res.end(JSON.stringify(response));
-              return;
-            }      
-            
-            // Создаем объект Player
-            const player: Player = {
-              id: `tg_${telegramUser.id}`,
-              name: telegramUser.first_name + (telegramUser.last_name ? ` ${telegramUser.last_name}` : ''),
-              telegramId: telegramUser.id,
-              username: telegramUser.username,
-              avatar: telegramUser.photo_url,
-              isReady: false
-            };
-
-            const authToken = TelegramAuth.generateAuthToken(telegramUser);
-            const response: AuthSuccessResponse = {
-              success: true,
-              token: authToken,
-              sessionId: `session_${telegramUser.id}_${Date.now()}`,
-              user: player,
-              expiresAt: Date.now() + (24 * 60 * 60 * 1000)
-            };
-
-            res.writeHead(200, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-            
-            console.log(`✅ Validation successful: ${telegramUser.first_name} (${telegramUser.id})`);
-            
-          } catch (validationError) {
-            console.log('❌ Telegram validation failed:', validationError);
-            const response: AuthErrorResponse = {
-              success: false,
-              error: 'Invalid Telegram data',
-              code: 401
-            };
-            res.writeHead(401, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify(response));
-          }
-
-        } catch (parseError) {
-          console.error('❌ JSON parsing error:', parseError);
-          const response: AuthErrorResponse = {
-            success: false,
-            error: 'Invalid request format',
-            code: 400
-          };
-          res.writeHead(400, { 'Content-Type': 'application/json' });
-          res.end(JSON.stringify(response));
-        }
-      });
-
-    } catch (error) {
-      console.error('❌ Validation error:', error);
-      
-      const response: AuthErrorResponse = {
-        success: false,
-        error: 'Server validation error',
-        code: 500
-      };
-
-      res.writeHead(500, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(response));
-    }
-  }
-
-  private async handleLoginAuth(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
+  private async handleTelegramAuth(req: http.IncomingMessage, res: http.ServerResponse): Promise<void> {
     try {
       let body = '';
       req.on('data', chunk => {

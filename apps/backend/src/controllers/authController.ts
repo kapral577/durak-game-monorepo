@@ -54,7 +54,7 @@ export const authenticateTelegram = async (req: Request, res: Response) => {
     const sessionId = crypto.randomUUID();
 
     const player: Player = {
-      id: sessionId,
+      id: `tg_${user.id}`,
       name: user.first_name,
       telegramId: user.id,
       username: user.username,
