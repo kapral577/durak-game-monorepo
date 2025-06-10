@@ -123,7 +123,7 @@ class DurakGameServer {
             const player: Player = {
               id: `tg_${testUser.id}`,
               name: testUser.first_name + (testUser.last_name ? ` ${testUser.last_name}` : ''),
-              telegramId: testUser.id,
+              telegramId: testUser.id,    
               username: testUser.username,
               avatar: testUser.photo_url,
               isReady: false
@@ -177,10 +177,11 @@ class DurakGameServer {
           }
 
           try {
-            // Официальная валидация
-            validate(initData, botToken);
-            const initDataParsed = parse(initData);
-            const validatedUser = initDataParsed.user;
+            // Используем TelegramAuth для извлечения пользователя
+            console.log('🚨 About to call TelegramAuth.extractAndValidateUser');
+            const validatedUser = TelegramAuth.extractAndValidateUser(initData);
+            console.log('🚨 TelegramAuth returned:', validatedUser ? 'USER FOUND' : 'NULL');
+  
             if (!validatedUser) {
               const response: AuthErrorResponse = {
                 success: false,
