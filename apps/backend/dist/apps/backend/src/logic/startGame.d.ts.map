@@ -1,0 +1,1 @@
+{"version":3,"file":"startGame.d.ts","sourceRoot":"","sources":["../../../../../src/logic/startGame.ts"],"names":[],"mappings":"AAEA,OAAO,EAAE,SAAS,EAAE,MAAM,EAAQ,SAAS,EAAE,MAAM,eAAe,CAAC;AAInE,MAAM,WAAW,cAAc;IAE/B,MAAM,EAAE,MAAM,CAAC;IAEf,KAAK,EAAE,SAAS,CAAC;IAEjB,OAAO,EAAE,MAAM,EAAE,CAAC;CAEjB;AAED,wBAAgB,SAAS,CAAC,KAAK,EAAE,cAAc,GAAG,SAAS,CAgH1D"}
