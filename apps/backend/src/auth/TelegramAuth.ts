@@ -46,6 +46,12 @@ export class TelegramAuth {
     try {
       // Используем официальный парсер
       const parsed = parse(initData);
+      console.log('🔍 RAW initData first 200 chars:', initData.substring(0, 200));
+      console.log('🔍 Parsed object keys:', Object.keys(parsed));
+      if (parsed.user) {
+        console.log('🔍 User object keys:', Object.keys(parsed.user));
+        console.log('🔍 User object content:', JSON.stringify(parsed.user));
+      }  
       console.log('🔍 Parsed initData structure:', {
         hasUser: !!parsed.user,
         hasAuthDate: !!parsed.authDate,
@@ -58,6 +64,7 @@ export class TelegramAuth {
         // Fallback: ручной парсинг для отладки
         try {
           const urlParams = new URLSearchParams(initData);
+          console.log('🔍 All URL params:', Array.from(urlParams.entries()));
           const userStr = urlParams.get('user');
           console.log('🔍 Manual parsing - userStr:', userStr ? 'found' : 'not found');
           console.log('🔍 Raw userStr:', userStr);
@@ -95,7 +102,10 @@ export class TelegramAuth {
       console.log('✅ User extracted successfully:', { id: user.id, name: user.first_name });
       return user;
     } catch (error) {
-      console.error('❌ User extraction failed:', error);
+        const err = error as Error;
+        console.error('❌ User extraction failed:', error);
+        console.error('❌ Error details:', err.message);
+        console.error('❌ Error stack:', err.stack);
       return null;
     }
   }
