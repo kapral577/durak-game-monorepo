@@ -4,6 +4,7 @@ import { AuthSuccessResponse, AuthErrorResponse, Player } from '../types/AuthTyp
 import crypto from 'crypto';
 
 export const authenticateTelegram = async (req: Request, res: Response) => {
+  console.log('🚀 NEW CONTROLLER: authenticateTelegram started!');
   try {
     const { initData } = req.body;
 
