@@ -35,29 +35,20 @@ class DurakGameServer {
     
     this.server = http.createServer((req, res) => {
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+      res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE');
       res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Telegram-Init-Data');
-      
+      res.setHeader('Access-Control-Max-Age', '86400');
       console.log(`🔍 ${req.method} ${req.url}`);
       
-      console.log('=== REQUEST DEBUG ===');
-      console.log('Method:', req.method);
-      console.log('URL:', req.url);
-      console.log('URL includes validate-telegram:', req.url?.includes('validate-telegram'));
-      console.log('Method is POST:', req.method === 'POST');
-      console.log('Both conditions:', req.url?.includes('validate-telegram') && req.method === 'POST');
-      console.log('========================');
 
       // Обработка preflight OPTIONS запросов
       if (req.method === 'OPTIONS') {
-        res.writeHead(200, {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization'
-        });  
-        res.end();
-        return;
-      }
+        console.log('🔧 OPTIONS preflight request handled');
+          res.writeHead(200);
+          res.end();
+          return;
+        }  
+  
         // Telegram авторизация
   if (req.url?.includes('/auth/telegram') && req.method === 'POST') {
     console.log('✅ Telegram auth endpoint detected');
