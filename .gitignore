@@ -14,7 +14,7 @@ node_modules/
 **/node_modules/
 
 # Build outputs
-# dist/
+dist/
 build/
 .next/
 
@@ -23,4 +23,4 @@ build/
 
 # OS files
 .DS_Store
-Thumbs.db
+Thumbs.dbapps/backend/dist/
