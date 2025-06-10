@@ -108,6 +108,12 @@ class DurakGameServer {
       req.on('end', async () => {
         try {
           const { initData } = JSON.parse(body);
+          console.log('🔍 Raw request body:', body);
+          console.log('🔍 Parsed JSON keys:', Object.keys(JSON.parse(body)));
+          console.log('🔍 initData exists after parse:', !!initData);
+          console.log('🔍 initData type:', typeof initData);
+          console.log('🔍 initData length:', initData?.length);
+          console.log('🔍 Body contains initData string:', body.includes('initData'));
 
           // Development mode проверка
           if (process.env.NODE_ENV === 'development' && body.includes('"id":')) {
