@@ -269,6 +269,7 @@ class DurakGameServer {
   }
 
   private setupServer(): void {
+    console.log('🔥 SETUP SERVER - WEBSOCKET HANDLER REGISTERED!');
     this.wss.on('connection', this.handleConnection.bind(this));
     
     // Heartbeat каждые 60 секунд
@@ -410,10 +411,6 @@ class DurakGameServer {
     username: telegramUser.username 
     });
     console.log('🔍 Socket state before auth:', socket.readyState);
-    console.log('🚀 NEW WEBSOCKET CONNECTION ESTABLISHED!');
-    console.log('🔍 Socket ready state:', socket.readyState);
-    console.log('🔍 WebSocket protocol:', socket.protocol);
-    console.log('🔍 Connection time:', new Date().toISOString());
 
     const client: AuthenticatedClient = {
       socket,
