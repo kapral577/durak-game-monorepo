@@ -71,8 +71,7 @@ class DurakGameServer {
       verifyClient: (info: VerifyClientInfo) => {
         const allowedOrigins = [
           process.env.FRONTEND_URL,
-          'https://durakapp.vercel.app',
-          'https://durakapp-nyph.vercel.app',
+          'https://durak-game-monorepo.vercel.app',
           'https://web.telegram.org',
           'https://telegram.org',
           'localhost:3000'
