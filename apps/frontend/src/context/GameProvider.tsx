@@ -129,6 +129,34 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const webSocket = useWebSocket(auth.authToken, auth.telegramUser);
   const gameState = useGameState(webSocket.socket);
   const roomManager = useRoomManager(webSocket.socket);
+  useEffect(() => {
+  if (webSocket.socket) {
+    const handleMessage = (event: MessageEvent) => {
+      try {
+        const message = JSON.parse(event.data);
+        console.log('📨 GameProvider received message:', message);
+        
+        if (message.type === 'authenticated') {
+          console.log('✅ Processing authentication success in GameProvider');
+          
+          if (message.token) {
+            // ✅ ИСПОЛЬЗОВАТЬ ЕДИНСТВЕННЫЙ ДОСТУПНЫЙ МЕТОД:
+            auth.authenticate(message.token);
+          }
+        }
+      } catch (error) {
+        console.error('❌ GameProvider message parse error:', error);
+      }
+    };
+    
+    webSocket.socket.addEventListener('message', handleMessage);
+    
+    return () => {
+      webSocket.socket?.removeEventListener('message', handleMessage);
+    };
+  }
+}, [webSocket.socket, auth]);
+  
 
   // ===== УПРАВЛЕНИЕ ОШИБКАМИ =====
 
