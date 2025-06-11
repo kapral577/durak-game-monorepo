@@ -139,9 +139,27 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         if (message.type === 'authenticated') {
           console.log('✅ Processing authentication success in GameProvider');
           
-          if (message.token) {
-            // ✅ ИСПОЛЬЗОВАТЬ ЕДИНСТВЕННЫЙ ДОСТУПНЫЙ МЕТОД:
-            auth.authenticate(message.token);
+          if (message.player) {
+            // ✅ ИСПОЛЬЗОВАТЬ СУЩЕСТВУЮЩИЕ МЕТОДЫ:
+            
+            // 1. Обновить текущего игрока:
+            auth.setCurrentPlayer(message.player);
+            
+            // 2. Установить токен:
+            auth.setAuthToken(message.token);
+            
+            // 3. Обновить telegramUser (создать объект из player):
+            const telegramUserFromPlayer = {
+              id: message.player.telegramId,
+              first_name: message.player.name,
+              username: message.player.username || '',
+              last_name: '',
+              photo_url: message.player.avatar || '',
+              language_code: 'ru'
+            };
+            
+            // НО telegramUser нельзя обновить напрямую! 
+            // Это состояние только для чтения
           }
         }
       } catch (error) {
