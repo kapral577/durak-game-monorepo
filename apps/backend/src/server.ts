@@ -303,7 +303,10 @@ class DurakGameServer {
 
   private handleConnection(socket: WebSocket): void {
     console.log('🔌 New WebSocket connection attempt');
-    
+    console.log('🚀 NEW WEBSOCKET CONNECTION ESTABLISHED!');
+    console.log('🔍 Socket ready state:', socket.readyState);
+    console.log('🔍 WebSocket protocol:', socket.protocol);
+    console.log('🔍 Connection time:', new Date().toISOString());
     const authTimeout = setTimeout(() => {
       console.log('⏰ WebSocket authentication timeout');
       socket.close(4001, 'Authentication timeout');
@@ -346,6 +349,8 @@ class DurakGameServer {
 
     socket.on('error', (error: Error) => {
       console.error('❌ WebSocket error:', error);
+      console.error('🔍 Error details:', error.message);
+      console.error('🔍 Socket state during error:', socket.readyState);
       this.handleDisconnection(socket);
     });
 
@@ -398,7 +403,18 @@ class DurakGameServer {
 
   private createAuthenticatedClient(socket: WebSocket, telegramUser: any, authToken: string): void {
     const playerId = `tg_${telegramUser.id}`;
-    
+    console.log('🎉 CREATING AUTHENTICATED CLIENT!');
+    console.log('🔍 User data:', { 
+      id: telegramUser.id, 
+    name: telegramUser.first_name,
+    username: telegramUser.username 
+    });
+    console.log('🔍 Socket state before auth:', socket.readyState);
+    console.log('🚀 NEW WEBSOCKET CONNECTION ESTABLISHED!');
+    console.log('🔍 Socket ready state:', socket.readyState);
+    console.log('🔍 WebSocket protocol:', socket.protocol);
+    console.log('🔍 Connection time:', new Date().toISOString());
+
     const client: AuthenticatedClient = {
       socket,
       telegramUser,
@@ -421,8 +437,11 @@ class DurakGameServer {
       },
       token: authToken
     }));
-
-    console.log(`✅ WebSocket user authenticated: ${telegramUser.first_name} (${telegramUser.id})`);
+    
+      console.log('📤 Authenticated message sent to client');
+      console.log('🔍 Socket state after auth:', socket.readyState);
+      console.log(`✅ WebSocket user authenticated: ${telegramUser.first_name} 
+      (${telegramUser.id})`);
     
     this.roomManager.sendRoomsList(socket);
   }
