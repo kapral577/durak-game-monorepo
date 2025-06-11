@@ -51,7 +51,7 @@ interface WebSocketErrorContext {
 // ===== КОНСТАНТЫ =====
 
 const WS_CONFIG: WebSocketConfig = {
-  url: import.meta.env.VITE_WS_URL || 'ws://durak-game-monorepo.onrender.com:10000',
+  url: import.meta.env.VITE_WS_URL || 'ws://durak-game-monorepo.onrender.com',
   reconnectDelay: WEBSOCKET_CONFIG.RECONNECT_DELAY,
   maxReconnectAttempts: WEBSOCKET_CONFIG.MAX_RECONNECT_ATTEMPTS,
   heartbeatInterval: WEBSOCKET_CONFIG.HEARTBEAT_INTERVAL,
