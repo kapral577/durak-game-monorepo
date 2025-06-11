@@ -322,16 +322,23 @@ class DurakGameServer {
   }
   
   if (token) {
-    console.log('🚀 Authenticating with URL token...');
-    try {
-      const decoded = TelegramAuth.verifyAuthToken(token);
-      if (decoded) {
-        this.createAuthenticatedClient(socket, decoded, token);
-        return;
-      }
-    } catch (error) {
-      console.log('❌ URL token invalid:', error);
+  console.log('🚀 Authenticating with URL token...');
+  try {
+    const decoded = TelegramAuth.validateAuthToken(token);
+    if (decoded && decoded.telegramId) {
+      const telegramUser = {
+        id: decoded.telegramId,
+        first_name: decoded.firstName || 'User',
+        last_name: '',
+        username: decoded.username || '',
+        photo_url: ''
+      };
+      
+      this.createAuthenticatedClient(socket, telegramUser, token);
+      return;
     }
+  } catch (error) {
+    console.log('❌ URL token invalid:', error);
   }
   
     const authTimeout = setTimeout(() => {
