@@ -269,7 +269,9 @@ class DurakGameServer {
 
   private setupServer(): void {
     console.log('🔥 SETUP SERVER - WEBSOCKET HANDLER REGISTERED!');
-    this.wss.on('connection', this.handleConnection.bind(this));
+    this.wss.on('connection', (socket: WebSocket, req: any) => {
+  this.handleConnection(socket, req);
+});
     
     // Heartbeat каждые 60 секунд
     this.heartbeatInterval = setInterval(() => {
@@ -301,12 +303,37 @@ class DurakGameServer {
     process.on('SIGINT', this.shutdown.bind(this));
   }
 
-  private handleConnection(socket: WebSocket): void {
+  private handleConnection(socket: WebSocket, req: any): void {
     console.log('🔌 New WebSocket connection attempt');
     console.log('🚀 NEW WEBSOCKET CONNECTION ESTABLISHED!');
     console.log('🔍 Socket ready state:', socket.readyState);
     console.log('🔍 WebSocket protocol:', socket.protocol);
     console.log('🔍 Connection time:', new Date().toISOString());
+    console.log('🔍 Request URL:', req?.url);
+     let token = null;
+  if (req?.url) {
+    try {
+      const url = new URL(req.url, 'ws://localhost');
+      token = url.searchParams.get('token');
+      console.log('🔍 Token from URL:', token ? 'Found' : 'Not found');
+    } catch (error) {
+      console.log('❌ URL parsing error:', error);
+    }
+  }
+  
+  if (token) {
+    console.log('🚀 Authenticating with URL token...');
+    try {
+      const decoded = TelegramAuth.verifyAuthToken(token);
+      if (decoded) {
+        this.createAuthenticatedClient(socket, decoded, token);
+        return;
+      }
+    } catch (error) {
+      console.log('❌ URL token invalid:', error);
+    }
+  }
+  
     const authTimeout = setTimeout(() => {
       console.log('⏰ WebSocket authentication timeout');
       socket.close(4001, 'Authentication timeout');
