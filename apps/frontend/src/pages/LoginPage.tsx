@@ -231,38 +231,56 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       }, CONFIG.CONNECTION_TIMEOUT);
 
       gameSocket.onopen = () => {
-        if (connectionTimeout) {
-          clearTimeout(connectionTimeout);
-        }
-        console.log('🎮 WebSocket connected successfully');
-        // Успешное подключение - переход на главную
-        navigate('/');
-      };
+  if (connectionTimeout) {
+    clearTimeout(connectionTimeout);
+  }
+  console.log('🎮 WebSocket connected successfully');
+  
+  gameSocket.send(JSON.stringify({
+    type: 'auth',
+    token: token
+  }));
+  console.log('📤 Auth token sent to WebSocket server');
+};
 
-      gameSocket.onerror = () => {
-        throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
-      };
+gameSocket.onmessage = (event) => {
+  try {
+    const message = JSON.parse(event.data);
+    console.log('📨 WebSocket message received:', message);
+    
+    if (message.type === 'authenticated') {
+      console.log('✅ WebSocket authentication successful');
+      navigate('/');
+    }
+  } catch (error) {
+    console.error('❌ WebSocket message parse error:', error);
+  }
+};
 
-      gameSocket.onclose = (event) => {
-        if (event.code !== 1000) { // Не нормальное закрытие
-          throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
-        }
-      };
+gameSocket.onerror = () => {
+  throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
+};
 
-    } catch (err) {
-      // Cleanup при ошибке
-      if (connectionTimeout) {
-        clearTimeout(connectionTimeout);
-      }
-      if (gameSocket) {
-        gameSocket.close();
-      }
-      
-      const errorMessage = err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC;
-      console.error('❌ Login error:', err);
-      setError(errorMessage);
-    } finally {
-      setIsConnecting(false);
+gameSocket.onclose = (event) => {
+  if (event.code !== 1000) {
+    throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
+  }
+};
+
+} catch (err) {
+  // Cleanup при ошибке
+  if (connectionTimeout) {
+    clearTimeout(connectionTimeout);
+  }
+  if (gameSocket) {
+    gameSocket.close();
+  }
+  
+  const errorMessage = err instanceof Error ? err.message : ERROR_MESSAGES.GENERIC;
+  console.error('❌ Login error:', err);
+  setError(errorMessage);
+} finally {
+  setIsConnecting(false);
     }
   }, [navigate]);
 
