@@ -340,6 +340,7 @@ class DurakGameServer {
   } catch (error) {
     console.log('❌ URL token invalid:', error);
   }
+}
   
     const authTimeout = setTimeout(() => {
       console.log('⏰ WebSocket authentication timeout');
