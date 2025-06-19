@@ -8,7 +8,7 @@ import {
   AutoStartInfo,
   TelegramUser,
   ConnectionStatus,
-  GameError
+  GameError,
   WebSocketResponse
 } from '@shared/types';
 import { useAuth } from '../hooks/useAuth';
