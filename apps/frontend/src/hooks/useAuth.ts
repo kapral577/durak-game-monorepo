@@ -294,6 +294,7 @@ try {
   if (token) {
     console.log('🔄 Direct token authentication');
     setAuthToken(token);
+    setIsAuthenticated(true);
     
     // Получение пользователя из Telegram для установки currentPlayer
     if (telegramUser) {
@@ -306,7 +307,12 @@ try {
         isReady: false
       };
       setCurrentPlayer(player);
-    }
+    console.log('✅ AUTH STATE UPDATED:', {
+      isAuthenticated: true,
+      hasToken: !!token,
+      hasPlayer: !!telegramUser,
+      authToken: token ? 'exists' : 'null'
+  });
     
     return true;
   }
