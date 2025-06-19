@@ -139,7 +139,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         
         if (message.type === 'authenticated' && message.token) {
           console.log('✅ Processing authentication success in GameProvider');
-          auth.authenticate(message.token);
+          localStorage.setItem('authToken', message.token);
+           auth.authenticate();
         }  
         
       } catch (error) {
