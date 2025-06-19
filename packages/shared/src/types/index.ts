@@ -118,7 +118,7 @@ export type WebSocketMessage =
   | { type: 'get_server_stats' }; // ✅ ДОБАВЛЕНО для мониторинга
 
 export type WebSocketResponse =
-  | { type: 'authenticated'; player: Player }
+  | { type: 'authenticated'; player: Player; token: string }
   | { type: 'room_created'; room: Room }
   | { type: 'room_joined'; room: Room }
   | { type: 'room_left' }

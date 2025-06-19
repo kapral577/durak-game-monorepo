@@ -34,3 +34,17 @@ export interface AuthErrorResponse {
 }
 
 export type AuthResponse = AuthSuccessResponse | AuthErrorResponse;
+export interface WebSocketAuthenticatedMessage {
+  type: 'authenticated';
+  player: Player;
+  token: string; // строго string!
+}
+
+export interface WebSocketRoomsListMessage {
+  type: 'rooms_list';
+  rooms: any[];
+}
+
+export type WebSocketMessage = 
+  | WebSocketAuthenticatedMessage 
+  | WebSocketRoomsListMessage;

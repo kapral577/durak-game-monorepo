@@ -9,6 +9,7 @@ import {
   TelegramUser,
   ConnectionStatus,
   GameError
+  WebSocketResponse
 } from '@shared/types';
 import { useAuth } from '../hooks/useAuth';
 import { useWebSocket } from '../hooks/useWebSocket';
@@ -133,7 +134,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   if (webSocket.socket) {
     const handleMessage = (event: MessageEvent) => {
       try {
-        const message = JSON.parse(event.data);
+        const message: WebSocketResponse = JSON.parse(event.data);
         console.log('📨 GameProvider received message:', message);
         
         if (message.type === 'authenticated' && message.token) {
