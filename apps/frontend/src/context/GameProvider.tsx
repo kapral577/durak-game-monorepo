@@ -127,36 +127,50 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   // Хуки
   const auth = useAuth();
-  const webSocket = useWebSocket(auth.authToken || undefined, auth.telegramUser);
-  const gameState = useGameState(webSocket.socket);
-  const roomManager = useRoomManager(webSocket.socket);
-  useEffect(() => {
-  console.log('🔧 DEBUG: GameProvider useEffect ЗАПУСТИЛСЯ');
-  console.log('🔧 DEBUG: webSocket.socket есть?', !!webSocket.socket);
-  if (webSocket.socket) {
+  const [gameWebSocket, setGameWebSocket] = useState<ReturnType<typeof useWebSocket> | null>(null);
+  const gameState = useGameState(gameWebSocket?.socket || null);
+  const roomManager = useRoomManager(gameWebSocket?.socket || null);
+ useEffect(() => {
+  console.log('🔧 DEBUG: GameProvider auth check:', {
+    isAuthenticated: auth.isAuthenticated,
+    hasToken: !!auth.authToken,
+    hasUser: !!auth.telegramUser
+  });
+  
+  if (auth.isAuthenticated && auth.authToken && auth.telegramUser) {
+    console.log('🔧 DEBUG: Creating WebSocket after authentication');
+    const ws = useWebSocket(auth.authToken, auth.telegramUser);
+    setGameWebSocket(ws);
+  } else {
+    console.log('🔧 DEBUG: Waiting for authentication...');
+    setGameWebSocket(null);
+  }
+}, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
+
+// Обработка WebSocket сообщений
+useEffect(() => {
+  if (gameWebSocket?.socket) {
+    console.log('🔧 DEBUG: Adding WebSocket listener in GameProvider');
+    
     const handleMessage = (event: MessageEvent) => {
       try {
         const message: WebSocketResponse = JSON.parse(event.data);
         console.log('📨 GameProvider received message:', message);
         
-        if (message.type === 'authenticated' && message.token) {
-          console.log('✅ Processing authentication success in GameProvider');
-          localStorage.setItem('authToken', message.token);
-           auth.authenticate();
-        }  
+        // Обработка игровых сообщений (НЕ authenticated - это уже обработано в LoginPage)
         
       } catch (error) {
         console.error('❌ GameProvider message parse error:', error);
       }
     };
     
-    webSocket.socket.addEventListener('message', handleMessage);
+    gameWebSocket.socket.addEventListener('message', handleMessage);
     
     return () => {
-      webSocket.socket?.removeEventListener('message', handleMessage);
+      gameWebSocket.socket?.removeEventListener('message', handleMessage);
     };
   }
-}, [webSocket.socket, auth]);
+}, [gameWebSocket?.socket]);
   
 
   // ===== УПРАВЛЕНИЕ ОШИБКАМИ =====
@@ -182,7 +196,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
    * Централизованная очистка ошибок
    */
   const clearError = () => {
-    webSocket.clearError();
+    gameWebSocket?.clearError();
     gameState.clearError();
     roomManager.clearError();
   };
@@ -220,7 +234,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const connect = async (): Promise<void> => {
     updateLoadingState('connecting', true);
     try {
-      await webSocket.connect();
+      await gameWebSocket?.connect?.();
     } finally {
       updateLoadingState('connecting', false);
     }
@@ -291,14 +305,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   }, [auth.error]);
 
   useEffect(() => {
-    if (webSocket.error) {
+    if (gameWebSocket?.error) {
       addError({
         type: 'websocket',
-        message: webSocket.error,
+        message: gameWebSocket.error,
         timestamp: new Date()
       });
     }
-  }, [webSocket.error]);
+  }, [gameWebSocket?.error]);
 
   useEffect(() => {
     if (gameState.error) {
@@ -331,15 +345,15 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
     // Определение основной ошибки для отображения
     const primaryError = auth.error || 
-      webSocket.error || 
+      gameWebSocket?.error|| 
       gameState.error || 
       roomManager.error;
 
     return {
       // WebSocket состояние
-      socket: webSocket.socket,
-      isConnected: webSocket.isConnected,
-      connectionStatus: webSocket.connectionStatus,
+      socket: gameWebSocket?.socket ?? null,
+      isConnected: gameWebSocket?.isConnected || false,
+      connectionStatus: gameWebSocket?.connectionStatus || 'disconnected',
       
       // Аутентификация
       telegramUser: auth.telegramUser,
@@ -370,7 +384,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
       
       // WebSocket методы
       connect,
-      disconnect: webSocket.disconnect,
+      disconnect: gameWebSocket?.disconnect,
       clearError,
       
       // Игровые методы
@@ -391,12 +405,12 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     };
   }, [
     // WebSocket зависимости
-    webSocket.socket,
-    webSocket.isConnected,
-    webSocket.connectionStatus,
-    webSocket.error,
-    webSocket.disconnect,
-    webSocket.clearError,
+      gameWebSocket?.socket,
+      gameWebSocket?.isConnected, 
+      gameWebSocket?.connectionStatus,
+      gameWebSocket?.error,
+      gameWebSocket?.disconnect,
+      gameWebSocket?.clearError,
     
     // Auth зависимости
     auth.telegramUser,

@@ -76,8 +76,8 @@ const validateAuthResponse = (data: any): data is AuthResponse => {
     typeof data.token === 'string' && 
     data.token.length > 0 &&
     data.user && 
-    typeof data.player.id === 'string' &&
-    typeof data.player.name === 'string';
+    typeof data.user.id === 'string' &&
+    typeof data.user.name === 'string';
 };
 
 /**
@@ -285,23 +285,45 @@ export const useAuth = (): UseAuthReturn => {
   /**
    * Основная функция аутентификации
    */
-  const authenticate = useCallback(async (): Promise<boolean> => {
-    if (!telegramUser) {
-      setError(AUTH_ERRORS.NO_USER);
-      return false;
+  const authenticate = useCallback(async (token?: string): Promise<boolean> => {
+   setIsLoading(true);
+setError(null);
+
+try {
+  // Если токен передан напрямую (из LoginPage)
+  if (token) {
+    console.log('🔄 Direct token authentication');
+    setAuthToken(token);
+    
+    // Получение пользователя из Telegram для установки currentPlayer
+    if (telegramUser) {
+      const player: Player = {
+        id: telegramUser.id.toString(),
+        name: telegramUser.first_name,
+        telegramId: telegramUser.id,
+        username: telegramUser.username,
+        avatar: telegramUser.photo_url,
+        isReady: false
+      };
+      setCurrentPlayer(player);
     }
+    
+    return true;
+  }
+  
+  // Оригинальная логика для случая без токена
+  if (!telegramUser) {
+    setError(AUTH_ERRORS.NO_USER);
+    return false;
+  }
 
-    setIsLoading(true);
-    setError(null);
+  // Получение initData из Telegram WebApp
+  const initData = TelegramAuth.isTelegramWebAppAvailable() 
+    ? window.Telegram?.WebApp?.initData || ''
+    : '';
 
-    try {
-      // Получение initData из Telegram WebApp
-      const initData = TelegramAuth.isTelegramWebAppAvailable() 
-        ? window.Telegram?.WebApp?.initData || ''
-        : '';
-
-      // Аутентификация на сервере
-      const authData = await authenticateWithRetry(initData, telegramUser);
+  // Аутентификация на сервере
+  const authData = await authenticateWithRetry(initData, telegramUser);
 
       // Сохранение данных
       setAuthToken(authData.token);

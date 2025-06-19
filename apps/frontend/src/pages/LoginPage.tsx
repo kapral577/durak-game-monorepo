@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { TelegramAuth } from '../utils/TelegramAuth';
+import { useAuth } from '../hooks/useAuth';
 
 // ✅ ИМПОРТ ЕДИНЫХ ТИПОВ вместо локальных интерфейсов
 import { AuthSuccessResponse, AuthErrorResponse, AuthResponse } from '../types/AuthTypes';
@@ -163,6 +164,7 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
   
   // Хуки
   const navigate = useNavigate();
+  const auth = useAuth();
 
   // ===== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP =====
 
@@ -222,52 +224,13 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       localStorage.setItem(CONFIG.STORAGE_KEYS.GAME_TOKEN, token);
       localStorage.setItem(CONFIG.STORAGE_KEYS.SESSION_ID, sessionId);
 
-      // Подключение к WebSocket серверу
-      gameSocket = new WebSocket(getWebSocketUrl(token));
-      
-      connectionTimeout = setTimeout(() => {
-        gameSocket?.close();
-        throw new Error(ERROR_MESSAGES.CONNECTION_TIMEOUT);
-      }, CONFIG.CONNECTION_TIMEOUT);
-
-      gameSocket.onopen = () => {
-  if (connectionTimeout) {
-    clearTimeout(connectionTimeout);
-  }
-  console.log('🎮 WebSocket connected successfully');
-  
-  gameSocket.send(JSON.stringify({
-    type: 'auth',
-    token: token
-  }));
-  console.log('📤 Auth token sent to WebSocket server');
-};
-
-gameSocket.onmessage = (event) => {
-  try {
-    const message = JSON.parse(event.data);
-    console.log('📨 WebSocket message received:', message);
-    
-    if (message.type === 'authenticated') {
-      console.log('✅ WebSocket authentication successful');
+      // Обновление глобального состояния авторизации
+      console.log('🔄 Updating authentication state...');
+      await auth.authenticate(token);
+      console.log('➡️ Navigating to main menu...');
       navigate('/');
-    }
-  } catch (error) {
-    console.error('❌ WebSocket message parse error:', error);
-  }
-};
+  } catch (err) {
 
-gameSocket.onerror = () => {
-  throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
-};
-
-gameSocket.onclose = (event) => {
-  if (event.code !== 1000) {
-    throw new Error(ERROR_MESSAGES.WEBSOCKET_FAILED);
-  }
-};
-
-} catch (err) {
   // Cleanup при ошибке
   if (connectionTimeout) {
     clearTimeout(connectionTimeout);
