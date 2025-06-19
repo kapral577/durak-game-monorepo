@@ -127,7 +127,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
 
   // Хуки
   const auth = useAuth();
-  const webSocket = useWebSocket(auth.authToken, auth.telegramUser);
+  const webSocket = useWebSocket(auth.authToken || undefined, auth.telegramUser);
   const gameState = useGameState(webSocket.socket);
   const roomManager = useRoomManager(webSocket.socket);
   useEffect(() => {
