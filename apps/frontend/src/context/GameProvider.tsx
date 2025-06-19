@@ -131,6 +131,8 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const gameState = useGameState(webSocket.socket);
   const roomManager = useRoomManager(webSocket.socket);
   useEffect(() => {
+  console.log('🔧 DEBUG: GameProvider useEffect ЗАПУСТИЛСЯ');
+  console.log('🔧 DEBUG: webSocket.socket есть?', !!webSocket.socket);
   if (webSocket.socket) {
     const handleMessage = (event: MessageEvent) => {
       try {
