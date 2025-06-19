@@ -136,32 +136,11 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
         const message = JSON.parse(event.data);
         console.log('📨 GameProvider received message:', message);
         
-        if (message.type === 'authenticated') {
+        if (message.type === 'authenticated' && message.token) {
           console.log('✅ Processing authentication success in GameProvider');
-          
-          if (message.player) {
-            // ✅ ИСПОЛЬЗОВАТЬ СУЩЕСТВУЮЩИЕ МЕТОДЫ:
-            
-            // 1. Обновить текущего игрока:
-            auth.setCurrentPlayer(message.player);
-            
-            // 2. Установить токен:
-            auth.setAuthToken(message.token);
-            
-            // 3. Обновить telegramUser (создать объект из player):
-            const telegramUserFromPlayer = {
-              id: message.player.telegramId,
-              first_name: message.player.name,
-              username: message.player.username || '',
-              last_name: '',
-              photo_url: message.player.avatar || '',
-              language_code: 'ru'
-            };
-            
-            // НО telegramUser нельзя обновить напрямую! 
-            // Это состояние только для чтения
-          }
-        }
+          auth.authenticate(message.token);
+        }  
+        
       } catch (error) {
         console.error('❌ GameProvider message parse error:', error);
       }
@@ -199,7 +178,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
    * Централизованная очистка ошибок
    */
   const clearError = () => {
-    auth.setAuthToken(auth.authToken); // Сброс ошибки auth
     webSocket.clearError();
     gameState.clearError();
     roomManager.clearError();
