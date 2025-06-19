@@ -307,6 +307,7 @@ try {
         isReady: false
       };
       setCurrentPlayer(player);
+   }
     console.log('✅ AUTH STATE UPDATED:', {
       isAuthenticated: true,
       hasToken: !!token,
