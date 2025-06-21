@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../hooks/useAuth';
 import { Container, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { TelegramAuth } from '../utils/TelegramAuth';
 
@@ -163,6 +164,7 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
   
   // Хуки
   const navigate = useNavigate();
+  const auth = useAuth();
 
   // ===== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP =====
 
@@ -217,6 +219,8 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       const { token, sessionId, user: playerData } = await authenticateWithRetry(initData, user);
 
       console.log('✅ Authentication successful:', { sessionId, hasToken: !!token });
+      console.log('🔄 Updating authentication state...');
+      await auth.authenticate(token);
 
       // Сохранение токенов
       localStorage.setItem(CONFIG.STORAGE_KEYS.GAME_TOKEN, token);
