@@ -311,6 +311,7 @@ export const App: React.FC<AppProps> = () => {
 App.displayName = 'App';
 
 // ===== ЭКСПОРТ =====
+}
 export default App;
 export type { AppProps };
 export { APP_CONFIG, META_CONFIG, CSS_CLASSES };
