@@ -155,29 +155,6 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
-// ✅ ДОБАВИТЬ СЛУШАТЕЛЬ CUSTOM EVENT:
-useEffect(() => {
-  const handleAuthUpdate = (event: CustomEvent) => {
-    console.log('🔄 Custom auth update event received:', event.detail);
-    console.log('🔄 Current auth state in GameProvider:', {
-      isAuthenticated: auth.isAuthenticated,
-      hasToken: !!auth.authToken,
-      hasUser: !!auth.telegramUser
-    });
-    
-    // Принудительное обновление через setTimeout
-    setTimeout(() => {
-      console.log('🔄 Delayed auth check:', {
-        isAuthenticated: auth.isAuthenticated,
-        hasToken: !!auth.authToken,
-        hasUser: !!auth.telegramUser
-      });
-    }, 500);
-  };
-
-  window.addEventListener('auth-updated', handleAuthUpdate);
-  return () => window.removeEventListener('auth-updated', handleAuthUpdate);
-}, []);
 
 // Принудительное обновление при изменении auth
 useEffect(() => {
