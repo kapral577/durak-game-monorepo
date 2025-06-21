@@ -445,12 +445,14 @@ ws.close(WS_CLOSE_CODES.ABNORMAL, 'Heartbeat timeout');
   }, [socket, stopHeartbeat]);
 
   // ===== CLEANUP ПРИ РАЗМОНТИРОВАНИИ =====
-
-  useEffect(() => {
-    return () => {
-      disconnect();
-    };
-  }, [disconnect]);
+  
+/*
+useEffect(() => {
+  return () => {
+    disconnect();
+  };
+}, [disconnect]);
+*/
 
   // ===== ВОЗВРАТ ДАННЫХ =====
 
