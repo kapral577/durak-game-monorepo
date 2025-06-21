@@ -175,28 +175,26 @@ useEffect(() => {
 
 // Обработка WebSocket сообщений
 useEffect(() => {
-  if (gameWebSocket?.socket) {
+  if (gameWebSocket?.socket && gameWebSocket?.isConnected) {
     console.log('🔧 DEBUG: Adding WebSocket listener in GameProvider');
-    
     const handleMessage = (event: MessageEvent) => {
       try {
         const message: WebSocketResponse = JSON.parse(event.data);
         console.log('📨 GameProvider received message:', message);
-        
+
         // Обработка игровых сообщений (НЕ authenticated - это уже обработано в LoginPage)
-        
       } catch (error) {
         console.error('❌ GameProvider message parse error:', error);
       }
     };
-    
+
     gameWebSocket.socket.addEventListener('message', handleMessage);
-    
+
     return () => {
       gameWebSocket.socket?.removeEventListener('message', handleMessage);
     };
   }
-}, [gameWebSocket?.socket]);
+}, [gameWebSocket?.socket, gameWebSocket?.isConnected]);
   
 
   // ===== УПРАВЛЕНИЕ ОШИБКАМИ =====
