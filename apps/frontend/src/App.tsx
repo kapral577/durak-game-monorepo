@@ -118,17 +118,25 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
   
   // Показ состояния подключения
-  if (!isConnected) {
-    return (
-      <Container className="d-flex justify-content-center align-items-center min-vh-100">
-        <div className="text-center">
-          <Spinner animation="border" className="mb-3" />
-          <p>Подключение к серверу...</p>
-          <ConnectionStatus />
-        </div>
-      </Container>
-    );
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { isAuthenticated, telegramUser } = useGame();
+  
+  console.log('🛡️ ProtectedRoute check:', {
+    isAuthenticated,
+    hasTelegramUser: !!telegramUser,
+    currentPath: window.location.pathname,
+    timestamp: Date.now()
+  });
+
+  // ТОЛЬКО проверка аутентификации - это главное!
+  if (!isAuthenticated || !telegramUser) {
+    console.log('🚫 ProtectedRoute BLOCKING - redirecting to /login');
+    return <Navigate to="/login" replace />;
   }
+
+  // Авторизованный пользователь ВСЕГДА попадает в контент
+  return <>{children}</>;
+};
   
   return <>{children}</>;
 };
