@@ -4,6 +4,8 @@ import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Card, Alert, Badge, Spinner } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
+import { useAuth } from '../hooks/useAuth';
+
 
 // ===== ИНТЕРФЕЙСЫ =====
 
@@ -59,6 +61,7 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
 
   // Хуки
   const navigate = useNavigate();
+  const { isAuthenticated, logout, telegramUser: authUser } = useAuth();
   const { 
     telegramUser,
     isConnected, 
@@ -66,6 +69,17 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
     clearError,
     reconnectAttempts 
   } = useGame();
+
+  // ===== ПРОВЕРКА АВТОРИЗАЦИИ ===== ← ДОБАВИТЬ ВЕСЬ ЭТОТ БЛОК
+  useEffect(() => {
+    console.log('🏠 MainMenu: Checking authentication...', { isAuthenticated });
+    if (!isAuthenticated) {
+      console.log('❌ User not authenticated, redirecting to login...');
+      navigate('/login', { replace: true });
+      return;
+    }
+    console.log('✅ User authenticated, rendering menu...');
+  }, [isAuthenticated, navigate]);
 
   // ===== ИНИЦИАЛИЗАЦИЯ ПРИЛОЖЕНИЯ =====
 
@@ -153,14 +167,30 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
   /**
    * Обработчик переподключения
    */
+  
   const handleReconnect = useCallback(async () => {
-    try {
-      clearError();
-      await connect();
-    } catch (err) {
-      console.error('Retry connection failed:', err);
+    if (!isConnected) {
+      try {
+        await connect();
+        clearError();
+      } catch (err) {
+        console.error('Reconnection failed:', err);
+      }
     }
-  }, [clearError, connect]);
+  }, [isConnected, connect, clearError]);
+
+  /**
+   * Обработчик выхода из системы
+   */
+  const handleLogout = useCallback(async () => {
+    try {
+      console.log('🚪 Logging out...');
+      await logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('❌ Logout error:', err);
+    }
+  }, [logout, navigate]);
 
   // ===== KEYBOARD SHORTCUTS =====
 
@@ -178,6 +208,9 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
           break;
         case '4':
           handleInviteFriends();
+          break;
+        case 'Escape':
+          handleLogout();
           break;
         case 'r':
           if (event.ctrlKey && !isConnected) {
@@ -318,6 +351,32 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
               accessKey="4"
             >
               👥 {UI_TEXT.INVITE_FRIENDS}
+            </Button>
+          </Col>
+
+          <Col xs={12}>
+            <Button
+              variant="outline-primary"
+              size="lg"
+              onClick={handleInviteFriends}
+              className="w-100"
+              aria-label="Пригласить друзей в игру"
+              accessKey="4"
+            >
+              👥 {UI_TEXT.INVITE_FRIENDS}
+            </Button>
+          </Col>
+          
+          {/* ДОБАВИТЬ НОВУЮ КНОПКУ ЗДЕСЬ: */}
+          <Col xs={12} className="mt-3">
+            <Button
+              variant="outline-danger"
+              size="lg"
+              onClick={handleLogout}
+              className="w-100"
+              aria-label="Выйти из игры"
+            >
+              🚪 Выйти
             </Button>
           </Col>
         </Row>
