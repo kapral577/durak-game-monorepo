@@ -345,7 +345,7 @@ useEffect(() => {
 
     // Определение основной ошибки для отображения
     const primaryError = auth.error || 
-      gameWebSocket?.error|| 
+      gameWebSocket?.error || 
       gameState.error || 
       roomManager.error;
 
