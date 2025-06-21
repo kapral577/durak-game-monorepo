@@ -55,6 +55,8 @@ const CSS_CLASSES = {
  * Главное меню игры
  */
 export const MainMenu: React.FC<MainMenuProps> = () => {
+  console.log('🏠 MainMenu component START rendering...');
+
   // Состояния
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -62,6 +64,7 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
   // Хуки
   const navigate = useNavigate();
   const { isAuthenticated, logout, telegramUser: authUser } = useAuth();
+  console.log('🏠 MainMenu useAuth result:', { isAuthenticated, hasAuthUser: !!authUser });
   const { 
     telegramUser,
     isConnected, 
@@ -69,10 +72,12 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
     clearError,
     reconnectAttempts 
   } = useGame();
+  console.log('🏠 MainMenu useGame result:', { hasTelegramUser: !!telegramUser, isConnected });
+
 
   // ===== ПРОВЕРКА АВТОРИЗАЦИИ ===== ← ДОБАВИТЬ ВЕСЬ ЭТОТ БЛОК
   useEffect(() => {
-    console.log('🏠 MainMenu: Checking authentication...', { isAuthenticated });
+    console.log('🏠 MainMenu: AUTH CHECK START - isAuthenticated:', isAuthenticated);
     if (!isAuthenticated) {
       console.log('❌ User not authenticated, redirecting to login...');
       navigate('/login', { replace: true });
