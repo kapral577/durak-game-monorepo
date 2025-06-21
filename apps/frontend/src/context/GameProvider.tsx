@@ -173,6 +173,7 @@ useEffect(() => {
   });
 }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
+/*
 // Обработка WebSocket сообщений
 useEffect(() => {
   if (gameWebSocket?.socket && gameWebSocket?.isConnected) {
@@ -195,7 +196,7 @@ useEffect(() => {
     };
   }
 }, [gameWebSocket?.socket, gameWebSocket?.isConnected]);
-  
+/*
 
   // ===== УПРАВЛЕНИЕ ОШИБКАМИ =====
 
