@@ -153,13 +153,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     } else {
       console.log('🔧 DEBUG: WebSocket should be disconnected');
     }
-  }, [auth.isAuthenticated, auth.authToken, auth.telegramUser, gameWebSocket?.isConnected]);
+  }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
 // Автоматическое подключение WebSocket после авторизации
 useEffect(() => {
-  if (auth.isAuthenticated && auth.authToken && auth.telegramUser && !gameWebSocket?.isConnected) {
+  if (auth.isAuthenticated && auth.authToken && auth.telegramUser && gameWebSocket && !gameWebSocket.isConnected) {
     console.log('🚀 GameProvider: Auto-connecting WebSocket after auth');
-    gameWebSocket?.connect();
+    gameWebSocket.connect();
   }
 }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
