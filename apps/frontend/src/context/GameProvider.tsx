@@ -153,7 +153,7 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     } else {
       console.log('🔧 DEBUG: WebSocket should be disconnected');
     }
-  }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
+  }, [auth.isAuthenticated, auth.authToken, auth.telegramUser, gameWebSocket?.isConnected]);
 
 // Автоматическое подключение WebSocket после авторизации
 useEffect(() => {
@@ -173,9 +173,10 @@ useEffect(() => {
   });
 }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
+/*
 // Обработка WebSocket сообщений
 useEffect(() => {
-  if (gameWebSocket?.socket && gameWebSocket?.isConnected) {
+   if (gameWebSocket?.socket) {
     console.log('🔧 DEBUG: Adding WebSocket listener in GameProvider');
     const handleMessage = (event: MessageEvent) => {
       try {
@@ -196,6 +197,7 @@ useEffect(() => {
   }
 }, [gameWebSocket?.socket, gameWebSocket?.isConnected]);
 
+/*
   // ===== УПРАВЛЕНИЕ ОШИБКАМИ =====
 
   /**
