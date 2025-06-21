@@ -6,6 +6,13 @@ import { Container, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { TelegramAuth } from '../utils/TelegramAuth';
 import { useAuth } from '../hooks/useAuth';
 
+// ИНТЕРФЕЙС ДЛЯ CustomEvent:
+declare global {
+  interface WindowEventMap {
+    'auth-updated': CustomEvent<{ isAuthenticated: boolean; authToken: string }>;
+  }
+}
+
 // ✅ ИМПОРТ ЕДИНЫХ ТИПОВ вместо локальных интерфейсов
 import { AuthSuccessResponse, AuthErrorResponse, AuthResponse } from '../types/AuthTypes';
 
@@ -17,8 +24,6 @@ import { AuthSuccessResponse, AuthErrorResponse, AuthResponse } from '../types/A
 export interface LoginPageProps {
   // Если нужны props в будущем
 }
-
-// ❌ УДАЛЕНЫ локальные интерфейсы - используем единые типы
 
 // ===== КОНСТАНТЫ =====
 
@@ -227,6 +232,13 @@ export const LoginPage: React.FC<LoginPageProps> = () => {
       // Обновление глобального состояния авторизации
       console.log('🔄 Updating authentication state...');
       await auth.authenticate(token);
+      console.log('🔄 Forcing GameProvider update...');
+      window.dispatchEvent(new CustomEvent('auth-updated', {
+        detail: { 
+          isAuthenticated: true,
+          authToken: token
+       } 
+     }));
       console.log('➡️ Navigating to main menu...');
       navigate('/');
   } catch (err) {
