@@ -125,31 +125,35 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const [errors, setErrors] = useState<GameError[]>([]);
   const [loadingStates, setLoadingStates] = useState(LOADING_STATES_DEFAULT);
 
-  // Хуки
+// Хуки
   const auth = useAuth();
-  const [gameWebSocket, setGameWebSocket] = useState<ReturnType<typeof useWebSocket> | null>(null);
+  
+  // WebSocket на верхнем уровне
+  const gameWebSocket = useWebSocket(
+    auth.isAuthenticated && auth.authToken ? auth.authToken : null,
+    auth.isAuthenticated && auth.telegramUser ? auth.telegramUser : null
+  );
+  
   const gameState = useGameState(gameWebSocket?.socket || null);
   const roomManager = useRoomManager(gameWebSocket?.socket || null);
- useEffect(() => {
-  console.log('🔧 DEBUG: GameProvider auth check (DETAILED):', {
-    isAuthenticated: auth.isAuthenticated,
-    hasToken: !!auth.authToken,
-    hasUser: !!auth.telegramUser,
-    authTokenValue: auth.authToken,
-    telegramUserValue: auth.telegramUser,
-    timestamp: Date.now(),
-    authObject: auth
-  });
   
-  if (auth.isAuthenticated && auth.authToken && auth.telegramUser) {
-    console.log('🔧 DEBUG: Creating WebSocket after authentication');
-    const ws = useWebSocket(auth.authToken, auth.telegramUser);
-    setGameWebSocket(ws);
-  } else {
-    console.log('🔧 DEBUG: Waiting for authentication...');
-    setGameWebSocket(null);
-  }
-}, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
+  // Логирование auth изменений
+  useEffect(() => {
+    console.log('🔧 DEBUG: GameProvider auth check (DETAILED):', {
+      isAuthenticated: auth.isAuthenticated,
+      hasToken: !!auth.authToken,
+      hasUser: !!auth.telegramUser,
+      authTokenValue: auth.authToken,
+      telegramUserValue: auth.telegramUser,
+      timestamp: Date.now()
+    });
+    
+    if (auth.isAuthenticated && auth.authToken && auth.telegramUser) {
+      console.log('🔧 DEBUG: WebSocket should be connected');
+    } else {
+      console.log('🔧 DEBUG: WebSocket should be disconnected');
+    }
+  }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
 // ✅ ДОБАВИТЬ СЛУШАТЕЛЬ CUSTOM EVENT:
 useEffect(() => {
