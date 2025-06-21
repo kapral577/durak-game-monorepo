@@ -192,10 +192,12 @@ export const useWebSocket = (
             clearTimeout(heartbeatTimeoutRef.current);
           }
           
+          /*
           heartbeatTimeoutRef.current = setTimeout(() => {
             console.warn('Heartbeat timeout, reconnecting...');
             ws.close(WS_CLOSE_CODES.ABNORMAL, 'Heartbeat timeout');
           }, 10000);
+          /*
         } catch (error) {
           console.error('Error sending heartbeat:', error);
         }
