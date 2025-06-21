@@ -131,10 +131,14 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   const gameState = useGameState(gameWebSocket?.socket || null);
   const roomManager = useRoomManager(gameWebSocket?.socket || null);
  useEffect(() => {
-  console.log('🔧 DEBUG: GameProvider auth check:', {
+  console.log('🔧 DEBUG: GameProvider auth check (DETAILED):', {
     isAuthenticated: auth.isAuthenticated,
     hasToken: !!auth.authToken,
-    hasUser: !!auth.telegramUser
+    hasUser: !!auth.telegramUser,
+    authTokenValue: auth.authToken,
+    telegramUserValue: auth.telegramUser,
+    timestamp: Date.now(),
+    authObject: auth
   });
   
   if (auth.isAuthenticated && auth.authToken && auth.telegramUser) {
