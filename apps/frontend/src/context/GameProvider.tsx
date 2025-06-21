@@ -151,6 +151,16 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
   }
 }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
+// Принудительное обновление при изменении auth
+useEffect(() => {
+  console.log('🔄 GameProvider FORCE UPDATE:', {
+    authChanged: Date.now(),
+    isAuthenticated: auth.isAuthenticated,
+    hasToken: !!auth.authToken,
+    hasUser: !!auth.telegramUser
+  });
+}, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
+
 // Обработка WebSocket сообщений
 useEffect(() => {
   if (gameWebSocket?.socket) {
@@ -408,22 +418,22 @@ useEffect(() => {
       clearErrors
     };
   }, [
-    // WebSocket зависимости
-      gameWebSocket?.socket,
-      gameWebSocket?.isConnected, 
-      gameWebSocket?.connectionStatus,
-      gameWebSocket?.error,
-      gameWebSocket?.disconnect,
-      gameWebSocket?.clearError,
-    
     // Auth зависимости
-    auth.telegramUser,
-    auth.isAuthenticated,
-    auth.authToken,
-    auth.currentPlayer,
-    auth.error,
-    auth.isLoading,
-    auth.logout,
+      auth.telegramUser,
+      auth.isAuthenticated, 
+      auth.authToken,
+      auth.currentPlayer,
+      auth.error,
+      auth.isLoading,
+      auth.logout,
+    
+    // WebSocket зависимости
+    gameWebSocket?.socket,
+    gameWebSocket?.isConnected,
+    gameWebSocket?.connectionStatus,
+    gameWebSocket?.error,
+    gameWebSocket?.disconnect,
+    gameWebSocket?.clearError,
     
     // Game state зависимости
     gameState.gameState,
