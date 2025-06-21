@@ -405,7 +405,7 @@ export const useWebSocket = (
       setError(errorMessage);
       setConnectionStatus('error');
     }
-  }, [authToken, telegramUser, socket, connectionStatus, reconnectAttempts, startHeartbeat, stopHeartbeat, onMessage]);
+  }, [authToken, telegramUser, connectionStatus, reconnectAttempts, startHeartbeat, stopHeartbeat, onMessage]);
 
   // ===== ОТКЛЮЧЕНИЕ =====
 
