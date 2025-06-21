@@ -266,47 +266,46 @@ export const App: React.FC<AppProps> = () => {
   // ===== РЕНДЕР =====
 
   return (
-    <HelmetProvider>
-      <ErrorBoundary>
-        <Helmet>
-          <title>{META_CONFIG.TITLE}</title>
-          <meta name="description" content={META_CONFIG.DESCRIPTION} />
-          <meta name="viewport" content={META_CONFIG.VIEWPORT} />
-          <meta name="theme-color" content={META_CONFIG.THEME_COLOR} />
-          <meta name="mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-capable" content="yes" />
-          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        </Helmet>
+  <HelmetProvider>
+    <ErrorBoundary>
+      <Helmet>
+        <title>{META_CONFIG.TITLE}</title>
+        <meta name="description" content={META_CONFIG.DESCRIPTION} />
+        <meta name="viewport" content={META_CONFIG.VIEWPORT} />
+        <meta name="theme-color" content={META_CONFIG.THEME_COLOR} />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </Helmet>
 
-        <GameSettingsProvider>
+      <GameSettingsProvider>
+        <Router>
           <GameProvider>
-            <Router>
-              <div className={CSS_CLASSES.APP_CONTAINER}>
-                {/* Уведомление об отсутствии интернета */}
-                {!isOnline && (
-                  <Alert variant="warning" className="mb-0 text-center">
-                    Нет подключения к интернету
-                  </Alert>
-                )}
+            <div className={CSS_CLASSES.APP_CONTAINER}>
+              {/* Уведомление об отсутствии интернета */}
+              {!isOnline && (
+                <Alert variant="warning" className="mb-0 text-center">
+                  Нет подключения к интернету
+                </Alert>
+              )}
 
-                {/* Индикатор соединения */}
-                <ConnectionStatus />
-                
-                {/* Основной контент */}
-                <main className={CSS_CLASSES.MAIN_CONTENT}>
-                  <AppRoutes />
-                </main>
-                
-                {/* Нижняя навигация */}
-                <BottomNavbar />
-              </div>
-            </Router>
+              {/* Индикатор соединения */}
+              <ConnectionStatus />
+              
+              {/* Основной контент */}
+              <main className={CSS_CLASSES.MAIN_CONTENT}>
+                <AppRoutes />
+              </main>
+              
+              {/* Нижняя навигация */}
+              <BottomNavbar />
+            </div>
           </GameProvider>
-        </GameSettingsProvider>
-      </ErrorBoundary>
-    </HelmetProvider>
-  );
-};
+        </Router>
+      </GameSettingsProvider>
+    </ErrorBoundary>
+  </HelmetProvider>
+);
 
 // Установка displayName для лучшей отладки
 App.displayName = 'App';
