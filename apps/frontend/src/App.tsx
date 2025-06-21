@@ -101,23 +101,7 @@ const ErrorPage: React.FC = () => (
 /**
  * Компонент защищенного маршрута
  */
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, isConnected, telegramUser } = useGame();
-  console.log('🛡️ ProtectedRoute check:', {
-     isAuthenticated,
-     isConnected,
-     hasTelegramUser: !!telegramUser,
-     currentPath: window.location.pathname,
-     timestamp: Date.now()
-  });   
-  
-  // Проверка аутентификации
-  if (!isAuthenticated || !telegramUser) {
-    console.log('🚫 ProtectedRoute BLOCKING - redirecting to /login');
-    return <Navigate to="/login" replace />;
-  }
-  
-  // Показ состояния подключения
+
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, telegramUser } = useGame();
   
@@ -138,8 +122,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   return <>{children}</>;
 };
   
-  return <>{children}</>;
-};
 
 /**
  * Основные маршруты приложения
