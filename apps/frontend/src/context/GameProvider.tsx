@@ -155,13 +155,13 @@ export const GameProvider: React.FC<GameProviderProps> = ({ children }) => {
     }
   }, [auth.isAuthenticated, auth.authToken, auth.telegramUser]);
 
- // Автоматическое подключение WebSocket после авторизации
+// Автоматическое подключение WebSocket после авторизации
 useEffect(() => {
   if (auth.isAuthenticated && auth.authToken && auth.telegramUser && !gameWebSocket?.isConnected) {
     console.log('🚀 GameProvider: Auto-connecting WebSocket after auth');
     gameWebSocket?.connect();
   }
-}, [auth.isAuthenticated, auth.authToken, auth.telegramUser, gameWebSocket?.isConnected, gameWebSocket?.connect]);
+}, [auth.isAuthenticated, auth.authToken, auth.telegramUser, gameWebSocket?.isConnected]);
 
 // Принудительное обновление при изменении auth
 useEffect(() => {
