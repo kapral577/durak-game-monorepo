@@ -6,6 +6,7 @@ import { Container, Spinner, Alert } from 'react-bootstrap';
 import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { GameSettingsProvider } from './context/GameSettingsProvider';
 import { GameProvider } from './context/GameProvider';
+import { AuthProvider } from './hooks/useAuth';
 import { useGame } from './context/GameProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConnectionStatus from './components/ConnectionStatus';
@@ -278,7 +279,7 @@ export const App: React.FC<AppProps> = () => {
 
   // ===== РЕНДЕР =====
 
-  return (
+return (
   <HelmetProvider>
     <ErrorBoundary>
       <Helmet>
@@ -292,29 +293,31 @@ export const App: React.FC<AppProps> = () => {
       </Helmet>
 
       <GameSettingsProvider>
-        <Router>
-          <GameProvider>
-            <div className={CSS_CLASSES.APP_CONTAINER}>
-              {/* Уведомление об отсутствии интернета */}
-              {!isOnline && (
-                <Alert variant="warning" className="mb-0 text-center">
-                  Нет подключения к интернету
-                </Alert>
-              )}
+        <AuthProvider>
+          <Router>
+            <GameProvider>
+              <div className={CSS_CLASSES.APP_CONTAINER}>
+                {/* Уведомление об отсутствии интернета */}
+                {!isOnline && (
+                  <Alert variant="warning" className="mb-0 text-center">
+                    Нет подключения к интернету
+                  </Alert>
+                )}
 
-              {/* Индикатор соединения */}
-              <ConnectionStatus />
-              
-              {/* Основной контент */}
-              <main className={CSS_CLASSES.MAIN_CONTENT}>
-                <AppRoutes />
-              </main>
-              
-              {/* Нижняя навигация */}
-              <BottomNavbar />
-            </div>
-          </GameProvider>
-        </Router>
+                {/* Индикатор соединения */}
+                <ConnectionStatus />
+                
+                {/* Основной контент */}
+                <main className={CSS_CLASSES.MAIN_CONTENT}>
+                  <AppRoutes />
+                </main>
+                
+                {/* Нижняя навигация */}
+                <BottomNavbar />
+              </div>
+            </GameProvider>
+          </Router>
+        </AuthProvider>
       </GameSettingsProvider>
     </ErrorBoundary>
   </HelmetProvider>

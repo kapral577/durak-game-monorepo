@@ -1,6 +1,5 @@
-// src/hooks/useAuth.ts - ХУК ДЛЯ АУТЕНТИФИКАЦИИ
-
-import { useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import type { ReactNode } from 'react';
 import { TelegramUser, Player } from '@shared/types';
 import { TelegramAuth } from '../utils/TelegramAuth';
 
@@ -27,7 +26,7 @@ export interface UseAuthReturn {
   currentPlayer: Player | null;
   error: string | null;
   isLoading: boolean;
-  authenticate: () => Promise<boolean>;
+  authenticate: (token?: string) => Promise<boolean>;
   setAuthToken: (token: string | null) => void;
   setCurrentPlayer: (player: Player | null) => void;
   logout: () => void;
@@ -114,12 +113,11 @@ const removeFromStorage = (key: string): void => {
   }
 };
 
-// ===== ОСНОВНОЙ ХУК =====
+// ===== КОНТЕКСТ =====
+const AuthContext = createContext<UseAuthReturn | undefined>(undefined);
 
-/**
- * Хук для управления аутентификацией пользователя
- */
-export const useAuth = (): UseAuthReturn => {
+// ===== ЛОГИКА АУТЕНТИФИКАЦИИ =====
+const useAuthLogic = (): UseAuthReturn => {
   // Состояния
   const [telegramUser, setTelegramUser] = useState<TelegramUser | null>(null);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -287,50 +285,51 @@ export const useAuth = (): UseAuthReturn => {
    */
   const authenticate = useCallback(async (token?: string): Promise<boolean> => {
    setIsLoading(true);
-setError(null);
+   setError(null);
 
-try {
-  // Если токен передан напрямую (из LoginPage)
-  if (token) {
-    console.log('🔄 Direct token authentication');
-    setAuthToken(token);
-    setIsAuthenticated(true);
-    
-    // Получение пользователя из Telegram для установки currentPlayer
-    if (telegramUser) {
-      const player: Player = {
-        id: telegramUser.id.toString(),
-        name: telegramUser.first_name,
-        telegramId: telegramUser.id,
-        username: telegramUser.username,
-        avatar: telegramUser.photo_url,
-        isReady: false
-      };
-      setCurrentPlayer(player);
-   }
-    console.log('✅ AUTH STATE UPDATED:', {
-      isAuthenticated: true,
-      hasToken: !!token,
-      hasPlayer: !!telegramUser,
-      authToken: token ? 'exists' : 'null'
-  });
-    
-    return true;
-  }
-  
-  // Оригинальная логика для случая без токена
-  if (!telegramUser) {
-    setError(AUTH_ERRORS.NO_USER);
-    return false;
-  }
+   try {
+     // Если токен передан напрямую (из LoginPage)
+     if (token) {
+       console.log('🔄 Direct token authentication');
+       setAuthToken(token);
+       setIsAuthenticated(true);
+       
+       // Получение пользователя из Telegram для установки currentPlayer
+       if (telegramUser) {
+         const player: Player = {
+           id: telegramUser.id.toString(),
+           name: telegramUser.first_name,
+           telegramId: telegramUser.id,
+           username: telegramUser.username,
+           avatar: telegramUser.photo_url,
+           isReady: false
+         };
+         setCurrentPlayer(player);
+       }
+       
+       console.log('✅ AUTH STATE UPDATED:', {
+         isAuthenticated: true,
+         hasToken: !!token,
+         hasPlayer: !!telegramUser,
+         authToken: token ? 'exists' : 'null'
+       });
+       
+       return true;
+     }
+     
+     // Оригинальная логика для случая без токена
+     if (!telegramUser) {
+       setError(AUTH_ERRORS.NO_USER);
+       return false;
+     }
 
-  // Получение initData из Telegram WebApp
-  const initData = TelegramAuth.isTelegramWebAppAvailable() 
-    ? window.Telegram?.WebApp?.initData || ''
-    : '';
+     // Получение initData из Telegram WebApp
+     const initData = TelegramAuth.isTelegramWebAppAvailable() 
+       ? window.Telegram?.WebApp?.initData || ''
+       : '';
 
-  // Аутентификация на сервере
-  const authData = await authenticateWithRetry(initData, telegramUser);
+     // Аутентификация на сервере
+     const authData = await authenticateWithRetry(initData, telegramUser);
 
       // Сохранение данных
       setAuthToken(authData.token);
@@ -428,6 +427,26 @@ try {
     logout,
     validateToken
   };
+};
+
+// ===== AuthProvider КОМПОНЕНТ =====
+export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const authValue = useAuthLogic();
+  
+  return (
+    <AuthContext.Provider value={authValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+};
+
+// ===== ХУКИ =====
+export const useAuth = (): UseAuthReturn => {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
 };
 
 // ===== ЭКСПОРТ ДОПОЛНИТЕЛЬНЫХ ТИПОВ =====
