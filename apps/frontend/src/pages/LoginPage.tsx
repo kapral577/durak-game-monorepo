@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Spinner, Alert } from 'react-bootstrap';
 import { useAuth } from '../hooks/useAuth';
 import { TelegramAuth } from '../utils/TelegramAuth';
+import { useDeviceType } from '../hooks/useDeviceType';
+
 
 // ===== ТИПЫ =====
 
@@ -55,6 +57,7 @@ const validateAuthResponse = (data: any): data is AuthSuccessResponse => {
 export const LoginPage: React.FC = () => {
   // ===== ХУКИ =====
   const navigate = useNavigate();
+  const device = useDeviceType();
   const auth = useAuth();
 
   // ===== СОСТОЯНИЯ =====
@@ -207,7 +210,7 @@ export const LoginPage: React.FC = () => {
   return (
     <Container 
       fluid 
-      className="min-vh-100 d-flex align-items-center justify-content-center bg-gradient"
+      className="d-flex flex-column min-vh-100 adaptive-container with-safe-area"
       role="main"
       aria-label="Страница входа в игру"
     >
@@ -244,7 +247,7 @@ export const LoginPage: React.FC = () => {
                 </Alert>
               )}
 
-              <div className="text-center">
+              <div className="text-center safe-area-bottom">
                 <div className="mb-4">
                   <div className="display-1 mb-3">🎮</div>
                   <h4 className="mb-3">Готовы к игре?</h4>

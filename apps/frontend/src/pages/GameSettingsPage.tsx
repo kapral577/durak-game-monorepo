@@ -6,6 +6,7 @@ import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-b
 import { useGame } from '../context/GameProvider';
 import { useGameSettings } from '../context/GameSettingsProvider';
 import { GameMode, ThrowingMode, CardCount, PlayerCount } from '@shared/types';
+import { useDeviceType } from '../hooks/useDeviceType';
 
 // ===== ИНТЕРФЕЙСЫ =====
 
@@ -250,6 +251,8 @@ GameParametersSection.displayName = 'GameParametersSection';
  * Страница настроек игры
  */
 export const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
+   const device = useDeviceType();
+
   // Состояния
   const [roomName, setRoomName] = useState<string>('');
   const [validationError, setValidationError] = useState<string | null>(null);
@@ -372,7 +375,7 @@ export const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
   return (
     <Container 
-      className={CSS_CLASSES.SETTINGS_PAGE}
+      className={`${CSS_CLASSES.SETTINGS_PAGE} adaptive-container with-safe-area`}
       role="main" 
       aria-label="Настройки игры"
     >

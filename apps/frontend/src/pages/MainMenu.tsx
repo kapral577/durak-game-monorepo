@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Button, Card, Alert, Badge, Spinner } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
 import { useAuth } from '../hooks/useAuth';
+import { useDeviceType } from '../hooks/useDeviceType';
 
 
 // ===== ИНТЕРФЕЙСЫ =====
@@ -64,6 +65,7 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
   // Хуки
   const navigate = useNavigate();
   const { isAuthenticated, logout, telegramUser: authUser } = useAuth();
+  const device = useDeviceType();
   console.log('🏠 MainMenu useAuth result:', { isAuthenticated, hasAuthUser: !!authUser });
   const { 
     telegramUser,
@@ -246,7 +248,7 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
 
   return (
     <Container 
-      className={CSS_CLASSES.MAIN_MENU}
+      className={`${CSS_CLASSES.MAIN_MENU} adaptive-container with-safe-area`}
       role="main" 
       aria-label="Главное меню игры"
     >
@@ -305,7 +307,7 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
       </Row>
 
       {/* Кнопки меню */}
-      <div className={CSS_CLASSES.MENU_BUTTONS}>
+      <div className={`${CSS_CLASSES.MENU_BUTTONS} safe-area-bottom`}>
         <Row className="g-3">
           <Col xs={12}>
             <Button
@@ -378,7 +380,7 @@ export const MainMenu: React.FC<MainMenuProps> = () => {
               variant="outline-danger"
               size="lg"
               onClick={handleLogout}
-              className="w-100"
+              className="btn btn-outline-danger safe-area-bottom"
               aria-label="Выйти из игры"
             >
               🚪 Выйти

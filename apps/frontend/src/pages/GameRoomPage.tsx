@@ -5,6 +5,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Badge, ProgressBar, Spinner } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
 import PlayerSlot from '../components/PlayerSlot';
+import { useDeviceType } from '../hooks/useDeviceType';
 
 // ===== ИНТЕРФЕЙСЫ =====
 
@@ -306,6 +307,7 @@ RoomControls.displayName = 'RoomControls';
 export const GameRoomPage: React.FC<GameRoomPageProps> = () => {
   // Состояния
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const device = useDeviceType();
 
   // Хуки
   const navigate = useNavigate();
@@ -440,7 +442,7 @@ export const GameRoomPage: React.FC<GameRoomPageProps> = () => {
 
   if (isLoading) {
     return (
-      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+      <Container className="d-flex justify-content-center align-items-center min-vh-100 adaptive-container">
         <div className="text-center">
           <Spinner animation="border" className="mb-3" />
           <div>{UI_TEXT.LOADING_DATA}</div>
@@ -451,7 +453,7 @@ export const GameRoomPage: React.FC<GameRoomPageProps> = () => {
 
   if (!currentRoom || !roomId) {
     return (
-      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+      <Container className="d-flex justify-content-center align-items-center min-vh-100 adaptive-container">
         <Alert variant="warning">
           <div>{UI_TEXT.ROOM_NOT_EXISTS.replace('{roomId}', roomId || '')}</div>
         </Alert>
@@ -463,7 +465,7 @@ export const GameRoomPage: React.FC<GameRoomPageProps> = () => {
 
   return (
     <Container 
-      className={CSS_CLASSES.GAME_ROOM_PAGE}
+      className={`${CSS_CLASSES.GAME_ROOM_PAGE} adaptive-container with-safe-area`}
       role="main"
       aria-label="Страница игровой комнаты"
     >

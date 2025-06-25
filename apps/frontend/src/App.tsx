@@ -7,6 +7,7 @@ import { Helmet, HelmetProvider } from 'react-helmet-async';
 import { GameSettingsProvider } from './context/GameSettingsProvider';
 import { GameProvider } from './context/GameProvider';
 import { AuthProvider } from './hooks/useAuth';
+import { useDeviceType } from './hooks/useDeviceType';
 import { useGame } from './context/GameProvider';
 import ErrorBoundary from './components/ErrorBoundary';
 import ConnectionStatus from './components/ConnectionStatus';
@@ -216,6 +217,7 @@ export const App: React.FC<AppProps> = () => {
   // Состояния
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
+  const device = useDeviceType();
 
   // ===== ИНИЦИАЛИЗАЦИЯ TELEGRAM WEBAPP =====
 
@@ -286,7 +288,7 @@ return (
         <AuthProvider>
           <Router>
             <GameProvider>
-              <div className={CSS_CLASSES.APP_CONTAINER}>
+              <div className={`${CSS_CLASSES.APP_CONTAINER} ${device.isTelegramWebApp ? 'telegram-webapp' : ''}`}>
                 {/* Уведомление об отсутствии интернета */}
                 {!isOnline && (
                   <Alert variant="warning" className="mb-0 text-center">

@@ -1,5 +1,3 @@
-// src/styles/custom-bootstrap.scss - КАСТОМНЫЕ СТИЛИ BOOTSTRAP
-
 // ===== ПЕРЕМЕННЫЕ ИЗ SVG ДИЗАЙНА =====
 
 // Цвета из SVG
@@ -26,14 +24,11 @@ $glass-opacity-base: 0.1;
 $glass-opacity-hover: 0.15;
 $glass-opacity-active: 0.2;
 $glass-opacity-button: 0.3;
-
 $blur-base: 10px;
 $blur-decorative: 15px;
 $blur-strong: 25px;
-
 $lift-distance: -0.125rem;
 $lift-small: -0.0625rem;
-
 $animation-duration: 0.3s;
 $animation-easing: ease;
 
@@ -41,7 +36,6 @@ $animation-easing: ease;
 @import "bootstrap/scss/bootstrap";
 
 // ===== МИКСИНЫ =====
-
 @mixin glass-effect($opacity: $glass-opacity-base) {
   background: rgba(255, 255, 255, $opacity);
   backdrop-filter: blur($blur-base);
@@ -62,17 +56,17 @@ $animation-easing: ease;
   color: white;
   font-weight: 500;
   transition: all $animation-duration $animation-easing;
-  
+
   &:hover:not(:disabled) {
     @include glass-effect($glass-opacity-hover);
     transform: translateY($lift-small);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
   }
-  
+
   &:active:not(:disabled) {
     transform: translateY(0);
   }
-  
+
   &:disabled {
     opacity: 0.6;
     cursor: not-allowed;
@@ -81,7 +75,6 @@ $animation-easing: ease;
 }
 
 // ===== АДАПТИВНЫЕ МИКСИНЫ =====
-
 @mixin mobile-only {
   @media (max-width: 767.98px) {
     @content;
@@ -100,15 +93,51 @@ $animation-easing: ease;
   }
 }
 
-// ===== CSS CUSTOM PROPERTIES ДЛЯ ДИНАМИЧЕСКОЙ СМЕНЫ ТЕМЫ =====
-
+// ===== АДАПТИВНЫЕ ПЕРЕМЕННЫЕ =====
 :root {
+  // Основные CSS переменные для динамической смены темы
   --primary-color: #{$primary};
   --secondary-color: #{$secondary};
   --bg-color: #{$body-bg};
   --text-color: #{$body-color};
   --glass-base: #{$glass-opacity-base};
   --border-color: #{$border-color};
+  
+  // Адаптивные переменные - Десктоп (по умолчанию)
+  --container-padding: 2rem;
+  --button-height: 48px;
+  --font-size-base: 1rem;
+  --spacing-base: 1rem;
+  --safe-area-bottom: 1rem;
+  --border-radius-adaptive: #{$border-radius};
+  
+  // Планшеты
+  @media (max-width: 1023px) {
+    --container-padding: 1.5rem;
+    --button-height: 52px;
+    --font-size-base: 1.05rem;
+    --spacing-base: 1.25rem;
+    --safe-area-bottom: 2rem;
+  }
+  
+  // Мобильные устройства
+  @media (max-width: 767px) {
+    --container-padding: 1rem;
+    --button-height: 56px;
+    --font-size-base: 1.1rem;
+    --spacing-base: 1.5rem;
+    --safe-area-bottom: 4rem;
+    --border-radius-adaptive: 8px;
+  }
+  
+  // Очень маленькие экраны
+  @media (max-width: 480px) {
+    --container-padding: 0.75rem;
+    --button-height: 60px;
+    --font-size-base: 1.15rem;
+    --spacing-base: 1.75rem;
+    --safe-area-bottom: 5rem;
+  }
 }
 
 [data-theme="light"] {
@@ -118,8 +147,16 @@ $animation-easing: ease;
   --border-color: rgba(0, 0, 0, 0.1);
 }
 
-// ===== БАЗОВЫЕ СТИЛИ =====
+// Telegram WebApp специфичные переменные
+.telegram-webapp {
+  --safe-area-bottom: 6rem;
+  
+  @media (max-width: 480px) {
+    --safe-area-bottom: 7rem;
+  }
+}
 
+// ===== БАЗОВЫЕ СТИЛИ =====
 body {
   background: $body-bg;
   color: $body-color;
@@ -129,64 +166,67 @@ body {
   overflow-x: hidden;
 }
 
-// ===== ИСПРАВЛЕНИЕ ПРОБЛЕМЫ С КНОПКАМИ =====
-
-// Базовые стили для всех кнопок
+// ===== ГЛОБАЛЬНО АДАПТИВНЫЕ КНОПКИ =====
 .btn {
   @include button-glass();
-  
-  // Исправление разброса кнопок - единообразные отступы
+  // Использовать CSS переменные для адаптивности
+  min-height: var(--button-height);
+  font-size: var(--font-size-base);
+  border-radius: var(--border-radius-adaptive);
   margin-bottom: 0.5rem;
   
+  // Улучшенная область касания на мобильных
   @include mobile-only {
-    width: 100%;
+    padding: 1rem 1.5rem;
     margin-bottom: 0.75rem;
+    width: 100%;
+    
+    &.btn-lg {
+      min-height: 60px;
+      font-size: 1.2rem;
+      padding: 1.25rem 2rem;
+    }
   }
-  
+
   // Варианты кнопок
   &.btn-primary {
     background: rgba($primary, 0.8);
     border-color: $primary;
-    
     &:hover:not(:disabled) {
       background: rgba($primary, 0.9);
     }
   }
-  
+
   &.btn-success {
     background: rgba($success, 0.8);
     border-color: $success;
-    
     &:hover:not(:disabled) {
       background: rgba($success, 0.9);
     }
   }
-  
+
   &.btn-warning {
     background: rgba($warning, 0.8);
     border-color: $warning;
-    
     &:hover:not(:disabled) {
       background: rgba($warning, 0.9);
     }
   }
-  
+
   &.btn-danger {
     background: rgba($danger, 0.8);
     border-color: $danger;
-    
     &:hover:not(:disabled) {
       background: rgba($danger, 0.9);
     }
   }
-  
+
   &.btn-outline-primary,
   &.btn-outline-secondary,
   &.btn-outline-success,
   &.btn-outline-warning,
   &.btn-outline-danger {
     background: rgba(255, 255, 255, 0.1);
-    
     &:hover:not(:disabled) {
       background: rgba(255, 255, 255, 0.2);
     }
@@ -205,7 +245,6 @@ body {
 .d-grid {
   .btn {
     margin-bottom: 0.5rem;
-    
     &:last-child {
       margin-bottom: 0;
     }
@@ -221,72 +260,129 @@ body {
   }
 }
 
-// ===== КАРТОЧКИ =====
+// ===== УНИВЕРСАЛЬНЫЕ АДАПТИВНЫЕ КЛАССЫ =====
 
+// Адаптивные контейнеры
+.adaptive-container {
+  padding: var(--container-padding);
+  margin-bottom: var(--spacing-base);
+  
+  &.with-safe-area {
+    padding-bottom: var(--safe-area-bottom);
+  }
+  
+  &.spacing-sm {
+    padding: calc(var(--container-padding) * 0.5);
+  }
+  
+  &.spacing-lg {
+    padding: calc(var(--container-padding) * 1.5);
+  }
+}
+
+// Безопасная зона для всех компонентов
+.safe-area-bottom {
+  padding-bottom: var(--safe-area-bottom) !important;
+}
+
+.safe-area-margin {
+  margin-bottom: var(--safe-area-bottom) !important;
+}
+
+// Адаптивный текст
+.adaptive-text {
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  
+  &.text-sm {
+    font-size: calc(var(--font-size-base) * 0.875);
+  }
+  
+  &.text-lg {
+    font-size: calc(var(--font-size-base) * 1.125);
+  }
+}
+
+// ===== КАРТОЧКИ =====
 .card {
   @include glass-effect();
   border-radius: $border-radius;
   border: 1px solid rgba(255, 255, 255, 0.2);
+  margin-bottom: var(--spacing-base);
+  
+  .card-body {
+    padding: var(--container-padding);
+  }
   
   .card-header {
     background: rgba(255, 255, 255, 0.1);
     border-bottom: 1px solid rgba(255, 255, 255, 0.2);
   }
-  
+
   .card-footer {
     background: rgba(255, 255, 255, 0.05);
     border-top: 1px solid rgba(255, 255, 255, 0.2);
   }
 }
 
-// ===== ФОРМЫ =====
-
+// ===== УЛУЧШЕННЫЕ ФОРМЫ ДЛЯ МОБИЛЬНЫХ =====
 .form-control,
 .form-select {
   @include glass-effect(0.1);
-  border-radius: $border-radius;
+  border-radius: var(--border-radius-adaptive);
   border: 1px solid rgba(255, 255, 255, 0.3);
   color: white;
+  min-height: var(--button-height);
+  font-size: var(--font-size-base);
   
   &::placeholder {
     color: rgba(255, 255, 255, 0.6);
   }
-  
+
   &:focus {
     @include glass-effect(0.15);
     border-color: rgba(255, 255, 255, 0.5);
     box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
   }
+  
+  @include mobile-only {
+    min-height: 52px;
+    font-size: 1.1rem;
+  }
 }
 
 // ===== НАВИГАЦИЯ =====
-
 .navbar {
   @include glass-effect(0.2);
   backdrop-filter: blur($blur-strong);
+
+  .nav-link {
+    color: rgba(255, 255, 255, 0.8) !important;
+    transition: all $animation-duration $animation-easing;
+    &:hover {
+      color: white !important;
+      transform: translateY($lift-small);
+    }
+
+    &.active {
+      color: white !important;
+      font-weight: 600;
+    }
+  }
 }
 
-.nav-link {
-  color: rgba(255, 255, 255, 0.8) !important;
-  transition: all $animation-duration $animation-easing;
-  
-  &:hover {
-    color: white !important;
-    transform: translateY($lift-small);
-  }
-  
-  &.active {
-    color: white !important;
-    font-weight: 600;
-  }
-}
-
-// ===== НИЖНЯЯ НАВИГАЦИЯ =====
-
+// ===== АДАПТИВНАЯ НИЖНЯЯ НАВИГАЦИЯ =====
 .bottom-navbar {
   @include glass-effect(0.3);
   backdrop-filter: blur($blur-strong);
   border-top: 1px solid rgba(255, 255, 255, 0.2);
+  
+  // Адаптивная высота
+  height: calc(60px + var(--safe-area-bottom) - 2rem);
+  
+  @include mobile-only {
+    height: calc(70px + var(--safe-area-bottom) - 2rem);
+  }
   
   .bottom-nav-link {
     color: rgba(255, 255, 255, 0.7);
@@ -298,22 +394,27 @@ body {
     flex-direction: column;
     align-items: center;
     
+    // Увеличенная область касания на мобильных
+    @include mobile-only {
+      padding: 0.75rem 0.5rem;
+      min-height: 44px; // Стандарт Apple/Google для касания
+    }
+    
     &:hover {
       color: white;
       background: rgba(255, 255, 255, 0.1);
       transform: translateY(-2px);
     }
-    
+
     &--active {
       color: white;
       background: rgba(255, 255, 255, 0.15);
       font-weight: 600;
     }
-    
+
     &--disabled {
       opacity: 0.5;
       cursor: not-allowed;
-      
       &:hover {
         transform: none;
         background: none;
@@ -323,10 +424,8 @@ body {
 }
 
 // ===== УТИЛИТАРНЫЕ КЛАССЫ =====
-
 .glass {
   @include glass-effect();
-  
   &--light { @include glass-effect(0.05); }
   &--medium { @include glass-effect(0.15); }
   &--strong { @include glass-effect(0.25); }
@@ -345,7 +444,6 @@ body {
 }
 
 // ===== АНИМАЦИИ ДЛЯ ДЕКОРАТИВНЫХ ЭЛЕМЕНТОВ =====
-
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-10px); }
@@ -358,23 +456,21 @@ body {
 
 .decorative-blur {
   animation: float 6s ease-in-out infinite;
-  
   &.top-center {
     animation-delay: 0s;
   }
-  
+
   &.bottom-right {
     animation: pulse-glow 4s ease-in-out infinite;
     animation-delay: 1s;
   }
-  
+
   &.left-side {
     animation-delay: 2s;
   }
 }
 
 // ===== ACCESSIBILITY =====
-
 .btn, .form-control, .nav-link {
   &:focus-visible {
     outline: 2px solid rgba(255, 255, 255, 0.8);
@@ -389,18 +485,17 @@ body {
 }
 
 // ===== PRINT СТИЛИ =====
-
 @media print {
   body {
     background: white !important;
     color: black !important;
   }
-  
+
   .decorative-blur,
   .glass-effect {
     display: none !important;
   }
-  
+
   .btn {
     background: white !important;
     border: 1px solid black !important;
@@ -409,25 +504,22 @@ body {
 }
 
 // ===== ИГРОВЫЕ КОМПОНЕНТЫ =====
-
 .game-card {
   @include glass-effect(0.2);
   border-radius: 8px;
   transition: all $animation-duration $animation-easing;
-  
   &--selected {
     transform: translateY(-5px);
     box-shadow: 0 5px 15px rgba(74, 144, 226, 0.4);
   }
-  
+
   &--trump {
     border-color: rgba(240, 173, 78, 0.8);
     background: rgba(255, 243, 205, 0.1);
   }
-  
+
   &--clickable {
     cursor: pointer;
-    
     &:hover {
       transform: translateY(-3px);
     }
@@ -440,35 +532,33 @@ body {
   padding: 1rem;
   text-align: center;
   transition: all $animation-duration $animation-easing;
-  
   &--ready {
     border-color: rgba(92, 184, 92, 0.8);
     background: rgba(92, 184, 92, 0.1);
   }
-  
+
   &--you {
     border-color: rgba(74, 144, 226, 0.8);
     background: rgba(74, 144, 226, 0.1);
   }
-  
+
   &--disconnected {
     opacity: 0.6;
     border-color: rgba(240, 173, 78, 0.8);
   }
 }
 
-// ===== АДАПТИВНОСТЬ =====
-
+// ===== УЛУЧШЕННАЯ АДАПТИВНОСТЬ =====
 @include mobile-only {
   .container {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
-  
+
   .card {
     margin-bottom: 1rem;
   }
-  
+
   .btn {
     padding: 0.75rem 1rem;
     font-size: 1rem;

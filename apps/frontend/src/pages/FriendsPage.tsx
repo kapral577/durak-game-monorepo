@@ -4,6 +4,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Alert, Form } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
+import { useDeviceType } from '../hooks/useDeviceType';
 
 // ===== ИНТЕРФЕЙСЫ =====
 
@@ -200,7 +201,7 @@ const InviteSection: React.FC<{
         </Form.Group>
       )}
       
-      <div className="d-grid gap-2 d-md-flex">
+      <div className="d-grid gap-2 d-md-flex safe-area-bottom">
         <Button
           variant="outline-primary"
           onClick={onCopy}
@@ -267,6 +268,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = () => {
   // Хуки
   const navigate = useNavigate();
   const { telegramUser, createRoom } = useGame();
+  const device = useDeviceType();
 
   // ===== УТИЛИТАРНАЯ ФУНКЦИЯ ДЛЯ УВЕДОМЛЕНИЙ =====
 
@@ -392,7 +394,7 @@ export const FriendsPage: React.FC<FriendsPageProps> = () => {
 
   return (
     <Container 
-      className={CSS_CLASSES.FRIENDS_PAGE}
+      className={`${CSS_CLASSES.FRIENDS_PAGE} adaptive-container with-safe-area`}
       role="main"
       aria-label="Страница приглашения друзей"
     >

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert, Badge, Spinner } from 'react-bootstrap';
 import { useGame } from '../context/GameProvider';
 import { Room } from '@shared/types';
+import { useDeviceType } from '../hooks/useDeviceType';
 
 // ===== ИНТЕРФЕЙСЫ =====
 
@@ -236,6 +237,7 @@ export const RoomListPage: React.FC<RoomListPageProps> = () => {
 
   // Хуки
   const navigate = useNavigate();
+  const device = useDeviceType();
   const { 
     rooms, 
     joinRoom, 
@@ -353,7 +355,7 @@ export const RoomListPage: React.FC<RoomListPageProps> = () => {
 
   return (
     <Container 
-      className={CSS_CLASSES.ROOM_LIST_PAGE}
+      className={`${CSS_CLASSES.ROOM_LIST_PAGE} adaptive-container with-safe-area`}
       role="main"
       aria-label="Список игровых комнат"
     >

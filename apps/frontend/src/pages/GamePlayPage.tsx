@@ -10,6 +10,8 @@ import PlayerHand from '../components/game/PlayerHand';
 import GameControls from '../components/game/GameControls';
 import GameInfo from '../components/game/GameInfo';
 import TrumpCard from '../components/game/TrumpCard';
+import { useDeviceType } from '../hooks/useDeviceType';
+
 
 // ===== ИНТЕРФЕЙСЫ =====
 
@@ -111,6 +113,7 @@ export const GamePlayPage: React.FC<GamePlayPageProps> = () => {
     isConnected,
     error 
   } = useGame();
+  const device = useDeviceType();
 
   // ===== МЕМОИЗИРОВАННЫЕ ВЫЧИСЛЕНИЯ =====
 
@@ -300,7 +303,7 @@ export const GamePlayPage: React.FC<GamePlayPageProps> = () => {
 
   if (isLoading) {
     return (
-      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+      <Container className="d-flex justify-content-center align-items-center min-vh-100 adaptive-container">
         <div className="text-center">
           <div className="spinner-border mb-3" role="status" aria-hidden="true"></div>
           <div>{UI_TEXT.LOADING_GAME}</div>
@@ -311,7 +314,7 @@ export const GamePlayPage: React.FC<GamePlayPageProps> = () => {
 
   if (!gameState || !gameInfo) {
     return (
-      <Container className="d-flex justify-content-center align-items-center min-vh-100">
+      <Container className="d-flex justify-content-center align-items-center min-vh-100 adaptive-container">
         <Alert variant="warning" role="alert">
           {UI_TEXT.GAME_NOT_ACTIVE}
         </Alert>
@@ -323,7 +326,7 @@ export const GamePlayPage: React.FC<GamePlayPageProps> = () => {
 
   return (
     <Container 
-      className={CSS_CLASSES.GAME_PLAY_PAGE}
+      className={`${CSS_CLASSES.GAME_PLAY_PAGE} adaptive-container with-safe-area`}
       role="main" 
       aria-label="Игровая страница"
       aria-live="polite"
