@@ -260,7 +260,7 @@ export const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
 
   // Хуки
   const navigate = useNavigate();
-  const { createRoom, isConnected } = useGame();
+  const { createRoom, joinRoom, isConnected } = useGame();
   const {
     gameMode,
     throwingMode,
@@ -329,13 +329,22 @@ export const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
       };
       
       const result = await createRoom(roomName.trim(), rules);
-      if (result && result.roomId) {
-        navigate(`/room/${result.roomId}`);
-      } else {
-       // Если нет roomId, перейти к списку комнат
-       navigate('/rooms');    
-      }
-      
+if (result && result.roomId) {
+  // Автоматически занять место в созданной комнате
+  try {
+    await joinRoom(result.roomId);
+    navigate(`/room/${result.roomId}`);
+  } catch (joinError) {
+    console.error('Failed to join created room:', joinError);
+    // Все равно перейти в комнату, возможно место займется на странице
+    navigate(`/room/${result.roomId}`);
+  }
+} else {
+  // Если создание не удалось, показать ошибку
+  setValidationError('Не удалось создать комнату');
+  return;
+}
+
       // Показать сообщение о перенаправлении
       setValidationError(null);
       
@@ -347,7 +356,7 @@ export const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
     } finally {
       setIsCreating(false);
     }
-  }, [validateAllSettings, isConnected, roomName, gameMode, throwingMode, cardCount, maxPlayers, createRoom]);
+  }, [validateAllSettings, isConnected, roomName, gameMode, throwingMode, cardCount, maxPlayers, createRoom, joinRoom, navigate]);
 
   // ===== KEYBOARD SHORTCUTS =====
 
