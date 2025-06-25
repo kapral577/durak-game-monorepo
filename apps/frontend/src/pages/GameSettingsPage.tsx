@@ -328,7 +328,13 @@ export const GameSettingsPage: React.FC<GameSettingsPageProps> = () => {
         maxPlayers,
       };
       
-      await createRoom(roomName.trim(), rules);
+      const result = await createRoom(roomName.trim(), rules);
+      if (result && result.roomId) {
+        navigate(`/room/${result.roomId}`);
+      } else {
+       // Если нет roomId, перейти к списку комнат
+       navigate('/rooms');    
+      }
       
       // Показать сообщение о перенаправлении
       setValidationError(null);
